@@ -204,7 +204,7 @@ function Portfolio({D,dark,holdings=[],tradeHistory=[],dbCards=[]}){
               </div>
             );
           })}
-          {CARDS.filter(c=>!watchlist.find(w=>w.id===c.id)&&!HOLDINGS.find(h=>h.cardId===c.id)).slice(0,2).map(c=>(
+          {CARDS.filter(c=>!watchlist.find(w=>w.id===c.id)&&!holdings.find(h=>h.cardId===c.id)).slice(0,2).map(c=>(
             <div key={c.id} onClick={()=>setWatchlist(w=>[...w,c])} style={{display:"flex",alignItems:"center",gap:"10px",padding:"8px 14px",borderBottom:`1px solid ${D.bdr}`,cursor:"pointer",opacity:0.5}}>
               <span style={{color:D.accD,fontSize:"11px"}}>+</span>
               <img src={c.img} alt={c.name} style={{width:"18px",height:"25px",objectFit:"cover",borderRadius:"2px"}} onError={e=>e.target.style.display="none"}/>
@@ -879,8 +879,8 @@ function Landing({D,dark,dbCards,onEnterDemo,onOpenAuth}){
 
           </div>
         {/* Hero content */}
-        <div style={{position:"relative",zIndex:10,flex:1,display:"flex",flexDirection:"column",justifyContent:"center",padding:"60px 40px"}}>
-          <div style={{maxWidth:"700px"}}>
+        <div style={{position:"relative",zIndex:10,flex:1,display:"flex",flexDirection:"column",justifyContent:"center",alignItems:"center",padding:"60px 40px",textAlign:"center"}}>
+          <div style={{maxWidth:"700px",width:"100%"}}>
           <div style={{display:"inline-flex",alignItems:"center",gap:"8px",background:dark?"rgba(0,180,60,0.08)":"rgba(22,128,58,0.06)",border:`1px solid ${dark?"#1a4a1a":"#a8d4a8"}`,borderRadius:"20px",padding:"5px 14px",marginBottom:"28px",width:"fit-content"}}>
             <span style={{color:dark?"#00cc40":"#15803d",fontSize:"9px"}}>●</span>
             <span style={{color:dark?"#4a8a4a":"#3a7a3a",fontSize:"10px",letterSpacing:"0.12em"}}>LIVE MARKET · DEMO AVAILABLE</span>
@@ -891,11 +891,11 @@ function Landing({D,dark,dbCards,onEnterDemo,onOpenAuth}){
           <p style={{fontSize:"14px",lineHeight:1.8,color:dark?"#4a8a4a":"#5a7a5a",marginBottom:"36px",maxWidth:"480px"}}>
             Buy, sell and trade rare TCG cards with a real order book, live pricing, and portfolio tracking. Pokémon, MTG, Yu-Gi-Oh! and more.
           </p>
-          <div style={{display:"flex",gap:"14px",flexWrap:"wrap"}}>
+          <div style={{display:"flex",gap:"14px",flexWrap:"wrap",justifyContent:"center"}}>
             <button onClick={()=>onOpenAuth("signup")} style={{padding:"14px 32px",background:dark?"linear-gradient(135deg,#0a3a1a,#0f5a28)":"linear-gradient(135deg,#b8e8b8,#8acc8a)",border:`1px solid ${dark?"#1a5a2a":"#5a9a5a"}`,borderRadius:"7px",color:dark?"#00ff55":"#1a4a1a",fontSize:"12px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.1em",fontWeight:"bold"}}>CREATE FREE ACCOUNT</button>
             <button onClick={onEnterDemo} style={{padding:"14px 28px",background:"transparent",border:`1px solid ${dark?"#2a5a2a":"#c5d8c5"}`,borderRadius:"7px",color:dark?"#4a8a4a":"#3a7a3a",fontSize:"12px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.1em"}}>EXPLORE DEMO ▸</button>
           </div>
-          <div style={{display:"flex",gap:"28px",marginTop:"44px"}}>
+          <div style={{display:"flex",gap:"28px",marginTop:"44px",justifyContent:"center"}}>
             {[["20+","Cards Listed"],["$0","To Get Started"],["Live","Order Matching"]].map(([val,label])=>(
               <div key={label}>
                 <div style={{fontFamily:ORB,fontSize:"22px",fontWeight:800,color:dark?"#00cc40":"#15803d"}}>{val}</div>
