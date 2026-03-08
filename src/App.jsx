@@ -10,34 +10,74 @@ const CARDS = [
 ];
 const BASE = { 1:420, 2:8500, 3:74000, 4:280, 5:310 };
 
-const HOLDINGS = [
-  { cardId:1, qty:2, avgCost:380.00, acquired:"2024-11-14" },
-  { cardId:4, qty:3, avgCost:255.00, acquired:"2024-12-02" },
-  { cardId:5, qty:1, avgCost:295.00, acquired:"2025-01-08" },
-];
+// ── Trading state helpers ─────────────────────────────────────────────────────
+const STARTING_BALANCE = 15000;
+let _orderId = 1000;
+let _tradeId = 1000;
+const newOrderId  = () => `ORD-${++_orderId}`;
+const newTradeId  = () => `TRD-${++_tradeId}`;
+const nowDate = () => new Date().toISOString().slice(0,10);
+const nowTime = () => new Date().toLocaleTimeString("en-US",{hour12:false});
 
-const SAMPLE_ORDERS = [
-  { id:"ORD-0041", cardId:1, side:"buy",  type:"limit",  price:415.00,  qty:1, filled:0, status:"open",      time:"09:14:22", date:"2026-03-08" },
-  { id:"ORD-0039", cardId:2, side:"sell", type:"limit",  price:8600.00, qty:1, filled:0, status:"open",      time:"08:55:10", date:"2026-03-08" },
-  { id:"ORD-0037", cardId:5, side:"buy",  type:"limit",  price:305.00,  qty:2, filled:1, status:"partial",   time:"08:30:44", date:"2026-03-08" },
-  { id:"ORD-0034", cardId:4, side:"buy",  type:"market", price:280.00,  qty:1, filled:0, status:"cancelled", time:"15:22:01", date:"2026-03-07" },
-  { id:"ORD-0031", cardId:1, side:"sell", type:"limit",  price:440.00,  qty:1, filled:0, status:"cancelled", time:"11:05:33", date:"2026-03-06" },
-];
+// Match engine: given user orders + live market asks/bids, fill what can be filled
+function matchOrders(orders, marketPrices, holdings, balance){
+  let newOrders = orders.map(o=>({...o}));
+  let newHoldings = holdings.map(h=>({...h}));
+  let newBalance = balance;
+  const newTrades = [];
 
-const SAMPLE_HISTORY = [
-  { id:"TRD-0088", cardId:1, side:"buy",  price:380.00,  qty:2, total:760.00,  date:"2024-11-14", time:"10:22:11" },
-  { id:"TRD-0072", cardId:4, side:"buy",  price:255.00,  qty:3, total:765.00,  date:"2024-12-02", time:"14:08:55" },
-  { id:"TRD-0065", cardId:5, side:"buy",  price:295.00,  qty:1, total:295.00,  date:"2025-01-08", time:"09:44:20" },
-  { id:"TRD-0051", cardId:2, side:"sell", price:8200.00, qty:1, total:8200.00, date:"2025-02-14", time:"16:30:02" },
-  { id:"TRD-0040", cardId:1, side:"sell", price:420.00,  qty:1, total:420.00,  date:"2025-03-01", time:"11:15:44" },
-];
+  for(let o of newOrders){
+    if(o.status !== "open" && o.status !== "partial") continue;
+    const mktPrice = marketPrices[o.cardId] || 0;
+    const remaining = o.qty - o.filled;
+    if(remaining <= 0){ o.status="filled"; continue; }
 
-const SAMPLE_LEDGER = [
-  { id:"DEP-001", type:"deposit",    amount:5000.00,  method:"Bank Transfer", date:"2024-11-10" },
-  { id:"DEP-002", type:"deposit",    amount:10000.00, method:"Bank Transfer", date:"2024-12-01" },
-  { id:"WIT-001", type:"withdrawal", amount:2500.00,  method:"Bank Transfer", date:"2025-01-20" },
-  { id:"DEP-003", type:"deposit",    amount:3000.00,  method:"Card",          date:"2025-02-28" },
-];
+    let fillPrice = null;
+    if(o.type === "market"){
+      fillPrice = mktPrice;
+    } else if(o.side === "buy" && o.price >= mktPrice){
+      fillPrice = o.price;
+    } else if(o.side === "sell" && o.price <= mktPrice){
+      fillPrice = o.price;
+    }
+
+    if(fillPrice !== null){
+      const fillQty = remaining;
+      const total = +(fillPrice * fillQty).toFixed(2);
+
+      if(o.side === "buy"){
+        if(newBalance < total) continue; // not enough funds
+        newBalance = +(newBalance - total).toFixed(2);
+        const idx = newHoldings.findIndex(h=>h.cardId===o.cardId);
+        if(idx>=0){
+          const h = newHoldings[idx];
+          const newQty = h.qty + fillQty;
+          const newAvg = +((h.avgCost*h.qty + fillPrice*fillQty)/newQty).toFixed(2);
+          newHoldings[idx] = {...h, qty:newQty, avgCost:newAvg};
+        } else {
+          newHoldings.push({cardId:o.cardId, qty:fillQty, avgCost:fillPrice, acquired:nowDate()});
+        }
+      } else {
+        const idx = newHoldings.findIndex(h=>h.cardId===o.cardId);
+        if(idx<0 || newHoldings[idx].qty < fillQty) continue; // not enough cards
+        newBalance = +(newBalance + total).toFixed(2);
+        const h = newHoldings[idx];
+        const newQty = h.qty - fillQty;
+        if(newQty === 0) newHoldings.splice(idx,1);
+        else newHoldings[idx] = {...h, qty:newQty};
+      }
+
+      o.filled += fillQty;
+      o.status = o.filled >= o.qty ? "filled" : "partial";
+      newTrades.push({
+        id: newTradeId(), cardId: o.cardId, side: o.side,
+        price: fillPrice, qty: fillQty, total,
+        date: nowDate(), time: nowTime()
+      });
+    }
+  }
+  return { orders: newOrders, holdings: newHoldings, balance: newBalance, newTrades };
+}
 
 const SAMPLE_ALERTS = [
   { id:"ALT-001", cardId:1, condition:"above", target:430.00,  triggered:true,  triggeredAt:"2026-03-07 14:22", active:false },
@@ -65,22 +105,23 @@ const MONO="'Share Tech Mono','Courier New',monospace";
 const ORB="'Orbitron',sans-serif";
 
 // ── Portfolio ─────────────────────────────────────────────────────────────────
-function Portfolio({D,dark}){
+function Portfolio({D,dark,holdings=[],tradeHistory=[],dbCards=[]}){
   const [selected,setSelected]=useState(null);
   const [watchlist,setWatchlist]=useState([CARDS[1],CARDS[2]]);
 
-  const holdings=HOLDINGS.map(h=>{
-    const card=CARDS.find(c=>c.id===h.cardId);
-    const cur=+(BASE[h.cardId]*(0.97+Math.random()*0.06)).toFixed(2);
+  const allCards=[...dbCards,...CARDS];
+  const enrichedHoldings=holdings.map(h=>{
+    const card=allCards.find(c=>c.id===h.cardId)||{name:"Unknown",img:"",set:"",condition:""};
+    const cur=+(card.basePrice||BASE[h.cardId]||h.avgCost);
     const val=+(cur*h.qty).toFixed(2);
     const cost=+(h.avgCost*h.qty).toFixed(2);
     const pnl=+(val-cost).toFixed(2);
-    const pct=+((pnl/cost)*100).toFixed(2);
+    const pct=cost>0?+((pnl/cost)*100).toFixed(2):0;
     return {...h,card,cur,val,cost,pnl,pct};
   });
 
-  const totalVal=+holdings.reduce((s,h)=>s+h.val,0).toFixed(2);
-  const totalCost=+holdings.reduce((s,h)=>s+h.cost,0).toFixed(2);
+  const totalVal=+enrichedHoldings.reduce((s,h)=>s+h.val,0).toFixed(2);
+  const totalCost=+enrichedHoldings.reduce((s,h)=>s+h.cost,0).toFixed(2);
   const totalPnl=+(totalVal-totalCost).toFixed(2);
   const totalPct=+((totalPnl/totalCost)*100).toFixed(2);
 
@@ -115,7 +156,7 @@ function Portfolio({D,dark}){
           <div style={{display:"grid",gridTemplateColumns:"1fr 50px 70px 70px 70px",padding:"5px 14px",color:D.txtD,fontSize:"9px",borderBottom:`1px solid ${D.bdr}`}}>
             <span>CARD</span><span style={{textAlign:"right"}}>QTY</span><span style={{textAlign:"right"}}>PRICE</span><span style={{textAlign:"right"}}>VALUE</span><span style={{textAlign:"right"}}>P&L</span>
           </div>
-          {holdings.map(h=>(
+          {enrichedHoldings.length===0?(<div style={{padding:"40px",textAlign:"center",color:D.txtD,fontSize:"12px"}}>No holdings yet — place your first trade in the Market tab</div>):enrichedHoldings.map(h=>(
             <div key={h.cardId} onClick={()=>setSelected(selected?.cardId===h.cardId?null:h)} style={{display:"grid",gridTemplateColumns:"1fr 50px 70px 70px 70px",padding:"9px 14px",borderBottom:`1px solid ${D.bdr}`,cursor:"pointer",background:selected?.cardId===h.cardId?(dark?"rgba(0,255,80,0.05)":"rgba(22,128,58,0.05)"):"transparent",transition:"background 0.1s",alignItems:"center"}}>
               <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
                 <img src={h.card.img} alt={h.card.name} style={{width:"22px",height:"30px",objectFit:"cover",borderRadius:"2px"}} onError={e=>e.target.style.display="none"}/>
@@ -127,10 +168,10 @@ function Portfolio({D,dark}){
               <span style={{textAlign:"right",color:h.pnl>=0?D.buyT:D.askT,fontSize:"11px"}}>{h.pnl>=0?"+":""}${Math.abs(h.pnl).toLocaleString()}</span>
             </div>
           ))}
-          {selected && (
+          )}{selected && (
             <div style={{borderTop:`1px solid ${D.bdr}`,padding:"10px 14px"}}>
               <div style={{color:D.txtD,fontSize:"9px",letterSpacing:"0.1em",marginBottom:"8px"}}>▸ TRADES — {selected.card.name}</div>
-              {SAMPLE_HISTORY.filter(t=>t.cardId===selected.cardId).map(t=>(
+              {tradeHistory.filter(t=>t.cardId===selected.cardId).map(t=>(
                 <div key={t.id} style={{display:"flex",justifyContent:"space-between",padding:"4px 0",borderBottom:`1px solid ${D.bdr}`}}>
                   <span style={{color:t.side==="buy"?D.buyT:D.askT,fontSize:"10px"}}>{t.side.toUpperCase()}</span>
                   <span style={{color:D.txtM,fontSize:"10px"}}>{t.qty}x @ ${t.price.toLocaleString()}</span>
@@ -157,7 +198,7 @@ function Portfolio({D,dark}){
                   <img src={c.img} alt={c.name} style={{width:"22px",height:"30px",objectFit:"cover",borderRadius:"2px"}} onError={e=>e.target.style.display="none"}/>
                   <div><div style={{color:D.txt,fontSize:"11px"}}>{c.name}</div><div style={{color:D.txtD,fontSize:"9px"}}>{c.set}</div></div>
                 </div>
-                <span style={{textAlign:"right",color:D.txt,fontSize:"11px"}}>${BASE[c.id].toLocaleString()}</span>
+                <span style={{textAlign:"right",color:D.txt,fontSize:"11px"}}>${(c.basePrice||BASE[c.id]||0).toLocaleString()}</span>
                 <span style={{textAlign:"right",color:up?D.buyT:D.askT,fontSize:"11px"}}>{up?"+":""}{chg}%</span>
                 <span onClick={()=>setWatchlist(w=>w.filter(x=>x.id!==c.id))} style={{textAlign:"right",color:D.txtD,fontSize:"16px",cursor:"pointer",lineHeight:1}}>×</span>
               </div>
@@ -177,11 +218,10 @@ function Portfolio({D,dark}){
 }
 
 // ── Orders ────────────────────────────────────────────────────────────────────
-function Orders({D,dark}){
+function Orders({D,dark,orders=[],onCancel,dbCards=[]}){
   const [filter,setFilter]=useState("all");
-  const [orders,setOrders]=useState(SAMPLE_ORDERS);
-
-  const cancel=id=>setOrders(o=>o.map(x=>x.id===id?{...x,status:"cancelled"}:x));
+  const allCards=[...dbCards,...CARDS];
+  const cancel=id=>{ if(onCancel) onCancel(id); };
   const filtered=filter==="all"?orders:orders.filter(o=>o.status===filter);
   const sColor=s=>s==="open"?D.buyT:s==="partial"?"#f59e0b":D.txtD;
   const sBg=s=>s==="open"?(dark?"rgba(0,200,60,0.08)":"rgba(22,128,58,0.08)"):s==="partial"?(dark?"rgba(245,158,11,0.08)":"rgba(245,158,11,0.06)"):dark?"rgba(80,80,80,0.08)":"rgba(80,80,80,0.04)";
@@ -189,7 +229,7 @@ function Orders({D,dark}){
   return(
     <div style={{flex:1,overflowY:"auto",padding:"20px",display:"flex",flexDirection:"column",gap:"16px"}}>
       <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:"12px"}}>
-        {[["OPEN",orders.filter(o=>o.status==="open").length],["PARTIAL",orders.filter(o=>o.status==="partial").length],["CANCELLED",orders.filter(o=>o.status==="cancelled").length],["TOTAL",orders.length]].map(([label,val])=>(
+        {[["OPEN",orders.filter(o=>o.status==="open").length],["PARTIAL",orders.filter(o=>o.status==="partial").length],["FILLED",orders.filter(o=>o.status==="filled").length],["TOTAL",orders.length]].map(([label,val])=>(
           <div key={label} style={{background:D.bg2,border:`1px solid ${D.bdr}`,borderRadius:"6px",padding:"14px 16px"}}>
             <div style={{color:D.txtD,fontSize:"9px",letterSpacing:"0.12em",marginBottom:"8px"}}>{label} ORDERS</div>
             <div style={{fontFamily:ORB,fontSize:"22px",fontWeight:700,color:D.txt}}>{val}</div>
@@ -208,9 +248,9 @@ function Orders({D,dark}){
         <div style={{display:"grid",gridTemplateColumns:"90px 1fr 50px 60px 80px 60px 80px 70px",padding:"6px 14px",color:D.txtD,fontSize:"9px",borderBottom:`1px solid ${D.bdr}`,letterSpacing:"0.08em"}}>
           <span>ORDER ID</span><span>CARD</span><span>SIDE</span><span>TYPE</span><span style={{textAlign:"right"}}>PRICE</span><span style={{textAlign:"right"}}>QTY</span><span style={{textAlign:"right"}}>STATUS</span><span style={{textAlign:"right"}}>ACTION</span>
         </div>
-        {filtered.length===0&&<div style={{padding:"40px",textAlign:"center",color:D.txtD,fontSize:"11px"}}>No {filter} orders</div>}
+        {filtered.length===0&&<div style={{padding:"40px",textAlign:"center",color:D.txtD,fontSize:"11px"}}>{filter==="all"?"No orders yet — place your first trade in the Market tab":`No ${filter} orders`}</div>}
         {filtered.map(o=>{
-          const card=CARDS.find(c=>c.id===o.cardId);
+          const card=allCards.find(c=>c.id===o.cardId)||{name:"Unknown",img:"",img_url:""};
           return(
             <div key={o.id} style={{display:"grid",gridTemplateColumns:"90px 1fr 50px 60px 80px 60px 80px 70px",padding:"10px 14px",borderBottom:`1px solid ${D.bdr}`,alignItems:"center"}}>
               <span style={{color:D.txtM,fontSize:"10px"}}>{o.id}</span>
@@ -237,11 +277,12 @@ function Orders({D,dark}){
 }
 
 // ── History ───────────────────────────────────────────────────────────────────
-function History({D,dark}){
+function History({D,dark,tradeHistory=[],ledger=[],dbCards=[]}){
   const [tab,setTab]=useState("trades");
 
+  const allCards=[...dbCards,...CARDS];
   function downloadCSV(){
-    const rows=[["ID","Card","Side","Price","Qty","Total","Date","Time"],...SAMPLE_HISTORY.map(t=>{const card=CARDS.find(c=>c.id===t.cardId);return[t.id,card.name,t.side,t.price,t.qty,t.total,t.date,t.time];})];
+    const rows=[["ID","Card","Side","Price","Qty","Total","Date","Time"],...tradeHistory.map(t=>{const card=allCards.find(c=>c.id===t.cardId)||{name:"Unknown"};return[t.id,card.name,t.side,t.price,t.qty,t.total,t.date,t.time];})];
     const blob=new Blob([rows.map(r=>r.join(",")).join("\n")],{type:"text/csv"});
     const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="cx-trade-history.csv";a.click();
   }
@@ -265,7 +306,7 @@ function History({D,dark}){
             <div style={{display:"grid",gridTemplateColumns:"90px 1fr 50px 80px 50px 90px 110px",padding:"6px 14px",color:D.txtD,fontSize:"9px",borderBottom:`1px solid ${D.bdr}`,letterSpacing:"0.08em"}}>
               <span>TRADE ID</span><span>CARD</span><span>SIDE</span><span style={{textAlign:"right"}}>PRICE</span><span style={{textAlign:"right"}}>QTY</span><span style={{textAlign:"right"}}>TOTAL</span><span style={{textAlign:"right"}}>DATE</span>
             </div>
-            {SAMPLE_HISTORY.map(t=>{const card=CARDS.find(c=>c.id===t.cardId);return(
+            {tradeHistory.length===0?(<div style={{padding:"40px",textAlign:"center",color:D.txtD,fontSize:"12px"}}>No trades yet</div>):tradeHistory.map(t=>{const card=allCards.find(c=>c.id===t.cardId)||{name:"Unknown",img:"",img_url:""};return(
               <div key={t.id} style={{display:"grid",gridTemplateColumns:"90px 1fr 50px 80px 50px 90px 110px",padding:"10px 14px",borderBottom:`1px solid ${D.bdr}`,alignItems:"center"}}>
                 <span style={{color:D.txtM,fontSize:"10px"}}>{t.id}</span>
                 <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
@@ -287,7 +328,7 @@ function History({D,dark}){
             <div style={{display:"grid",gridTemplateColumns:"90px 110px 1fr 100px 100px",padding:"6px 14px",color:D.txtD,fontSize:"9px",borderBottom:`1px solid ${D.bdr}`,letterSpacing:"0.08em"}}>
               <span>ID</span><span>TYPE</span><span>METHOD</span><span style={{textAlign:"right"}}>AMOUNT</span><span style={{textAlign:"right"}}>DATE</span>
             </div>
-            {SAMPLE_LEDGER.map(l=>(
+            {ledger.map(l=>(
               <div key={l.id} style={{display:"grid",gridTemplateColumns:"90px 110px 1fr 100px 100px",padding:"10px 14px",borderBottom:`1px solid ${D.bdr}`,alignItems:"center"}}>
                 <span style={{color:D.txtM,fontSize:"10px"}}>{l.id}</span>
                 <span style={{color:l.type==="deposit"?D.buyT:D.askT,fontSize:"10px"}}>{l.type.toUpperCase()}</span>
@@ -298,7 +339,7 @@ function History({D,dark}){
             ))}
             <div style={{padding:"12px 14px",borderTop:`1px solid ${D.bdr}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <span style={{color:D.txtD,fontSize:"10px"}}>NET BALANCE</span>
-              <span style={{color:D.buyT,fontSize:"13px",fontFamily:ORB}}>${SAMPLE_LEDGER.reduce((s,l)=>l.type==="deposit"?s+l.amount:s-l.amount,0).toLocaleString("en-US",{minimumFractionDigits:2})}</span>
+              <span style={{color:D.buyT,fontSize:"13px",fontFamily:ORB}}>${ledger.reduce((s,l)=>l.type==="deposit"?s+l.amount:s-l.amount,0).toLocaleString("en-US",{minimumFractionDigits:2})}</span>
             </div>
           </>
         )}
@@ -308,7 +349,7 @@ function History({D,dark}){
             <div style={{display:"grid",gridTemplateColumns:"90px 1fr 90px 80px 90px 130px",padding:"6px 14px",color:D.txtD,fontSize:"9px",borderBottom:`1px solid ${D.bdr}`,letterSpacing:"0.08em"}}>
               <span>ID</span><span>CARD</span><span>CONDITION</span><span style={{textAlign:"right"}}>TARGET</span><span style={{textAlign:"right"}}>STATUS</span><span style={{textAlign:"right"}}>TRIGGERED AT</span>
             </div>
-            {SAMPLE_ALERTS.map(a=>{const card=CARDS.find(c=>c.id===a.cardId);return(
+            {SAMPLE_ALERTS.map(a=>{const card=allCards.find(c=>c.id===a.cardId)||{name:"Unknown",img:""};return(
               <div key={a.id} style={{display:"grid",gridTemplateColumns:"90px 1fr 90px 80px 90px 130px",padding:"10px 14px",borderBottom:`1px solid ${D.bdr}`,alignItems:"center"}}>
                 <span style={{color:D.txtM,fontSize:"10px"}}>{a.id}</span>
                 <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
@@ -462,7 +503,7 @@ function Browser({D,dark,dbCards,onSelectCard}){
 }
 
 // ── Market ────────────────────────────────────────────────────────────────────
-function Market({D,dark,dbCards=[],initialCard=null}){
+function Market({D,dark,dbCards=[],initialCard=null,balance=0,onPlaceOrder,onUpdatePrice}){
   const allCards=dbCards.length?dbCards:CARDS.map(c=>({...c,basePrice:BASE[c.id]}));
   const [card,setCard]=useState(()=>initialCard||allCards[0]||CARDS[0]);
   const [sidebarMode,setSidebarMode]=useState("value");
@@ -488,7 +529,7 @@ function Market({D,dark,dbCards=[],initialCard=null}){
 
   useEffect(()=>{setAsks(genOrders(base,6,"ask"));setBids(genOrders(base,6,"bid"));setPrice(base);setTrades(Array.from({length:16},()=>genTrade(base)));setHist(genHist(base));setOPrice("");setOQty("");},[card]);
   useEffect(()=>{
-    const iv=setInterval(()=>{const t=genTrade(base);setFlash(t.price>price?"up":"down");setTimeout(()=>setFlash(null),400);setPrice(t.price);setTrades(p=>[t,...p.slice(0,19)]);setAsks(genOrders(t.price,6,"ask"));setBids(genOrders(t.price,6,"bid"));setHist(p=>[...p.slice(1),{p:t.price}]);},1800);
+    const iv=setInterval(()=>{const t=genTrade(base);setFlash(t.price>price?"up":"down");setTimeout(()=>setFlash(null),400);setPrice(t.price);if(onUpdatePrice&&card.id) onUpdatePrice(card.id,t.price);setTrades(p=>[t,...p.slice(0,19)]);setAsks(genOrders(t.price,6,"ask"));setBids(genOrders(t.price,6,"bid"));setHist(p=>[...p.slice(1),{p:t.price}]);},1800);
     return ()=>clearInterval(iv);
   },[base,price]);
 
@@ -497,7 +538,16 @@ function Market({D,dark,dbCards=[],initialCard=null}){
   const minP=Math.min(...hist.map(h=>h.p)),maxP=Math.max(...hist.map(h=>h.p)),rng=maxP-minP||1;
   const CW=560,CH=200;
   const lp=()=>hist.map((h,i)=>`${i===0?"M":"L"}${((i/(hist.length-1))*CW).toFixed(1)},${((CH-8)-((h.p-minP)/rng)*(CH-16)).toFixed(1)}`).join(" ");
-  const submitOrder=()=>{if(!oQty||(oType==="limit"&&!oPrice))return;setOStatus({side:oSide,price:oType==="market"?price:+oPrice,qty:+oQty});setTimeout(()=>setOStatus(null),3000);setOPrice("");setOQty("");};
+  const submitOrder=()=>{
+    if(!oQty||(oType==="limit"&&!oPrice)) return;
+    const orderPrice=oType==="market"?price:+oPrice;
+    const orderQty=+oQty;
+    if(oSide==="buy"&&orderPrice*orderQty>balance){ setOStatus({error:"Insufficient funds"}); setTimeout(()=>setOStatus(null),3000); return; }
+    if(onPlaceOrder) onPlaceOrder({cardId:card.id,side:oSide,type:oType,price:orderPrice,qty:orderQty});
+    setOStatus({side:oSide,price:orderPrice,qty:orderQty});
+    setTimeout(()=>setOStatus(null),3000);
+    setOPrice(""); setOQty("");
+  };
   const maxA=Math.max(...asks.map(a=>a.qty)),maxB=Math.max(...bids.map(b=>b.qty));
 
   return(
@@ -608,7 +658,10 @@ function Market({D,dark,dbCards=[],initialCard=null}){
           </div>
 
           <div style={{width:"220px",borderLeft:`1px solid ${D.bdr}`,background:D.bg2,flexShrink:0,overflowY:"auto"}}>
-            <div style={{padding:"8px 14px",borderBottom:`1px solid ${D.bdr}`,color:D.txtD,fontSize:"10px",letterSpacing:"0.12em"}}>▸ PLACE ORDER</div>
+            <div style={{padding:"8px 14px",borderBottom:`1px solid ${D.bdr}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <span style={{color:D.txtD,fontSize:"10px",letterSpacing:"0.12em"}}>▸ PLACE ORDER</span>
+              <span style={{color:D.txtM,fontSize:"10px"}}>💵 ${balance.toLocaleString("en-US",{minimumFractionDigits:2})}</span>
+            </div>
             <div style={{padding:"14px"}}>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",border:`1px solid ${D.bdr}`,borderRadius:"5px",overflow:"hidden",marginBottom:"14px"}}>
                 {["buy","sell"].map(s=><button key={s} onClick={()=>setOSide(s)} style={{padding:"9px",border:"none",cursor:"pointer",fontFamily:MONO,fontSize:"11px",letterSpacing:"0.1em",background:oSide===s?(s==="buy"?(dark?"rgba(0,180,60,0.18)":"rgba(22,128,58,0.12)"):(dark?"rgba(180,30,30,0.18)":"rgba(180,30,30,0.10)")):"transparent",color:oSide===s?(s==="buy"?D.buyT:D.askT):D.txtD,borderBottom:`2px solid ${oSide===s?(s==="buy"?D.buyT:D.askT):"transparent"}`,transition:"all 0.14s"}}>{s.toUpperCase()}</button>)}
@@ -625,7 +678,7 @@ function Market({D,dark,dbCards=[],initialCard=null}){
               <button onClick={submitOrder} style={{width:"100%",padding:"10px",border:`1px solid ${oSide==="buy"?(dark?"#1a5a2a":"#7ab07a"):(dark?"#5a1a1a":"#c07070")}`,borderRadius:"5px",fontSize:"11px",fontFamily:MONO,letterSpacing:"0.1em",fontWeight:"bold",background:oSide==="buy"?(dark?"linear-gradient(135deg,#0a3a1a,#0f5a28)":"linear-gradient(135deg,#cceacc,#a8d8a8)"):(dark?"linear-gradient(135deg,#3a0a0a,#5a1010)":"linear-gradient(135deg,#eacccc,#d8a8a8)"),color:oSide==="buy"?(dark?"#00ff55":"#1a5a2a"):(dark?"#ff5555":"#9a1a1a"),cursor:"pointer"}}>
                 {oSide==="buy"?"▲ BUY":"▼ SELL"} {card.name.split(" ")[0].toUpperCase()}
               </button>
-              {oStatus&&<div style={{marginTop:"10px",padding:"8px 10px",background:dark?"rgba(0,180,60,0.08)":"rgba(22,128,58,0.08)",border:`1px solid ${dark?"#1a4a1a":"#8acc8a"}`,borderRadius:"4px",fontSize:"10px",color:D.accD,lineHeight:"1.8"}}>✓ ORDER PLACED<br/><span style={{color:D.txtM}}>{oStatus.side.toUpperCase()} {oStatus.qty}x @ ${oStatus.price.toFixed(2)}</span></div>}
+              {oStatus&&<div style={{marginTop:"10px",padding:"8px 10px",background:oStatus.error?(dark?"rgba(180,30,30,0.08)":"rgba(220,50,50,0.06)"):(dark?"rgba(0,180,60,0.08)":"rgba(22,128,58,0.08)"),border:`1px solid ${oStatus.error?(dark?"#5a1a1a":"#e07070"):(dark?"#1a4a1a":"#8acc8a")}`,borderRadius:"4px",fontSize:"10px",color:oStatus.error?D.askT:D.accD,lineHeight:"1.8"}}>{oStatus.error?`⚠ ${oStatus.error}`:<>✓ ORDER PLACED<br/><span style={{color:D.txtM}}>{oStatus.side?.toUpperCase()} {oStatus.qty}x @ ${oStatus.price?.toFixed(2)}</span></>}</div>}
               <div style={{marginTop:"16px",paddingTop:"12px",borderTop:`1px solid ${D.bdr}`}}>
                 {[["BEST ASK",`$${asks[0]?.price.toFixed(2)}`],["BEST BID",`$${bids[0]?.price.toFixed(2)}`],["LAST TRADE",`$${price.toFixed(2)}`],["SPREAD",`$${spread.toFixed(2)}`]].map(([k,v])=>(
                   <div key={k} style={{display:"flex",justifyContent:"space-between",marginBottom:"5px"}}><span style={{color:D.txtD,fontSize:"9px"}}>{k}</span><span style={{color:D.txtM,fontSize:"10px"}}>{v}</span></div>
@@ -645,6 +698,15 @@ export default function App(){
   const [tab,setTab]=useState("MARKET");
   const [dbCards,setDbCards]=useState([]);
   const [selectedCard,setSelectedCard]=useState(null);
+
+  // ── Global trading state ──────────────────────────────────────────────────
+  const [balance,setBalance]=useState(STARTING_BALANCE);
+  const [orders,setOrders]=useState([]);
+  const [holdings,setHoldings]=useState([]);
+  const [tradeHistory,setTradeHistory]=useState([]);
+  const [ledger]=useState([{id:"DEP-001",type:"deposit",amount:STARTING_BALANCE,method:"Demo Credit",date:nowDate()}]);
+  const [marketPrices,setMarketPrices]=useState({});
+
   const D=dark?DK:LT;
 
   useEffect(()=>{
@@ -653,12 +715,60 @@ export default function App(){
         if(!error&&data){
           const fmt=data.map(c=>({id:c.id,name:c.name,set:c.set_name,set_name:c.set_name,condition:c.condition,rarity:c.rarity,game:c.game,img:c.img_url,img_url:c.img_url,basePrice:c.base_price,language:c.language||"English"}));
           setDbCards(fmt);
+          // seed market prices from base_price
+          const prices={};
+          fmt.forEach(c=>{ prices[c.id]=c.basePrice||0; });
+          setMarketPrices(prices);
         }
       });
     });
   },[]);
 
+  // Run match engine every 2s against live market prices
+  useEffect(()=>{
+    const iv=setInterval(()=>{
+      setOrders(prev=>{
+        const openOrders=prev.filter(o=>o.status==="open"||o.status==="partial");
+        if(!openOrders.length) return prev;
+        const result=matchOrders(prev,marketPrices,holdings,balance);
+        if(result.newTrades.length){
+          setHoldings(result.holdings);
+          setBalance(result.balance);
+          setTradeHistory(h=>[...result.newTrades,...h]);
+        }
+        return result.orders;
+      });
+    },2000);
+    return ()=>clearInterval(iv);
+  },[marketPrices,holdings,balance]);
+
+  const placeOrder=(orderData)=>{
+    const o={
+      id: newOrderId(),
+      ...orderData,
+      filled: 0,
+      status: "open",
+      time: nowTime(),
+      date: nowDate(),
+    };
+    // market orders fill immediately
+    if(o.type==="market"){
+      const result=matchOrders([o],marketPrices,holdings,balance);
+      if(result.newTrades.length){
+        setHoldings(result.holdings);
+        setBalance(result.balance);
+        setTradeHistory(h=>[...result.newTrades,...h]);
+      }
+      setOrders(prev=>[...result.orders,...prev]);
+    } else {
+      setOrders(prev=>[o,...prev]);
+    }
+  };
+
+  const cancelOrder=(id)=>setOrders(prev=>prev.map(o=>o.id===id&&(o.status==="open"||o.status==="partial")?{...o,status:"cancelled"}:o));
+
   const handleBrowseSelect=(card)=>{ setSelectedCard(card); setTab("MARKET"); };
+  const handleUpdatePrice=(cardId,price)=>setMarketPrices(p=>({...p,[cardId]:price}));
 
   return(
     <div style={{fontFamily:MONO,background:D.bg,color:D.txt,minHeight:"100vh",fontSize:"12px",transition:"background 0.3s,color 0.3s",display:"flex",flexDirection:"column"}}>
@@ -688,7 +798,7 @@ export default function App(){
           ))}
         </div>
         <div style={{display:"flex",gap:"10px",alignItems:"center"}}>
-          <div style={{background:D.stBg,border:`1px solid ${D.bdr}`,borderRadius:"3px",padding:"3px 10px",fontSize:"11px",color:D.txtM}}>Ξ 12,440.00</div>
+          <div style={{background:D.stBg,border:`1px solid ${D.bdr}`,borderRadius:"3px",padding:"3px 10px",fontSize:"11px",color:D.txtM}}>💵 ${balance.toLocaleString("en-US",{minimumFractionDigits:2})}</div>
           <div onClick={()=>setDark(d=>!d)} style={{width:"44px",height:"24px",background:dark?"#1a3a1a":"#d1ecd1",borderRadius:"12px",border:`1px solid ${D.bdr2}`,display:"flex",alignItems:"center",padding:"3px",transition:"background 0.3s",cursor:"pointer"}}>
             <div style={{width:"16px",height:"16px",borderRadius:"50%",background:dark?"#00cc40":"#f59e0b",transform:dark?"translateX(0)":"translateX(20px)",transition:"transform 0.3s,background 0.3s",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"9px"}}>{dark?"🌙":"☀️"}</div>
           </div>
@@ -696,11 +806,11 @@ export default function App(){
       </div>
 
       <div style={{flex:1,display:"flex",overflow:"hidden"}}>
-        {tab==="MARKET"    && <Market    D={D} dark={dark} dbCards={dbCards} initialCard={selectedCard}/>}
+        {tab==="MARKET"    && <Market    D={D} dark={dark} dbCards={dbCards} initialCard={selectedCard} balance={balance} onPlaceOrder={placeOrder} onUpdatePrice={handleUpdatePrice}/>}
         {tab==="BROWSE"    && <Browser   D={D} dark={dark} dbCards={dbCards} onSelectCard={handleBrowseSelect}/>}
-        {tab==="PORTFOLIO" && <Portfolio D={D} dark={dark}/>}
-        {tab==="ORDERS"    && <Orders    D={D} dark={dark}/>}
-        {tab==="HISTORY"   && <History   D={D} dark={dark}/>}
+        {tab==="PORTFOLIO" && <Portfolio D={D} dark={dark} holdings={holdings} tradeHistory={tradeHistory} dbCards={dbCards}/>}
+        {tab==="ORDERS"    && <Orders    D={D} dark={dark} orders={orders} onCancel={cancelOrder} dbCards={dbCards}/>}
+        {tab==="HISTORY"   && <History   D={D} dark={dark} tradeHistory={tradeHistory} ledger={ledger} dbCards={dbCards}/>}
       </div>
     </div>
   );
