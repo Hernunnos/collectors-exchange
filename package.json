@@ -1,7 +1,5 @@
 {
-  "name": "documents",
-  "private": true,
-  "version": "0.0.0",
+  "name": "collectors-exchange",
   "type": "module",
   "scripts": {
     "dev": "vite",

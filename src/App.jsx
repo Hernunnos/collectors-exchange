@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 
 // ── Data ─────────────────────────────────────────────────────────────────────
 const CARDS = [
@@ -336,18 +336,19 @@ function History({D,dark}){
 }
 
 // ── Browser ───────────────────────────────────────────────────────────────────
+const PAGE_SIZE=40;
 function Browser({D,dark,dbCards,onSelectCard}){
   const [search,setSearch]=useState("");
   const [gameFilter,setGameFilter]=useState("all");
   const [condFilter,setCondFilter]=useState("all");
   const [langFilter,setLangFilter]=useState("all");
   const [sort,setSort]=useState("price-desc");
+  const [page,setPage]=useState(1);
 
   const allCards=dbCards.length?dbCards:CARDS.map(c=>({...c,basePrice:BASE[c.id],set_name:c.set,language:"English"}));
-
-  const games=[...new Set(allCards.map(c=>c.game))].filter(Boolean);
-  const conditions=[...new Set(allCards.map(c=>c.condition))].filter(Boolean);
-  const languages=[...new Set(allCards.map(c=>c.language||"English"))].filter(Boolean);
+  const games=[...new Set(allCards.map(c=>c.game))].filter(Boolean).sort();
+  const conditions=[...new Set(allCards.map(c=>c.condition))].filter(Boolean).sort();
+  const languages=[...new Set(allCards.map(c=>c.language||"English"))].filter(Boolean).sort();
 
   const filtered=allCards
     .filter(c=>search===""||c.name.toLowerCase().includes(search.toLowerCase()))
@@ -355,12 +356,17 @@ function Browser({D,dark,dbCards,onSelectCard}){
     .filter(c=>condFilter==="all"||c.condition===condFilter)
     .filter(c=>langFilter==="all"||(c.language||"English")===langFilter)
     .sort((a,b)=>{
-      const pa=a.basePrice||BASE[a.id]||0, pb=b.basePrice||BASE[b.id]||0;
+      const pa=a.basePrice||BASE[a.id]||0,pb=b.basePrice||BASE[b.id]||0;
       if(sort==="price-desc") return pb-pa;
       if(sort==="price-asc")  return pa-pb;
       if(sort==="name-asc")   return a.name.localeCompare(b.name);
       return 0;
     });
+
+  const totalPages=Math.max(1,Math.ceil(filtered.length/PAGE_SIZE));
+  const paginated=filtered.slice((page-1)*PAGE_SIZE,page*PAGE_SIZE);
+
+  const resetPage=()=>setPage(1);
 
   const inBtnStyle=(active)=>({
     padding:"5px 12px",border:`1px solid ${active?D.accD:D.bdr}`,borderRadius:"4px",
@@ -368,49 +374,64 @@ function Browser({D,dark,dbCards,onSelectCard}){
     color:active?D.accD:D.txtD,fontSize:"10px",fontFamily:MONO,cursor:"pointer",transition:"all 0.1s",whiteSpace:"nowrap"
   });
 
+  const pgBtn=(label,onClick,disabled)=>(
+    <button onClick={onClick} disabled={disabled} style={{padding:"5px 10px",border:`1px solid ${D.bdr}`,borderRadius:"4px",background:"transparent",color:disabled?D.txtD:D.accD,fontSize:"10px",fontFamily:MONO,cursor:disabled?"default":"pointer",opacity:disabled?0.4:1}}>{label}</button>
+  );
+
+  const pageNums=[];
+  const start=Math.max(1,page-3),end=Math.min(totalPages,page+3);
+  for(let i=start;i<=end;i++) pageNums.push(i);
+
+  const Pagination=()=>(
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:"8px"}}>
+      <span style={{color:D.txtD,fontSize:"9px",letterSpacing:"0.1em"}}>{filtered.length.toLocaleString()} CARDS · PAGE {page} OF {totalPages.toLocaleString()}</span>
+      <div style={{display:"flex",gap:"4px",alignItems:"center"}}>
+        {pgBtn("«",()=>setPage(1),page===1)}
+        {pgBtn("‹",()=>setPage(p=>p-1),page===1)}
+        {pageNums.map(n=><button key={n} onClick={()=>setPage(n)} style={{...inBtnStyle(n===page),minWidth:"30px"}}>{n}</button>)}
+        {pgBtn("›",()=>setPage(p=>p+1),page===totalPages)}
+        {pgBtn("»",()=>setPage(totalPages),page===totalPages)}
+      </div>
+    </div>
+  );
+
   return(
     <div style={{flex:1,overflowY:"auto",padding:"20px",display:"flex",flexDirection:"column",gap:"16px"}}>
       <div style={{background:D.bg2,border:`1px solid ${D.bdr}`,borderRadius:"6px",padding:"14px 16px",display:"flex",gap:"12px",flexWrap:"wrap",alignItems:"center"}}>
-        <input
-          type="text" value={search} onChange={e=>setSearch(e.target.value)}
-          placeholder="Search cards..."
-          style={{flex:"1 1 180px",background:D.inBg,border:`1px solid ${D.inBdr}`,borderRadius:"4px",padding:"7px 12px",color:D.txt,fontSize:"12px",fontFamily:MONO,minWidth:"140px"}}
-        />
+        <input type="text" value={search} onChange={e=>{setSearch(e.target.value);resetPage();}} placeholder="Search cards..."
+          style={{flex:"1 1 180px",background:D.inBg,border:`1px solid ${D.inBdr}`,borderRadius:"4px",padding:"7px 12px",color:D.txt,fontSize:"12px",fontFamily:MONO,minWidth:"140px"}}/>
         <div style={{display:"flex",gap:"6px",flexWrap:"wrap",alignItems:"center"}}>
           <span style={{color:D.txtD,fontSize:"9px",letterSpacing:"0.1em"}}>GAME</span>
-          {["all",...games].map(g=><button key={g} onClick={()=>setGameFilter(g)} style={inBtnStyle(gameFilter===g)}>{g==="all"?"ALL":g}</button>)}
+          {["all",...games].map(g=><button key={g} onClick={()=>{setGameFilter(g);resetPage();}} style={inBtnStyle(gameFilter===g)}>{g==="all"?"ALL":g}</button>)}
         </div>
         <div style={{display:"flex",gap:"6px",flexWrap:"wrap",alignItems:"center"}}>
           <span style={{color:D.txtD,fontSize:"9px",letterSpacing:"0.1em"}}>CONDITION</span>
-          {["all",...conditions].map(c=><button key={c} onClick={()=>setCondFilter(c)} style={inBtnStyle(condFilter===c)}>{c==="all"?"ALL":c}</button>)}
+          {["all",...conditions].map(c=><button key={c} onClick={()=>{setCondFilter(c);resetPage();}} style={inBtnStyle(condFilter===c)}>{c==="all"?"ALL":c}</button>)}
         </div>
         <div style={{display:"flex",gap:"6px",flexWrap:"wrap",alignItems:"center"}}>
           <span style={{color:D.txtD,fontSize:"9px",letterSpacing:"0.1em"}}>LANGUAGE</span>
-          {["all",...languages].map(l=><button key={l} onClick={()=>setLangFilter(l)} style={inBtnStyle(langFilter===l)}>{l==="all"?"ALL":l}</button>)}
+          {["all",...languages].map(l=><button key={l} onClick={()=>{setLangFilter(l);resetPage();}} style={inBtnStyle(langFilter===l)}>{l==="all"?"ALL":l}</button>)}
         </div>
         <div style={{display:"flex",gap:"6px",alignItems:"center"}}>
           <span style={{color:D.txtD,fontSize:"9px",letterSpacing:"0.1em"}}>SORT</span>
-          <select value={sort} onChange={e=>setSort(e.target.value)} style={{background:D.inBg,border:`1px solid ${D.inBdr}`,borderRadius:"4px",padding:"6px 10px",color:D.txt,fontSize:"10px",fontFamily:MONO,cursor:"pointer"}}>
-            <option value="price-desc">Price: High → Low</option>
-            <option value="price-asc">Price: Low → High</option>
-            <option value="name-asc">Name: A → Z</option>
+          <select value={sort} onChange={e=>{setSort(e.target.value);resetPage();}} style={{background:D.inBg,border:`1px solid ${D.inBdr}`,borderRadius:"4px",padding:"6px 10px",color:D.txt,fontSize:"10px",fontFamily:MONO,cursor:"pointer"}}>
+            <option value="price-desc">Price: High to Low</option>
+            <option value="price-asc">Price: Low to High</option>
+            <option value="name-asc">Name: A to Z</option>
           </select>
         </div>
       </div>
 
-      <div style={{color:D.txtD,fontSize:"9px",letterSpacing:"0.1em"}}>{filtered.length} CARD{filtered.length!==1?"S":""} FOUND</div>
+      <Pagination/>
 
       {filtered.length===0&&(
-        <div style={{padding:"60px",textAlign:"center",color:D.txtD,fontSize:"12px",background:D.bg2,border:`1px solid ${D.bdr}`,borderRadius:"6px"}}>
-          No cards match your filters
-        </div>
+        <div style={{padding:"60px",textAlign:"center",color:D.txtD,fontSize:"12px",background:D.bg2,border:`1px solid ${D.bdr}`,borderRadius:"6px"}}>No cards match your filters</div>
       )}
 
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(180px,1fr))",gap:"14px"}}>
-        {filtered.map(c=>{
+        {paginated.map(c=>{
           const bp=c.basePrice||BASE[c.id]||0;
-          const chg=((Math.random()-0.45)*5).toFixed(2);
-          const up=+chg>=0;
+          const chg=((Math.random()-0.45)*5).toFixed(2);const up=+chg>=0;
           return(
             <div key={c.id} onClick={()=>onSelectCard(c)} style={{background:D.bg2,border:`1px solid ${D.bdr}`,borderRadius:"8px",overflow:"hidden",cursor:"pointer",transition:"border-color 0.15s,box-shadow 0.15s"}}
               onMouseEnter={e=>{e.currentTarget.style.borderColor=D.accD;e.currentTarget.style.boxShadow=dark?`0 0 16px ${D.accD}30`:"0 4px 16px rgba(0,0,0,0.1)";}}
@@ -434,6 +455,8 @@ function Browser({D,dark,dbCards,onSelectCard}){
           );
         })}
       </div>
+
+      {totalPages>1&&<Pagination/>}
     </div>
   );
 }
@@ -442,6 +465,13 @@ function Browser({D,dark,dbCards,onSelectCard}){
 function Market({D,dark,dbCards=[],initialCard=null}){
   const allCards=dbCards.length?dbCards:CARDS.map(c=>({...c,basePrice:BASE[c.id]}));
   const [card,setCard]=useState(()=>initialCard||allCards[0]||CARDS[0]);
+  const [sidebarMode,setSidebarMode]=useState("value");
+  const SIDEBAR_COUNT=20;
+  const sidebarCards=useMemo(()=>{
+    if(sidebarMode==="value") return [...allCards].sort((a,b)=>(b.basePrice||0)-(a.basePrice||0)).slice(0,SIDEBAR_COUNT);
+    // volume: simulate by seeding random vol from card id, consistent per session
+    return [...allCards].sort((a,b)=>((b.id*7+13)%100)-((a.id*7+13)%100)).slice(0,SIDEBAR_COUNT);
+  },[allCards,sidebarMode]);
   const [asks,setAsks]=useState(()=>genOrders(BASE[1],6,"ask"));
   const [bids,setBids]=useState(()=>genOrders(BASE[1],6,"bid"));
   const [trades,setTrades]=useState(()=>Array.from({length:16},()=>genTrade(BASE[1])));
@@ -472,16 +502,27 @@ function Market({D,dark,dbCards=[],initialCard=null}){
 
   return(
     <div style={{flex:1,display:"flex",overflow:"hidden"}}>
-      <div style={{width:"186px",flexShrink:0,borderRight:`1px solid ${D.bdr}`,background:D.bg2,display:"flex",flexDirection:"column",overflowY:"auto"}}>
-        <div style={{padding:"8px 12px",borderBottom:`1px solid ${D.bdr}`,color:D.txtD,fontSize:"10px",letterSpacing:"0.12em"}}>▸ INSTRUMENTS</div>
-        {allCards.map(c=>{const bp=c.basePrice||BASE[c.id]||0;const chg=((Math.random()-0.45)*5).toFixed(2);const up=+chg>=0;const active=card.id===c.id;return(
+      <div style={{width:"186px",flexShrink:0,borderRight:`1px solid ${D.bdr}`,background:D.bg2,display:"flex",flexDirection:"column",overflow:"hidden"}}>
+        <div style={{padding:"8px 12px",borderBottom:`1px solid ${D.bdr}`,flexShrink:0}}>
+          <div style={{color:D.txtD,fontSize:"10px",letterSpacing:"0.12em",marginBottom:"6px"}}>▸ INSTRUMENTS</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"4px"}}>
+            {["value","volume"].map(m=>(
+              <button key={m} onClick={()=>setSidebarMode(m)} style={{padding:"3px 0",border:`1px solid ${sidebarMode===m?D.accD:D.bdr}`,borderRadius:"3px",background:sidebarMode===m?(dark?"rgba(0,180,60,0.12)":"rgba(22,128,58,0.08)"):"transparent",color:sidebarMode===m?D.accD:D.txtD,fontSize:"9px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.06em"}}>
+                {m==="value"?"TOP VALUE":"TOP VOL"}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div style={{overflowY:"auto",flex:1}}>
+        {sidebarCards.map(c=>{const bp=c.basePrice||BASE[c.id]||0;const chg=((Math.random()-0.45)*5).toFixed(2);const up=+chg>=0;const active=card.id===c.id;return(
           <div key={c.id} onClick={()=>setCard(c)} style={{padding:"9px 12px",borderBottom:`1px solid ${D.bdr}`,cursor:"pointer",background:active?(dark?"rgba(0,255,80,0.05)":"rgba(22,128,58,0.05)"):"transparent",borderLeft:active?`2px solid ${D.accD}`:"2px solid transparent",transition:"all 0.1s"}}>
             <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
-              <img src={c.img} alt={c.name} style={{width:"28px",height:"38px",objectFit:"cover",borderRadius:"3px",border:`1px solid ${D.bdr}`,flexShrink:0}} onError={e=>e.target.style.display="none"}/>
-              <div><div style={{color:active?D.acc:D.txt,fontSize:"11px"}}>{c.name}</div><div style={{color:D.txtD,fontSize:"9px"}}>{c.set}</div><div style={{display:"flex",gap:"8px",marginTop:"2px"}}><span style={{color:D.txtM,fontSize:"10px"}}>${bp.toLocaleString()}</span><span style={{color:up?D.buyT:D.askT,fontSize:"9px"}}>{up?"▲":"▼"}{Math.abs(chg)}%</span></div></div>
+              <img src={c.img||c.img_url} alt={c.name} style={{width:"28px",height:"38px",objectFit:"cover",borderRadius:"3px",border:`1px solid ${D.bdr}`,flexShrink:0}} onError={e=>e.target.style.display="none"}/>
+              <div><div style={{color:active?D.acc:D.txt,fontSize:"11px",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:"110px"}}>{c.name}</div><div style={{color:D.txtD,fontSize:"9px"}}>{c.set||c.set_name}</div><div style={{display:"flex",gap:"8px",marginTop:"2px"}}><span style={{color:D.txtM,fontSize:"10px"}}>${bp.toLocaleString()}</span><span style={{color:up?D.buyT:D.askT,fontSize:"9px"}}>{up?"▲":"▼"}{Math.abs(chg)}%</span></div></div>
             </div>
           </div>
         );})}
+        </div>
       </div>
 
       <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
