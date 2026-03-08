@@ -168,7 +168,7 @@ function Portfolio({D,dark,holdings=[],tradeHistory=[],dbCards=[]}){
               <span style={{textAlign:"right",color:h.pnl>=0?D.buyT:D.askT,fontSize:"11px"}}>{h.pnl>=0?"+":""}${Math.abs(h.pnl).toLocaleString()}</span>
             </div>
           ))}
-          )}{selected && (
+          {selected && (
             <div style={{borderTop:`1px solid ${D.bdr}`,padding:"10px 14px"}}>
               <div style={{color:D.txtD,fontSize:"9px",letterSpacing:"0.1em",marginBottom:"8px"}}>▸ TRADES — {selected.card.name}</div>
               {tradeHistory.filter(t=>t.cardId===selected.cardId).map(t=>(
@@ -503,7 +503,7 @@ function Browser({D,dark,dbCards,onSelectCard}){
 }
 
 // ── Market ────────────────────────────────────────────────────────────────────
-function Market({D,dark,dbCards=[],initialCard=null,balance=0,onPlaceOrder,onUpdatePrice}){
+function Market({D,dark,dbCards=[],initialCard=null,balance=0,onPlaceOrder,onUpdatePrice,tradeHistory=[],isDemo=false}){
   const allCards=dbCards.length?dbCards:CARDS.map(c=>({...c,basePrice:BASE[c.id]}));
   const [card,setCard]=useState(()=>initialCard||allCards[0]||CARDS[0]);
   const [sidebarMode,setSidebarMode]=useState("value");
@@ -523,19 +523,29 @@ function Market({D,dark,dbCards=[],initialCard=null,balance=0,onPlaceOrder,onUpd
   const [oPrice,setOPrice]=useState("");
   const [oQty,setOQty]=useState("");
   const [oStatus,setOStatus]=useState(null);
-  const [hist,setHist]=useState(()=>genHist(BASE[1]));
   const base=card.basePrice||BASE[card.id]||0;
   useEffect(()=>{ if(initialCard) setCard(initialCard); },[initialCard]);
 
-  useEffect(()=>{setAsks(genOrders(base,6,"ask"));setBids(genOrders(base,6,"bid"));setPrice(base);setTrades(Array.from({length:16},()=>genTrade(base)));setHist(genHist(base));setOPrice("");setOQty("");},[card]);
+  useEffect(()=>{setAsks(genOrders(base,6,"ask"));setBids(genOrders(base,6,"bid"));setPrice(base);setTrades(Array.from({length:16},()=>genTrade(base)));setOPrice("");setOQty("");},[card]);
   useEffect(()=>{
-    const iv=setInterval(()=>{const t=genTrade(base);setFlash(t.price>price?"up":"down");setTimeout(()=>setFlash(null),400);setPrice(t.price);if(onUpdatePrice&&card.id) onUpdatePrice(card.id,t.price);setTrades(p=>[t,...p.slice(0,19)]);setAsks(genOrders(t.price,6,"ask"));setBids(genOrders(t.price,6,"bid"));setHist(p=>[...p.slice(1),{p:t.price}]);},1800);
+    const iv=setInterval(()=>{const t=genTrade(base);setFlash(t.price>price?"up":"down");setTimeout(()=>setFlash(null),400);setPrice(t.price);if(onUpdatePrice&&card.id) onUpdatePrice(card.id,t.price);setTrades(p=>[t,...p.slice(0,19)]);setAsks(genOrders(t.price,6,"ask"));setBids(genOrders(t.price,6,"bid"));if(isDemo) setDemoHist(p=>[...p.slice(1),{p:t.price}]);},1800);
     return ()=>clearInterval(iv);
   },[base,price]);
 
+  // Demo mode: use animated genHist; logged-in: use real trade history
+  const [demoHist,setDemoHist]=useState(()=>genHist(base));
+  useEffect(()=>{ if(isDemo) setDemoHist(genHist(base)); },[card,isDemo]);
+
+  const cardTrades=tradeHistory.filter(t=>t.cardId===card.id);
+  const realHist=cardTrades.map(t=>({p:t.price,time:t.time,date:t.date})).reverse();
+  const hist=isDemo?demoHist:realHist;
+  const hasHistory=isDemo?true:realHist.length>=2;
+
   const spread=asks.length&&bids.length?+(asks[0].price-bids[0].price).toFixed(2):0;
   const pct=(((price-base)/base)*100).toFixed(2);
-  const minP=Math.min(...hist.map(h=>h.p)),maxP=Math.max(...hist.map(h=>h.p)),rng=maxP-minP||1;
+  const minP=hasHistory?Math.min(...hist.map(h=>h.p)):0;
+  const maxP=hasHistory?Math.max(...hist.map(h=>h.p)):0;
+  const rng=maxP-minP||1;
   const CW=560,CH=200;
   const lp=()=>hist.map((h,i)=>`${i===0?"M":"L"}${((i/(hist.length-1))*CW).toFixed(1)},${((CH-8)-((h.p-minP)/rng)*(CH-16)).toFixed(1)}`).join(" ");
   const submitOrder=()=>{
@@ -615,13 +625,27 @@ function Market({D,dark,dbCards=[],initialCard=null,balance=0,onPlaceOrder,onUpd
                 <span style={{color:D.txtD,fontSize:"10px",letterSpacing:"0.12em"}}>▸ PRICE CHART</span>
                 <div style={{display:"flex",gap:"4px"}}>{["1H","6H","1D","1W","1M"].map(r=><button key={r} style={{padding:"2px 7px",border:`1px solid ${r==="1D"?D.accD:D.bdr}`,borderRadius:"3px",background:r==="1D"?(dark?"rgba(0,180,60,0.14)":"rgba(22,128,58,0.08)"):"transparent",color:r==="1D"?D.accD:D.txtD,fontSize:"9px",fontFamily:MONO,cursor:"pointer"}}>{r}</button>)}</div>
               </div>
-              <svg width="100%" height={CH} viewBox={`0 0 ${CW} ${CH}`} preserveAspectRatio="none" style={{display:"block"}}>
-                <defs><linearGradient id="cg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={D.accD} stopOpacity={dark?"0.16":"0.10"}/><stop offset="100%" stopColor={D.accD} stopOpacity="0"/></linearGradient></defs>
-                {[0.25,0.5,0.75].map(f=><line key={f} x1="0" y1={CH*f} x2={CW} y2={CH*f} stroke={D.bdr} strokeWidth="0.5"/>)}
-                <path d={lp()+` L${CW},${CH} L0,${CH} Z`} fill="url(#cg)"/>
-                <path d={lp()} fill="none" stroke={D.accD} strokeWidth="1.8" style={{filter:dark?`drop-shadow(0 0 4px ${D.accD}70)`:"none"}}/>
-                <circle cx={CW} cy={(CH-8)-((price-minP)/rng)*(CH-16)} r="3" fill={D.accD}/>
-              </svg>
+              {!hasHistory?(
+                <div style={{height:CH,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:"8px",opacity:0.4}}>
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke={D.txtD} strokeWidth="1.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                  <span style={{color:D.txtD,fontSize:"10px",letterSpacing:"0.12em"}}>NO TRADE HISTORY YET</span>
+                  <span style={{color:D.txtD,fontSize:"9px"}}>Place a trade to start recording price history</span>
+                </div>
+              ):(
+                <svg width="100%" height={CH} viewBox={`0 0 ${CW} ${CH}`} preserveAspectRatio="none" style={{display:"block"}}>
+                  <defs><linearGradient id="cg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={D.accD} stopOpacity={dark?"0.16":"0.10"}/><stop offset="100%" stopColor={D.accD} stopOpacity="0"/></linearGradient></defs>
+                  {[0.25,0.5,0.75].map(f=><line key={f} x1="0" y1={CH*f} x2={CW} y2={CH*f} stroke={D.bdr} strokeWidth="0.5"/>)}
+                  <path d={lp()+` L${CW},${CH} L0,${CH} Z`} fill="url(#cg)"/>
+                  <path d={lp()} fill="none" stroke={D.accD} strokeWidth="1.8" style={{filter:dark?`drop-shadow(0 0 4px ${D.accD}70)`:"none"}}/>
+                  <circle cx={CW} cy={(CH-8)-((price-minP)/rng)*(CH-16)} r="3" fill={D.accD}/>
+                  {hist.map((h,i)=>{
+                    if(i===0) return null;
+                    const x=((i/(hist.length-1))*CW).toFixed(1);
+                    const y=((CH-8)-((h.p-minP)/rng)*(CH-16)).toFixed(1);
+                    return <circle key={i} cx={x} cy={y} r="2" fill={D.accD} opacity="0.5"/>;
+                  })}
+                </svg>
+              )}
             </div>
 
             <div style={{flex:1,display:"flex",overflow:"hidden"}}>
@@ -692,9 +716,260 @@ function Market({D,dark,dbCards=[],initialCard=null,balance=0,onPlaceOrder,onUpd
   );
 }
 
+// ── Auth Modal ────────────────────────────────────────────────────────────────
+function AuthModal({D,dark,onClose,onAuth}){
+  const [mode,setMode]=useState("login");
+  const [email,setEmail]=useState("");
+  const [password,setPassword]=useState("");
+  const [name,setName]=useState("");
+  const [loading,setLoading]=useState(false);
+  const [error,setError]=useState("");
+  const [success,setSuccess]=useState("");
+
+  const submit=async()=>{
+    setError(""); setSuccess(""); setLoading(true);
+    try{
+      const {supabase}=await import('./supabase');
+      if(mode==="signup"){
+        const {data,error:e}=await supabase.auth.signUp({email,password,options:{data:{display_name:name}}});
+        if(e) throw e;
+        if(data.user && !data.session){ setSuccess("Check your email to confirm your account."); setLoading(false); return; }
+        if(data.user) onAuth(data.user);
+      } else {
+        const {data,error:e}=await supabase.auth.signInWithPassword({email,password});
+        if(e) throw e;
+        onAuth(data.user);
+      }
+    } catch(e){ setError(e.message||"Something went wrong"); }
+    setLoading(false);
+  };
+
+  return(
+    <div style={{position:"fixed",inset:0,zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.7)",backdropFilter:"blur(4px)"}} onClick={onClose}>
+      <div style={{background:D.bg2,border:`1px solid ${D.bdr2}`,borderRadius:"12px",padding:"32px",width:"380px",boxShadow:"0 24px 60px rgba(0,0,0,0.4)"}} onClick={e=>e.stopPropagation()}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"24px"}}>
+          <div>
+            <div style={{fontFamily:ORB,fontSize:"18px",fontWeight:800,color:D.acc,letterSpacing:"0.12em"}}>◈ CX</div>
+            <div style={{color:D.txtD,fontSize:"11px",marginTop:"2px"}}>{mode==="login"?"Welcome back":"Create your account"}</div>
+          </div>
+          <button onClick={onClose} style={{background:"transparent",border:"none",color:D.txtD,fontSize:"20px",lineHeight:1,cursor:"pointer"}}>×</button>
+        </div>
+
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",border:`1px solid ${D.bdr}`,borderRadius:"6px",overflow:"hidden",marginBottom:"20px"}}>
+          {[["login","LOG IN"],["signup","SIGN UP"]].map(([m,label])=>(
+            <button key={m} onClick={()=>{setMode(m);setError("");setSuccess("");}} style={{padding:"9px",border:"none",cursor:"pointer",fontFamily:MONO,fontSize:"10px",letterSpacing:"0.1em",background:mode===m?(dark?"rgba(0,180,60,0.18)":"rgba(22,128,58,0.10)"):"transparent",color:mode===m?D.accD:D.txtD,borderBottom:`2px solid ${mode===m?D.accD:"transparent"}`,transition:"all 0.14s"}}>{label}</button>
+          ))}
+        </div>
+
+        {mode==="signup"&&(
+          <div style={{marginBottom:"14px"}}>
+            <div style={{color:D.txtD,fontSize:"10px",marginBottom:"5px",letterSpacing:"0.08em"}}>DISPLAY NAME</div>
+            <input value={name} onChange={e=>setName(e.target.value)} placeholder="Your name" style={{width:"100%",background:D.inBg,border:`1px solid ${D.inBdr}`,borderRadius:"5px",padding:"10px 12px",color:D.txt,fontSize:"12px",fontFamily:MONO}}/>
+          </div>
+        )}
+        <div style={{marginBottom:"14px"}}>
+          <div style={{color:D.txtD,fontSize:"10px",marginBottom:"5px",letterSpacing:"0.08em"}}>EMAIL</div>
+          <input type="email" value={email} onChange={e=>setEmail(e.target.value)} onKeyDown={e=>e.key==="Enter"&&submit()} placeholder="you@email.com" style={{width:"100%",background:D.inBg,border:`1px solid ${D.inBdr}`,borderRadius:"5px",padding:"10px 12px",color:D.txt,fontSize:"12px",fontFamily:MONO}}/>
+        </div>
+        <div style={{marginBottom:"20px"}}>
+          <div style={{color:D.txtD,fontSize:"10px",marginBottom:"5px",letterSpacing:"0.08em"}}>PASSWORD</div>
+          <input type="password" value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>e.key==="Enter"&&submit()} placeholder="••••••••" style={{width:"100%",background:D.inBg,border:`1px solid ${D.inBdr}`,borderRadius:"5px",padding:"10px 12px",color:D.txt,fontSize:"12px",fontFamily:MONO}}/>
+        </div>
+
+        {error&&<div style={{marginBottom:"14px",padding:"8px 12px",background:dark?"rgba(180,30,30,0.1)":"rgba(220,50,50,0.06)",border:`1px solid ${dark?"#5a1a1a":"#e07070"}`,borderRadius:"4px",color:D.askT,fontSize:"10px"}}>{error}</div>}
+        {success&&<div style={{marginBottom:"14px",padding:"8px 12px",background:dark?"rgba(0,180,60,0.1)":"rgba(22,128,58,0.06)",border:`1px solid ${dark?"#1a4a1a":"#8acc8a"}`,borderRadius:"4px",color:D.accD,fontSize:"10px"}}>{success}</div>}
+
+        <button onClick={submit} disabled={loading} style={{width:"100%",padding:"11px",border:`1px solid ${dark?"#1a5a2a":"#7ab07a"}`,borderRadius:"6px",fontSize:"11px",fontFamily:MONO,letterSpacing:"0.1em",fontWeight:"bold",background:dark?"linear-gradient(135deg,#0a3a1a,#0f5a28)":"linear-gradient(135deg,#cceacc,#a8d8a8)",color:dark?"#00ff55":"#1a5a2a",cursor:loading?"wait":"pointer",opacity:loading?0.7:1}}>
+          {loading?"...":(mode==="login"?"→ LOG IN":"→ CREATE ACCOUNT")}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── Landing Page ──────────────────────────────────────────────────────────────
+function Landing({D,dark,dbCards,onEnterDemo,onOpenAuth}){
+  const allCards=dbCards.length?dbCards:CARDS.map(c=>({...c,basePrice:BASE[c.id]}));
+  const featuredCard=allCards.find(c=>c.id===1)||allCards[0]||CARDS[0];
+  const base=featuredCard.basePrice||BASE[featuredCard.id]||420;
+
+  const [price,setPrice]=useState(base);
+  const [hist,setHist]=useState(()=>genHist(base));
+  const [flash,setFlash]=useState(null);
+  const [liveAsks,setLiveAsks]=useState(()=>genOrders(base,5,"ask"));
+  const [liveBids,setLiveBids]=useState(()=>genOrders(base,5,"bid"));
+  const [liveTrades,setLiveTrades]=useState(()=>Array.from({length:8},()=>genTrade(base)));
+
+  useEffect(()=>{
+    const iv=setInterval(()=>{
+      const t=genTrade(base);
+      setFlash(t.price>price?"up":"down");
+      setTimeout(()=>setFlash(null),400);
+      setPrice(t.price);
+      setHist(h=>[...h.slice(1),{p:t.price}]);
+      setLiveAsks(genOrders(t.price,5,"ask"));
+      setLiveBids(genOrders(t.price,5,"bid"));
+      setLiveTrades(p=>[t,...p.slice(0,7)]);
+    },1600);
+    return ()=>clearInterval(iv);
+  },[base,price]);
+
+  const CW=500,CH=120;
+  const minP=Math.min(...hist.map(h=>h.p)),maxP=Math.max(...hist.map(h=>h.p)),rng=maxP-minP||1;
+  const lp=hist.map((h,i)=>`${i===0?"M":"L"}${((i/(hist.length-1))*CW).toFixed(1)},${((CH-4)-((h.p-minP)/rng)*(CH-8)).toFixed(1)}`).join(" ");
+
+  const FEATURES=[
+    {icon:"◈",title:"Multi-Game Market",desc:"Trade Pokémon, MTG, Yu-Gi-Oh! and One Piece cards all in one place with live pricing."},
+    {icon:"⬡",title:"Real-Time Order Book",desc:"See live bids and asks, place limit or market orders, and watch trades execute instantly."},
+    {icon:"◇",title:"Portfolio Tracker",desc:"Track your holdings, average cost, unrealised P&L and trade history across all games."},
+    {icon:"▣",title:"Price History",desc:"Every trade you make is recorded and plotted on the chart — real history, not guesswork."},
+  ];
+
+  return(
+    <div style={{fontFamily:MONO,background:dark?"#070a0e":"#f0f4f0",minHeight:"100vh",color:dark?"#a8b8a0":"#2a3a2a",overflowY:"auto"}}>
+
+      {/* ── Hero ── */}
+      <div style={{minHeight:"100vh",display:"flex",flexDirection:"column",position:"relative",overflow:"hidden"}}>
+
+        {/* Live market background */}
+        <div style={{position:"absolute",inset:0,opacity:0.18,pointerEvents:"none",overflow:"hidden"}}>
+          <div style={{position:"absolute",right:"-60px",top:"60px",width:"620px",background:dark?"#080c08":"#ffffff",border:`1px solid ${dark?"#0f1f0f":"#dde8dd"}`,borderRadius:"12px",padding:"16px",boxShadow:dark?"0 0 60px rgba(0,255,80,0.08)":"0 8px 40px rgba(0,0,0,0.08)"}}>
+            <div style={{display:"flex",gap:"12px",alignItems:"center",marginBottom:"12px"}}>
+              <img src={featuredCard.img||featuredCard.img_url} style={{width:"50px",height:"70px",objectFit:"cover",borderRadius:"4px"}} onError={e=>e.target.style.display="none"}/>
+              <div>
+                <div style={{fontFamily:ORB,fontSize:"14px",fontWeight:700,color:dark?"#a8b8a0":"#2a3a2a"}}>{featuredCard.name}</div>
+                <div style={{fontSize:"11px",color:dark?"#4a8a4a":"#7a9a7a",marginTop:"2px"}}>{featuredCard.set||featuredCard.set_name}</div>
+                <div className={flash==="up"?"fu":flash==="down"?"fd":""} style={{fontFamily:ORB,fontSize:"20px",fontWeight:800,color:dark?"#00cc40":"#15803d",marginTop:"4px"}}>${price.toLocaleString("en-US",{minimumFractionDigits:2})}</div>
+              </div>
+            </div>
+            <svg width="100%" height={CH} viewBox={`0 0 ${CW} ${CH}`} preserveAspectRatio="none">
+              <defs><linearGradient id="lg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={dark?"#00cc40":"#15803d"} stopOpacity="0.2"/><stop offset="100%" stopColor={dark?"#00cc40":"#15803d"} stopOpacity="0"/></linearGradient></defs>
+              <path d={lp+` L${CW},${CH} L0,${CH} Z`} fill="url(#lg)"/>
+              <path d={lp} fill="none" stroke={dark?"#00cc40":"#15803d"} strokeWidth="2"/>
+            </svg>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px",marginTop:"12px"}}>
+              {[liveBids.slice(0,3),liveAsks.slice(0,3)].map((rows,si)=>(
+                <div key={si}>{rows.map((r,i)=>(
+                  <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"3px 0",borderBottom:`1px solid ${dark?"#0f1f0f":"#dde8dd"}`}}>
+                    <span style={{color:si===0?(dark?"#00cc40":"#15803d"):(dark?"#cc3535":"#dc2626"),fontSize:"10px"}}>${r.price.toFixed(2)}</span>
+                    <span style={{color:dark?"#4a8a4a":"#7a9a7a",fontSize:"10px"}}>{r.qty}</span>
+                  </div>
+                ))}</div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Overlay gradient */}
+        <div style={{position:"absolute",inset:0,background:dark?"linear-gradient(135deg,rgba(7,10,14,0.92) 50%,rgba(7,10,14,0.6))":"linear-gradient(135deg,rgba(240,244,240,0.94) 50%,rgba(240,244,240,0.5))",pointerEvents:"none"}}/>
+
+        {/* Nav */}
+        <div style={{position:"relative",zIndex:10,display:"flex",justifyContent:"space-between",alignItems:"center",padding:"20px 40px",borderBottom:`1px solid ${dark?"rgba(255,255,255,0.05)":"rgba(0,0,0,0.06)"}`}}>
+          <div style={{display:"flex",alignItems:"baseline",gap:"10px"}}>
+            <span style={{fontFamily:ORB,fontSize:"20px",fontWeight:800,color:dark?"#00cc40":"#15803d",letterSpacing:"0.18em"}}>◈ CX</span>
+            <span style={{fontFamily:ORB,fontSize:"12px",fontWeight:600,color:dark?"#4a8a4a":"#3a7a3a",letterSpacing:"0.08em"}}>COLLECTOR'S EXCHANGE</span>
+          </div>
+          <div style={{display:"flex",gap:"12px",alignItems:"center"}}>
+            <button onClick={onEnterDemo} style={{padding:"8px 18px",background:"transparent",border:`1px solid ${dark?"#2a5a2a":"#b8d4b8"}`,borderRadius:"5px",color:dark?"#4a8a4a":"#3a7a3a",fontSize:"10px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.1em"}}>EXPLORE DEMO</button>
+            <button onClick={()=>onOpenAuth("login")} style={{padding:"8px 18px",background:"transparent",border:`1px solid ${dark?"#4a8a4a":"#7a9a7a"}`,borderRadius:"5px",color:dark?"#a8b8a0":"#2a3a2a",fontSize:"10px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.1em"}}>LOG IN</button>
+            <button onClick={()=>onOpenAuth("signup")} style={{padding:"8px 20px",background:dark?"linear-gradient(135deg,#0a3a1a,#0f5a28)":"linear-gradient(135deg,#cceacc,#a8d8a8)",border:`1px solid ${dark?"#1a5a2a":"#7ab07a"}`,borderRadius:"5px",color:dark?"#00ff55":"#1a5a2a",fontSize:"10px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.1em",fontWeight:"bold"}}>GET STARTED →</button>
+          </div>
+        </div>
+
+        {/* Hero content */}
+        <div style={{position:"relative",zIndex:10,flex:1,display:"flex",flexDirection:"column",justifyContent:"center",padding:"60px 40px",maxWidth:"680px"}}>
+          <div style={{display:"inline-flex",alignItems:"center",gap:"8px",background:dark?"rgba(0,180,60,0.08)":"rgba(22,128,58,0.06)",border:`1px solid ${dark?"#1a4a1a":"#a8d4a8"}`,borderRadius:"20px",padding:"5px 14px",marginBottom:"28px",width:"fit-content"}}>
+            <span style={{color:dark?"#00cc40":"#15803d",fontSize:"9px"}}>●</span>
+            <span style={{color:dark?"#4a8a4a":"#3a7a3a",fontSize:"10px",letterSpacing:"0.12em"}}>LIVE MARKET · DEMO AVAILABLE</span>
+          </div>
+          <h1 style={{fontFamily:ORB,fontSize:"clamp(32px,5vw,58px)",fontWeight:800,lineHeight:1.1,letterSpacing:"0.04em",color:dark?"#a8b8a0":"#1a2a1a",marginBottom:"20px"}}>
+            The Trading<br/>Platform for<br/><span style={{color:dark?"#00cc40":"#15803d"}}>Collectors.</span>
+          </h1>
+          <p style={{fontSize:"14px",lineHeight:1.8,color:dark?"#4a8a4a":"#5a7a5a",marginBottom:"36px",maxWidth:"480px"}}>
+            Buy, sell and trade rare TCG cards with a real order book, live pricing, and portfolio tracking. Pokémon, MTG, Yu-Gi-Oh! and more.
+          </p>
+          <div style={{display:"flex",gap:"14px",flexWrap:"wrap"}}>
+            <button onClick={()=>onOpenAuth("signup")} style={{padding:"14px 32px",background:dark?"linear-gradient(135deg,#0a3a1a,#0f5a28)":"linear-gradient(135deg,#b8e8b8,#8acc8a)",border:`1px solid ${dark?"#1a5a2a":"#5a9a5a"}`,borderRadius:"7px",color:dark?"#00ff55":"#1a4a1a",fontSize:"12px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.1em",fontWeight:"bold"}}>CREATE FREE ACCOUNT</button>
+            <button onClick={onEnterDemo} style={{padding:"14px 28px",background:"transparent",border:`1px solid ${dark?"#2a5a2a":"#c5d8c5"}`,borderRadius:"7px",color:dark?"#4a8a4a":"#3a7a3a",fontSize:"12px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.1em"}}>EXPLORE DEMO ▸</button>
+          </div>
+          <div style={{display:"flex",gap:"28px",marginTop:"44px"}}>
+            {[["20+","Cards Listed"],["$0","To Get Started"],["Live","Order Matching"]].map(([val,label])=>(
+              <div key={label}>
+                <div style={{fontFamily:ORB,fontSize:"22px",fontWeight:800,color:dark?"#00cc40":"#15803d"}}>{val}</div>
+                <div style={{color:dark?"#2a5a2a":"#7a9a7a",fontSize:"9px",marginTop:"3px",letterSpacing:"0.1em"}}>{label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Scroll indicator */}
+        <div style={{position:"relative",zIndex:10,textAlign:"center",padding:"20px",color:dark?"#2a5a2a":"#b8d4b8",fontSize:"18px",animation:"bounce 2s infinite"}}>▾</div>
+      </div>
+
+      {/* ── Features ── */}
+      <div style={{padding:"80px 40px",background:dark?"#080c09":"#ffffff",borderTop:`1px solid ${dark?"#0f1f0f":"#dde8dd"}`}}>
+        <div style={{textAlign:"center",marginBottom:"56px"}}>
+          <div style={{fontFamily:ORB,fontSize:"10px",letterSpacing:"0.2em",color:dark?"#2a5a2a":"#7a9a7a",marginBottom:"12px"}}>WHAT YOU GET</div>
+          <h2 style={{fontFamily:ORB,fontSize:"32px",fontWeight:800,color:dark?"#a8b8a0":"#1a2a1a",letterSpacing:"0.04em"}}>Built for Serious Collectors</h2>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",gap:"24px",maxWidth:"1000px",margin:"0 auto"}}>
+          {FEATURES.map(f=>(
+            <div key={f.title} style={{background:dark?"#070a0e":"#f0f4f0",border:`1px solid ${dark?"#0f1f0f":"#dde8dd"}`,borderRadius:"10px",padding:"28px 24px"}}>
+              <div style={{fontFamily:ORB,fontSize:"24px",color:dark?"#00cc40":"#15803d",marginBottom:"14px"}}>{f.icon}</div>
+              <div style={{fontFamily:ORB,fontSize:"13px",fontWeight:700,color:dark?"#a8b8a0":"#1a2a1a",marginBottom:"10px",letterSpacing:"0.06em"}}>{f.title}</div>
+              <div style={{color:dark?"#4a8a4a":"#5a7a5a",fontSize:"11px",lineHeight:"1.8"}}>{f.desc}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Live demo strip ── */}
+      <div style={{padding:"80px 40px",background:dark?"#070a0e":"#f8faf8",borderTop:`1px solid ${dark?"#0f1f0f":"#dde8dd"}`,textAlign:"center"}}>
+        <div style={{fontFamily:ORB,fontSize:"10px",letterSpacing:"0.2em",color:dark?"#2a5a2a":"#7a9a7a",marginBottom:"12px"}}>LIVE RIGHT NOW</div>
+        <h2 style={{fontFamily:ORB,fontSize:"28px",fontWeight:800,color:dark?"#a8b8a0":"#1a2a1a",marginBottom:"12px"}}>Watch the Market Move</h2>
+        <p style={{color:dark?"#4a8a4a":"#5a7a5a",fontSize:"12px",marginBottom:"36px"}}>Live trade feed updating every 1.6 seconds. This is real simulated market data.</p>
+        <div style={{maxWidth:"480px",margin:"0 auto",background:dark?"#080c09":"#ffffff",border:`1px solid ${dark?"#0f1f0f":"#dde8dd"}`,borderRadius:"10px",overflow:"hidden",boxShadow:dark?"0 0 40px rgba(0,255,80,0.06)":"0 8px 32px rgba(0,0,0,0.06)"}}>
+          <div style={{display:"flex",justifyContent:"space-between",padding:"12px 16px",borderBottom:`1px solid ${dark?"#0f1f0f":"#dde8dd"}`,background:dark?"#0a0f0a":"#f8faf8"}}>
+            <span style={{color:dark?"#4a8a4a":"#3a7a3a",fontSize:"10px",letterSpacing:"0.1em"}}>▸ LIVE TRADES — {featuredCard.name}</span>
+            <span style={{color:dark?"#00cc40":"#15803d",fontSize:"9px"}}>● LIVE</span>
+          </div>
+          {liveTrades.map(t=>(
+            <div key={t.id} style={{display:"flex",justifyContent:"space-between",padding:"8px 16px",borderBottom:`1px solid ${dark?"#0f1f0f":"#dde8dd"}`}}>
+              <span style={{color:t.side==="buy"?(dark?"#00cc40":"#15803d"):(dark?"#cc3535":"#dc2626"),fontSize:"11px"}}>{t.side.toUpperCase()}</span>
+              <span style={{color:dark?"#a8b8a0":"#2a3a2a",fontSize:"11px",fontFamily:ORB}}>${t.price.toLocaleString("en-US",{minimumFractionDigits:2})}</span>
+              <span style={{color:dark?"#4a8a4a":"#7a9a7a",fontSize:"11px"}}>{t.qty}x</span>
+              <span style={{color:dark?"#2a5a2a":"#9aaa9a",fontSize:"10px"}}>{t.time}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── CTA ── */}
+      <div style={{padding:"80px 40px",textAlign:"center",background:dark?"linear-gradient(135deg,#080c09,#0a100a)":"linear-gradient(135deg,#e8f4e8,#f0f8f0)",borderTop:`1px solid ${dark?"#0f1f0f":"#dde8dd"}`}}>
+        <h2 style={{fontFamily:ORB,fontSize:"32px",fontWeight:800,color:dark?"#a8b8a0":"#1a2a1a",marginBottom:"14px"}}>Ready to Start Trading?</h2>
+        <p style={{color:dark?"#4a8a4a":"#5a7a5a",fontSize:"12px",marginBottom:"32px"}}>Create a free account and get $15,000 in demo funds to trade with immediately.</p>
+        <div style={{display:"flex",gap:"14px",justifyContent:"center",flexWrap:"wrap"}}>
+          <button onClick={()=>onOpenAuth("signup")} style={{padding:"14px 36px",background:dark?"linear-gradient(135deg,#0a3a1a,#0f5a28)":"linear-gradient(135deg,#b8e8b8,#8acc8a)",border:`1px solid ${dark?"#1a5a2a":"#5a9a5a"}`,borderRadius:"7px",color:dark?"#00ff55":"#1a4a1a",fontSize:"12px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.1em",fontWeight:"bold"}}>CREATE FREE ACCOUNT</button>
+          <button onClick={onEnterDemo} style={{padding:"14px 28px",background:"transparent",border:`1px solid ${dark?"#2a5a2a":"#c5d8c5"}`,borderRadius:"7px",color:dark?"#4a8a4a":"#3a7a3a",fontSize:"12px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.1em"}}>TRY DEMO FIRST</button>
+        </div>
+      </div>
+
+      {/* ── Footer ── */}
+      <div style={{padding:"20px 40px",borderTop:`1px solid ${dark?"#0f1f0f":"#dde8dd"}`,display:"flex",justifyContent:"space-between",alignItems:"center",background:dark?"#070a0e":"#f0f4f0"}}>
+        <span style={{fontFamily:ORB,fontSize:"12px",color:dark?"#2a5a2a":"#9aaa9a",letterSpacing:"0.12em"}}>◈ COLLECTOR'S EXCHANGE</span>
+        <span style={{color:dark?"#1a3a1a":"#b8c8b8",fontSize:"9px"}}>Demo platform · Not financial advice</span>
+      </div>
+      <style>{`@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(6px)}}`}</style>
+    </div>
+  );
+}
+
 // ── Root ──────────────────────────────────────────────────────────────────────
 export default function App(){
   const [dark,setDark]=useState(false);
+  const [screen,setScreen]=useState("landing"); // "landing" | "app"
+  const [user,setUser]=useState(null);
+  const [authModal,setAuthModal]=useState(null); // null | "login" | "signup"
   const [tab,setTab]=useState("MARKET");
   const [dbCards,setDbCards]=useState([]);
   const [selectedCard,setSelectedCard]=useState(null);
@@ -711,11 +986,15 @@ export default function App(){
 
   useEffect(()=>{
     import('./supabase').then(({supabase})=>{
+      // Check for existing session
+      supabase.auth.getSession().then(({data:{session}})=>{
+        if(session?.user){ setUser(session.user); setScreen("app"); }
+      });
+      // Load cards
       supabase.from('cards').select('*').then(({data,error})=>{
         if(!error&&data){
           const fmt=data.map(c=>({id:c.id,name:c.name,set:c.set_name,set_name:c.set_name,condition:c.condition,rarity:c.rarity,game:c.game,img:c.img_url,img_url:c.img_url,basePrice:c.base_price,language:c.language||"English"}));
           setDbCards(fmt);
-          // seed market prices from base_price
           const prices={};
           fmt.forEach(c=>{ prices[c.id]=c.basePrice||0; });
           setMarketPrices(prices);
@@ -768,10 +1047,19 @@ export default function App(){
   const cancelOrder=(id)=>setOrders(prev=>prev.map(o=>o.id===id&&(o.status==="open"||o.status==="partial")?{...o,status:"cancelled"}:o));
 
   const handleBrowseSelect=(card)=>{ setSelectedCard(card); setTab("MARKET"); };
+  const handleLogout=async()=>{
+    const {supabase}=await import('./supabase');
+    await supabase.auth.signOut();
+    setUser(null); setScreen("landing");
+    setOrders([]); setHoldings([]); setTradeHistory([]); setBalance(STARTING_BALANCE);
+  };
+  const handleAuth=(u)=>{ setUser(u); setAuthModal(null); setScreen("app"); };
   const handleUpdatePrice=(cardId,price)=>setMarketPrices(p=>({...p,[cardId]:price}));
 
+  const isDemo = screen==="app" && !user;
+
   return(
-    <div style={{fontFamily:MONO,background:D.bg,color:D.txt,minHeight:"100vh",fontSize:"12px",transition:"background 0.3s,color 0.3s",display:"flex",flexDirection:"column"}}>
+    <div style={{fontFamily:MONO,fontSize:"12px"}}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@600;800&display=swap');
         *{box-sizing:border-box;margin:0;padding:0;}
@@ -783,35 +1071,67 @@ export default function App(){
         .fu{animation:fG 0.4s ease;} .fd{animation:fR 0.4s ease;}
       `}</style>
 
-      <div style={{background:D.hdrBg,borderBottom:`1px solid ${D.bdr2}`,padding:"0 16px",display:"flex",alignItems:"center",justifyContent:"space-between",height:"44px",position:"sticky",top:0,zIndex:100,boxShadow:D.shad,flexShrink:0}}>
-        <div style={{display:"flex",alignItems:"center",gap:"12px"}}>
-          <div style={{display:"flex",alignItems:"baseline",gap:"8px"}}>
-            <span style={{fontFamily:ORB,fontSize:"16px",fontWeight:800,color:D.acc,letterSpacing:"0.18em",textShadow:dark?"0 0 22px rgba(0,255,80,0.45)":"none"}}>◈ CX</span>
-            <span style={{fontFamily:ORB,fontSize:"11px",fontWeight:600,color:D.txtM,letterSpacing:"0.08em"}}>COLLECTOR'S EXCHANGE</span>
-          </div>
-          <span style={{color:D.bdr2}}>|</span>
-          <span style={{color:D.txtD,fontSize:"9px",letterSpacing:"0.14em",fontStyle:"italic"}}>Buy. Sell. Collect.</span>
-        </div>
-        <div style={{display:"flex",gap:"2px",alignItems:"center"}}>
-          {["MARKET","BROWSE","PORTFOLIO","ORDERS","HISTORY"].map(t=>(
-            <button key={t} onClick={()=>setTab(t)} style={{padding:"0 16px",height:"44px",border:"none",background:"transparent",color:tab===t?D.accD:D.txtD,fontSize:"10px",fontFamily:MONO,letterSpacing:"0.12em",borderBottom:`2px solid ${tab===t?D.accD:"transparent"}`,transition:"all 0.12s",cursor:"pointer"}}>{t}</button>
-          ))}
-        </div>
-        <div style={{display:"flex",gap:"10px",alignItems:"center"}}>
-          <div style={{background:D.stBg,border:`1px solid ${D.bdr}`,borderRadius:"3px",padding:"3px 10px",fontSize:"11px",color:D.txtM}}>💵 ${balance.toLocaleString("en-US",{minimumFractionDigits:2})}</div>
-          <div onClick={()=>setDark(d=>!d)} style={{width:"44px",height:"24px",background:dark?"#1a3a1a":"#d1ecd1",borderRadius:"12px",border:`1px solid ${D.bdr2}`,display:"flex",alignItems:"center",padding:"3px",transition:"background 0.3s",cursor:"pointer"}}>
-            <div style={{width:"16px",height:"16px",borderRadius:"50%",background:dark?"#00cc40":"#f59e0b",transform:dark?"translateX(0)":"translateX(20px)",transition:"transform 0.3s,background 0.3s",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"9px"}}>{dark?"🌙":"☀️"}</div>
-          </div>
-        </div>
-      </div>
+      {authModal&&<AuthModal D={D} dark={dark} onClose={()=>setAuthModal(null)} onAuth={handleAuth}/>}
 
-      <div style={{flex:1,display:"flex",overflow:"hidden"}}>
-        {tab==="MARKET"    && <Market    D={D} dark={dark} dbCards={dbCards} initialCard={selectedCard} balance={balance} onPlaceOrder={placeOrder} onUpdatePrice={handleUpdatePrice}/>}
-        {tab==="BROWSE"    && <Browser   D={D} dark={dark} dbCards={dbCards} onSelectCard={handleBrowseSelect}/>}
-        {tab==="PORTFOLIO" && <Portfolio D={D} dark={dark} holdings={holdings} tradeHistory={tradeHistory} dbCards={dbCards}/>}
-        {tab==="ORDERS"    && <Orders    D={D} dark={dark} orders={orders} onCancel={cancelOrder} dbCards={dbCards}/>}
-        {tab==="HISTORY"   && <History   D={D} dark={dark} tradeHistory={tradeHistory} ledger={ledger} dbCards={dbCards}/>}
-      </div>
+      {screen==="landing"&&(
+        <Landing D={D} dark={dark} dbCards={dbCards}
+          onEnterDemo={()=>setScreen("app")}
+          onOpenAuth={(mode)=>setAuthModal(mode)}/>
+      )}
+
+      {screen==="app"&&(
+        <div style={{background:D.bg,color:D.txt,minHeight:"100vh",transition:"background 0.3s,color 0.3s",display:"flex",flexDirection:"column"}}>
+          {/* Demo banner */}
+          {isDemo&&(
+            <div style={{background:dark?"rgba(0,120,40,0.12)":"rgba(22,128,58,0.08)",borderBottom:`1px solid ${dark?"#1a4a1a":"#a8d4a8"}`,padding:"7px 16px",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
+              <span style={{color:dark?"#4a8a4a":"#3a7a3a",fontSize:"10px",letterSpacing:"0.1em"}}>▸ DEMO MODE — Orders and portfolio reset on refresh. <span style={{color:D.accD,cursor:"pointer",textDecoration:"underline"}} onClick={()=>setAuthModal("signup")}>Create a free account</span> to save your trades.</span>
+              <button onClick={()=>setAuthModal("signup")} style={{padding:"4px 12px",background:dark?"rgba(0,180,60,0.15)":"rgba(22,128,58,0.10)",border:`1px solid ${dark?"#1a4a1a":"#8acc8a"}`,borderRadius:"4px",color:D.accD,fontSize:"9px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.08em"}}>SIGN UP FREE →</button>
+            </div>
+          )}
+
+          <div style={{background:D.hdrBg,borderBottom:`1px solid ${D.bdr2}`,padding:"0 16px",display:"flex",alignItems:"center",justifyContent:"space-between",height:"44px",position:"sticky",top:0,zIndex:100,boxShadow:D.shad,flexShrink:0}}>
+            <div style={{display:"flex",alignItems:"center",gap:"12px"}}>
+              <div style={{display:"flex",alignItems:"baseline",gap:"8px",cursor:"pointer"}} onClick={()=>setScreen("landing")}>
+                <span style={{fontFamily:ORB,fontSize:"16px",fontWeight:800,color:D.acc,letterSpacing:"0.18em",textShadow:dark?"0 0 22px rgba(0,255,80,0.45)":"none"}}>◈ CX</span>
+                <span style={{fontFamily:ORB,fontSize:"11px",fontWeight:600,color:D.txtM,letterSpacing:"0.08em"}}>COLLECTOR'S EXCHANGE</span>
+              </div>
+              <span style={{color:D.bdr2}}>|</span>
+              <span style={{color:D.txtD,fontSize:"9px",letterSpacing:"0.14em",fontStyle:"italic"}}>Buy. Sell. Collect.</span>
+            </div>
+            <div style={{display:"flex",gap:"2px",alignItems:"center"}}>
+              {["MARKET","BROWSE","PORTFOLIO","ORDERS","HISTORY"].map(t=>(
+                <button key={t} onClick={()=>setTab(t)} style={{padding:"0 16px",height:"44px",border:"none",background:"transparent",color:tab===t?D.accD:D.txtD,fontSize:"10px",fontFamily:MONO,letterSpacing:"0.12em",borderBottom:`2px solid ${tab===t?D.accD:"transparent"}`,transition:"all 0.12s",cursor:"pointer"}}>{t}</button>
+              ))}
+            </div>
+            <div style={{display:"flex",gap:"10px",alignItems:"center"}}>
+              {user?(
+                <>
+                  <span style={{color:D.txtD,fontSize:"10px"}}>{user.user_metadata?.display_name||user.email?.split("@")[0]}</span>
+                  <div style={{background:D.stBg,border:`1px solid ${D.bdr}`,borderRadius:"3px",padding:"3px 10px",fontSize:"11px",color:D.txtM}}>💵 ${balance.toLocaleString("en-US",{minimumFractionDigits:2})}</div>
+                  <button onClick={handleLogout} style={{padding:"3px 10px",background:"transparent",border:`1px solid ${D.bdr}`,borderRadius:"3px",color:D.txtD,fontSize:"9px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.08em"}}>LOG OUT</button>
+                </>
+              ):(
+                <>
+                  <div style={{background:D.stBg,border:`1px solid ${D.bdr}`,borderRadius:"3px",padding:"3px 10px",fontSize:"11px",color:D.txtM}}>💵 ${balance.toLocaleString("en-US",{minimumFractionDigits:2})}</div>
+                  <button onClick={()=>setAuthModal("login")} style={{padding:"3px 10px",background:"transparent",border:`1px solid ${D.bdr}`,borderRadius:"3px",color:D.txtD,fontSize:"9px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.08em"}}>LOG IN</button>
+                  <button onClick={()=>setAuthModal("signup")} style={{padding:"3px 10px",background:dark?"rgba(0,120,40,0.15)":"rgba(22,128,58,0.08)",border:`1px solid ${D.accD}`,borderRadius:"3px",color:D.accD,fontSize:"9px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.08em"}}>SIGN UP</button>
+                </>
+              )}
+              <div onClick={()=>setDark(d=>!d)} style={{width:"44px",height:"24px",background:dark?"#1a3a1a":"#d1ecd1",borderRadius:"12px",border:`1px solid ${D.bdr2}`,display:"flex",alignItems:"center",padding:"3px",transition:"background 0.3s",cursor:"pointer"}}>
+                <div style={{width:"16px",height:"16px",borderRadius:"50%",background:dark?"#00cc40":"#f59e0b",transform:dark?"translateX(0)":"translateX(20px)",transition:"transform 0.3s,background 0.3s",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"9px"}}>{dark?"🌙":"☀️"}</div>
+              </div>
+            </div>
+          </div>
+
+          <div style={{flex:1,display:"flex",overflow:"hidden"}}>
+            {tab==="MARKET"    && <Market    D={D} dark={dark} dbCards={dbCards} initialCard={selectedCard} balance={balance} onPlaceOrder={placeOrder} onUpdatePrice={handleUpdatePrice} tradeHistory={tradeHistory} isDemo={isDemo}/>}
+            {tab==="BROWSE"    && <Browser   D={D} dark={dark} dbCards={dbCards} onSelectCard={handleBrowseSelect}/>}
+            {tab==="PORTFOLIO" && <Portfolio D={D} dark={dark} holdings={holdings} tradeHistory={tradeHistory} dbCards={dbCards}/>}
+            {tab==="ORDERS"    && <Orders    D={D} dark={dark} orders={orders} onCancel={cancelOrder} dbCards={dbCards}/>}
+            {tab==="HISTORY"   && <History   D={D} dark={dark} tradeHistory={tradeHistory} ledger={ledger} dbCards={dbCards}/>}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
