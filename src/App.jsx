@@ -168,7 +168,7 @@ function Portfolio({D,dark,holdings=[],tradeHistory=[],dbCards=[]}){
               <span style={{textAlign:"right",color:h.pnl>=0?D.buyT:D.askT,fontSize:"11px"}}>{h.pnl>=0?"+":""}${Math.abs(h.pnl).toLocaleString()}</span>
             </div>
           ))}
-          {selected && (
+          ){"}"}{selected && (
             <div style={{borderTop:`1px solid ${D.bdr}`,padding:"10px 14px"}}>
               <div style={{color:D.txtD,fontSize:"9px",letterSpacing:"0.1em",marginBottom:"8px"}}>▸ TRADES — {selected.card.name}</div>
               {tradeHistory.filter(t=>t.cardId===selected.cardId).map(t=>(
@@ -865,6 +865,7 @@ function Landing({D,dark,dbCards,onEnterDemo,onOpenAuth}){
 
         {/* Nav */}
         <div style={{position:"relative",zIndex:10,display:"flex",justifyContent:"space-between",alignItems:"center",padding:"20px 40px",borderBottom:`1px solid ${dark?"rgba(255,255,255,0.05)":"rgba(0,0,0,0.06)"}`}}>
+          <div style={{maxWidth:"1100px",margin:"0 auto",width:"100%",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
           <div style={{display:"flex",alignItems:"baseline",gap:"10px"}}>
             <span style={{fontFamily:ORB,fontSize:"20px",fontWeight:800,color:dark?"#00cc40":"#15803d",letterSpacing:"0.18em"}}>◈ CX</span>
             <span style={{fontFamily:ORB,fontSize:"12px",fontWeight:600,color:dark?"#4a8a4a":"#3a7a3a",letterSpacing:"0.08em"}}>COLLECTOR'S EXCHANGE</span>
@@ -876,8 +877,10 @@ function Landing({D,dark,dbCards,onEnterDemo,onOpenAuth}){
           </div>
         </div>
 
+          </div>
         {/* Hero content */}
-        <div style={{position:"relative",zIndex:10,flex:1,display:"flex",flexDirection:"column",justifyContent:"center",padding:"60px 40px",maxWidth:"680px"}}>
+        <div style={{position:"relative",zIndex:10,flex:1,display:"flex",flexDirection:"column",justifyContent:"center",padding:"60px 40px"}}>
+          <div style={{maxWidth:"700px"}}>
           <div style={{display:"inline-flex",alignItems:"center",gap:"8px",background:dark?"rgba(0,180,60,0.08)":"rgba(22,128,58,0.06)",border:`1px solid ${dark?"#1a4a1a":"#a8d4a8"}`,borderRadius:"20px",padding:"5px 14px",marginBottom:"28px",width:"fit-content"}}>
             <span style={{color:dark?"#00cc40":"#15803d",fontSize:"9px"}}>●</span>
             <span style={{color:dark?"#4a8a4a":"#3a7a3a",fontSize:"10px",letterSpacing:"0.12em"}}>LIVE MARKET · DEMO AVAILABLE</span>
@@ -902,12 +905,14 @@ function Landing({D,dark,dbCards,onEnterDemo,onOpenAuth}){
           </div>
         </div>
 
+          </div>
         {/* Scroll indicator */}
         <div style={{position:"relative",zIndex:10,textAlign:"center",padding:"20px",color:dark?"#2a5a2a":"#b8d4b8",fontSize:"18px",animation:"bounce 2s infinite"}}>▾</div>
       </div>
 
       {/* ── Features ── */}
       <div style={{padding:"80px 40px",background:dark?"#080c09":"#ffffff",borderTop:`1px solid ${dark?"#0f1f0f":"#dde8dd"}`}}>
+        <div style={{maxWidth:"1100px",margin:"0 auto"}}>
         <div style={{textAlign:"center",marginBottom:"56px"}}>
           <div style={{fontFamily:ORB,fontSize:"10px",letterSpacing:"0.2em",color:dark?"#2a5a2a":"#7a9a7a",marginBottom:"12px"}}>WHAT YOU GET</div>
           <h2 style={{fontFamily:ORB,fontSize:"32px",fontWeight:800,color:dark?"#a8b8a0":"#1a2a1a",letterSpacing:"0.04em"}}>Built for Serious Collectors</h2>
@@ -923,8 +928,10 @@ function Landing({D,dark,dbCards,onEnterDemo,onOpenAuth}){
         </div>
       </div>
 
+        </div>
       {/* ── Live demo strip ── */}
       <div style={{padding:"80px 40px",background:dark?"#070a0e":"#f8faf8",borderTop:`1px solid ${dark?"#0f1f0f":"#dde8dd"}`,textAlign:"center"}}>
+        <div style={{maxWidth:"1100px",margin:"0 auto"}}>
         <div style={{fontFamily:ORB,fontSize:"10px",letterSpacing:"0.2em",color:dark?"#2a5a2a":"#7a9a7a",marginBottom:"12px"}}>LIVE RIGHT NOW</div>
         <h2 style={{fontFamily:ORB,fontSize:"28px",fontWeight:800,color:dark?"#a8b8a0":"#1a2a1a",marginBottom:"12px"}}>Watch the Market Move</h2>
         <p style={{color:dark?"#4a8a4a":"#5a7a5a",fontSize:"12px",marginBottom:"36px"}}>Live trade feed updating every 1.6 seconds. This is real simulated market data.</p>
@@ -944,8 +951,10 @@ function Landing({D,dark,dbCards,onEnterDemo,onOpenAuth}){
         </div>
       </div>
 
+        </div>
       {/* ── CTA ── */}
       <div style={{padding:"80px 40px",textAlign:"center",background:dark?"linear-gradient(135deg,#080c09,#0a100a)":"linear-gradient(135deg,#e8f4e8,#f0f8f0)",borderTop:`1px solid ${dark?"#0f1f0f":"#dde8dd"}`}}>
+        <div style={{maxWidth:"1100px",margin:"0 auto"}}>
         <h2 style={{fontFamily:ORB,fontSize:"32px",fontWeight:800,color:dark?"#a8b8a0":"#1a2a1a",marginBottom:"14px"}}>Ready to Start Trading?</h2>
         <p style={{color:dark?"#4a8a4a":"#5a7a5a",fontSize:"12px",marginBottom:"32px"}}>Create a free account and get $15,000 in demo funds to trade with immediately.</p>
         <div style={{display:"flex",gap:"14px",justifyContent:"center",flexWrap:"wrap"}}>
@@ -954,11 +963,14 @@ function Landing({D,dark,dbCards,onEnterDemo,onOpenAuth}){
         </div>
       </div>
 
+        </div>
       {/* ── Footer ── */}
-      <div style={{padding:"20px 40px",borderTop:`1px solid ${dark?"#0f1f0f":"#dde8dd"}`,display:"flex",justifyContent:"space-between",alignItems:"center",background:dark?"#070a0e":"#f0f4f0"}}>
+      <div style={{padding:"20px 40px",borderTop:`1px solid ${dark?"#0f1f0f":"#dde8dd"}`,background:dark?"#070a0e":"#f0f4f0"}}>
+        <div style={{maxWidth:"1100px",margin:"0 auto",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <span style={{fontFamily:ORB,fontSize:"12px",color:dark?"#2a5a2a":"#9aaa9a",letterSpacing:"0.12em"}}>◈ COLLECTOR'S EXCHANGE</span>
         <span style={{color:dark?"#1a3a1a":"#b8c8b8",fontSize:"9px"}}>Demo platform · Not financial advice</span>
       </div>
+        </div>
       <style>{`@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(6px)}}`}</style>
     </div>
   );
