@@ -1,3 +1,4 @@
+import { supabase } from './supabase'
 import { useState, useEffect } from "react";
 
 // ── Data ─────────────────────────────────────────────────────────────────────
@@ -338,6 +339,7 @@ function History({D,dark}){
 // ── Market ────────────────────────────────────────────────────────────────────
 function Market({D,dark}){
   const [card,setCard]=useState(CARDS[0]);
+  const [dbCards,setDbCards]=useState([]);
   const [asks,setAsks]=useState(()=>genOrders(BASE[1],6,"ask"));
   const [bids,setBids]=useState(()=>genOrders(BASE[1],6,"bid"));
   const [trades,setTrades]=useState(()=>Array.from({length:16},()=>genTrade(BASE[1])));
@@ -349,7 +351,24 @@ function Market({D,dark}){
   const [oQty,setOQty]=useState("");
   const [oStatus,setOStatus]=useState(null);
   const [hist,setHist]=useState(()=>genHist(BASE[1]));
-  const base=BASE[card.id];
+  const base=card.basePrice||BASE[card.id]||0;
+  useEffect(()=>{
+    async function fetchCards(){
+      const {data,error}=await supabase.from('cards').select('*')
+      if(error){ console.error('Supabase error:',error) }
+      else {
+        const formatted=data.map(c=>({
+          id:c.id, name:c.name, set:c.set_name,
+          condition:c.condition, rarity:c.rarity,
+          game:c.game, img:c.img_url,
+          basePrice:c.base_price
+        }))
+        setDbCards(formatted)
+        setCard(formatted[0])
+      }
+    }
+    fetchCards()
+  },[])
 
   useEffect(()=>{setAsks(genOrders(base,6,"ask"));setBids(genOrders(base,6,"bid"));setPrice(base);setTrades(Array.from({length:16},()=>genTrade(base)));setHist(genHist(base));setOPrice("");setOQty("");},[card]);
   useEffect(()=>{
@@ -369,7 +388,7 @@ function Market({D,dark}){
     <div style={{flex:1,display:"flex",overflow:"hidden"}}>
       <div style={{width:"186px",flexShrink:0,borderRight:`1px solid ${D.bdr}`,background:D.bg2,display:"flex",flexDirection:"column",overflowY:"auto"}}>
         <div style={{padding:"8px 12px",borderBottom:`1px solid ${D.bdr}`,color:D.txtD,fontSize:"10px",letterSpacing:"0.12em"}}>▸ INSTRUMENTS</div>
-        {CARDS.map(c=>{const bp=BASE[c.id];const chg=((Math.random()-0.45)*5).toFixed(2);const up=+chg>=0;const active=card.id===c.id;return(
+        {(dbCards.length?dbCards:CARDS).map(c=>{const bp=c.basePrice||BASE[c.id];const chg=((Math.random()-0.45)*5).toFixed(2);const up=+chg>=0;const active=card.id===c.id;return(
           <div key={c.id} onClick={()=>setCard(c)} style={{padding:"9px 12px",borderBottom:`1px solid ${D.bdr}`,cursor:"pointer",background:active?(dark?"rgba(0,255,80,0.05)":"rgba(22,128,58,0.05)"):"transparent",borderLeft:active?`2px solid ${D.accD}`:"2px solid transparent",transition:"all 0.1s"}}>
             <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
               <img src={c.img} alt={c.name} style={{width:"28px",height:"38px",objectFit:"cover",borderRadius:"3px",border:`1px solid ${D.bdr}`,flexShrink:0}} onError={e=>e.target.style.display="none"}/>
@@ -383,8 +402,7 @@ function Market({D,dark}){
         <div style={{background:D.bg3,borderBottom:`1px solid ${D.bdr}`,padding:"8px 16px",display:"flex",alignItems:"center",gap:"18px",flexWrap:"wrap",flexShrink:0}}>
           <div><div style={{fontFamily:ORB,fontSize:"13px",fontWeight:700,color:D.txt,letterSpacing:"0.08em"}}>{card.name}</div><div style={{color:D.txtD,fontSize:"9px",marginTop:"1px"}}>{card.set} · {card.condition} · {card.rarity} · {card.game}</div></div>
           <div className={flash==="up"?"fu":flash==="down"?"fd":""} style={{display:"flex",alignItems:"baseline",gap:"6px",padding:"2px 8px",borderRadius:"3px"}}>
-            <span style={{fontFamily:ORB,fontSize:"20px",fontWeight:800,color:flash==="up"?D.buyT:flash==="down"?D.askT:D.txt,transition:"color 0.25s"}}>${price.toLocaleString("en-US",{minimumFractionDigits:2})}</span>
-            <span style={{color:+pct>=0?D.buyT:D.askT,fontSize:"11px"}}>{+pct>=0?"▲":"▼"}{Math.abs(pct)}%</span>
+          <span style={{fontFamily:ORB,fontSize:"20px",fontWeight:800,color:flash==="up"?D.buyT:flash==="down"?D.askT:D.txt,transition:"color 0.25s"}}>${(price||0).toLocaleString("en-US",{minimumFractionDigits:2})}</span>            <span style={{color:+pct>=0?D.buyT:D.askT,fontSize:"11px"}}>{+pct>=0?"▲":"▼"}{Math.abs(pct)}%</span>
           </div>
           {[["SPREAD",`$${spread.toFixed(2)}`],["VOL 24H","47 cards"],["HIGH",`$${(base*1.02).toFixed(2)}`],["LOW",`$${(base*0.982).toFixed(2)}`]].map(([k,v])=>(
             <div key={k}><div style={{color:D.txtD,fontSize:"9px",letterSpacing:"0.1em"}}>{k}</div><div style={{color:D.txtM,fontSize:"11px",marginTop:"1px"}}>{v}</div></div>
