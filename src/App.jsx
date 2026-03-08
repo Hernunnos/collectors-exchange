@@ -168,7 +168,7 @@ function Portfolio({D,dark,holdings=[],tradeHistory=[],dbCards=[]}){
               <span style={{textAlign:"right",color:h.pnl>=0?D.buyT:D.askT,fontSize:"11px"}}>{h.pnl>=0?"+":""}${Math.abs(h.pnl).toLocaleString()}</span>
             </div>
           ))}
-          ){"}"}{selected && (
+          {selected && (
             <div style={{borderTop:`1px solid ${D.bdr}`,padding:"10px 14px"}}>
               <div style={{color:D.txtD,fontSize:"9px",letterSpacing:"0.1em",marginBottom:"8px"}}>▸ TRADES — {selected.card.name}</div>
               {tradeHistory.filter(t=>t.cardId===selected.cardId).map(t=>(
@@ -996,11 +996,40 @@ export default function App(){
 
   const D=dark?DK:LT;
 
+  // ── Supabase helpers ────────────────────────────────────────────────────────
+  const saveToDb=async(sb,uid,newOrders,newHoldings,newTrades,newBalance)=>{
+    if(!uid) return;
+    // balance upsert
+    sb.from('user_balance').upsert({user_id:uid,balance:newBalance},{onConflict:'user_id'});
+    // orders upsert
+    if(newOrders?.length) sb.from('user_orders').upsert(newOrders.map(o=>({id:o.id,user_id:uid,card_id:o.cardId,side:o.side,type:o.type,price:o.price,qty:o.qty,filled:o.filled,status:o.status,time:o.time,date:o.date})),{onConflict:'id,user_id'});
+    // holdings replace
+    if(newHoldings!==undefined){
+      await sb.from('user_holdings').delete().eq('user_id',uid);
+      if(newHoldings.length) sb.from('user_holdings').insert(newHoldings.map(h=>({user_id:uid,card_id:h.cardId,qty:h.qty,avg_cost:h.avgCost,acquired:h.acquired})));
+    }
+    // new trades insert
+    if(newTrades?.length) sb.from('user_trades').insert(newTrades.map(t=>({id:t.id,user_id:uid,card_id:t.cardId,side:t.side,price:t.price,qty:t.qty,total:t.total,date:t.date,time:t.time})));
+  };
+
+  const loadUserData=async(sb,uid)=>{
+    const [balRes,ordRes,holdRes,trdRes]=await Promise.all([
+      sb.from('user_balance').select('balance').eq('user_id',uid).single(),
+      sb.from('user_orders').select('*').eq('user_id',uid).order('date',{ascending:false}),
+      sb.from('user_holdings').select('*').eq('user_id',uid),
+      sb.from('user_trades').select('*').eq('user_id',uid).order('date',{ascending:false}),
+    ]);
+    if(balRes.data) setBalance(balRes.data.balance);
+    if(ordRes.data) setOrders(ordRes.data.map(o=>({id:o.id,cardId:o.card_id,side:o.side,type:o.type,price:o.price,qty:o.qty,filled:o.filled,status:o.status,time:o.time,date:o.date})));
+    if(holdRes.data) setHoldings(holdRes.data.map(h=>({cardId:h.card_id,qty:h.qty,avgCost:h.avg_cost,acquired:h.acquired})));
+    if(trdRes.data) setTradeHistory(trdRes.data.map(t=>({id:t.id,cardId:t.card_id,side:t.side,price:t.price,qty:t.qty,total:t.total,date:t.date,time:t.time})));
+  };
+
   useEffect(()=>{
     import('./supabase').then(({supabase})=>{
       // Check for existing session
       supabase.auth.getSession().then(({data:{session}})=>{
-        if(session?.user){ setUser(session.user); setScreen("app"); }
+        if(session?.user){ setUser(session.user); setScreen("app"); loadUserData(supabase,session.user.id); }
       });
       // Load cards
       supabase.from('cards').select('*').then(({data,error})=>{
@@ -1015,7 +1044,7 @@ export default function App(){
     });
   },[]);
 
-  // Run match engine every 2s against live market prices
+  // Run match engine every 2s
   useEffect(()=>{
     const iv=setInterval(()=>{
       setOrders(prev=>{
@@ -1026,23 +1055,17 @@ export default function App(){
           setHoldings(result.holdings);
           setBalance(result.balance);
           setTradeHistory(h=>[...result.newTrades,...h]);
+          if(user) import('./supabase').then(({supabase})=>saveToDb(supabase,user.id,result.orders,result.holdings,result.newTrades,result.balance));
         }
         return result.orders;
       });
     },2000);
     return ()=>clearInterval(iv);
-  },[marketPrices,holdings,balance]);
+  },[marketPrices,holdings,balance,user]);
 
-  const placeOrder=(orderData)=>{
-    const o={
-      id: newOrderId(),
-      ...orderData,
-      filled: 0,
-      status: "open",
-      time: nowTime(),
-      date: nowDate(),
-    };
-    // market orders fill immediately
+  const placeOrder=async(orderData)=>{
+    const o={id:newOrderId(),...orderData,filled:0,status:"open",time:nowTime(),date:nowDate()};
+    let finalOrders,finalHoldings,finalTrades,finalBalance;
     if(o.type==="market"){
       const result=matchOrders([o],marketPrices,holdings,balance);
       if(result.newTrades.length){
@@ -1050,13 +1073,22 @@ export default function App(){
         setBalance(result.balance);
         setTradeHistory(h=>[...result.newTrades,...h]);
       }
-      setOrders(prev=>[...result.orders,...prev]);
+      setOrders(prev=>{ finalOrders=[...result.orders,...prev]; return finalOrders; });
+      finalOrders=[...result.orders]; finalHoldings=result.holdings; finalTrades=result.newTrades; finalBalance=result.balance;
     } else {
-      setOrders(prev=>[o,...prev]);
+      setOrders(prev=>{ finalOrders=[o,...prev]; return finalOrders; });
+      finalOrders=[o]; finalHoldings=undefined; finalTrades=[]; finalBalance=balance;
     }
+    if(user){ const {supabase}=await import('./supabase'); saveToDb(supabase,user.id,finalOrders,finalHoldings,finalTrades,finalBalance); }
   };
 
-  const cancelOrder=(id)=>setOrders(prev=>prev.map(o=>o.id===id&&(o.status==="open"||o.status==="partial")?{...o,status:"cancelled"}:o));
+  const cancelOrder=async(id)=>{
+    setOrders(prev=>{
+      const updated=prev.map(o=>o.id===id&&(o.status==="open"||o.status==="partial")?{...o,status:"cancelled"}:o);
+      if(user) import('./supabase').then(({supabase})=>supabase.from('user_orders').update({status:'cancelled'}).eq('id',id).eq('user_id',user.id));
+      return updated;
+    });
+  };
 
   const handleBrowseSelect=(card)=>{ setSelectedCard(card); setTab("MARKET"); };
   const handleLogout=async()=>{
@@ -1065,7 +1097,11 @@ export default function App(){
     setUser(null); setScreen("landing");
     setOrders([]); setHoldings([]); setTradeHistory([]); setBalance(STARTING_BALANCE);
   };
-  const handleAuth=(u)=>{ setUser(u); setAuthModal(null); setScreen("app"); };
+  const handleAuth=async(u)=>{
+    setUser(u); setAuthModal(null); setScreen("app");
+    const {supabase}=await import('./supabase');
+    loadUserData(supabase,u.id);
+  };
   const handleUpdatePrice=(cardId,price)=>setMarketPrices(p=>({...p,[cardId]:price}));
 
   const isDemo = screen==="app" && !user;
