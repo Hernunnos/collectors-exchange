@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 
 // ── Data ─────────────────────────────────────────────────────────────────────
 const CARDS = [
@@ -994,35 +994,58 @@ export default function App(){
   const [ledger]=useState([{id:"DEP-001",type:"deposit",amount:STARTING_BALANCE,method:"Demo Credit",date:nowDate()}]);
   const [marketPrices,setMarketPrices]=useState({});
 
+  // Refs so match engine always sees latest values without stale closures
+  const balanceRef=useRef(balance);
+  const holdingsRef=useRef(holdings);
+  const marketPricesRef=useRef(marketPrices);
+  const userRef=useRef(user);
+  useEffect(()=>{ balanceRef.current=balance; },[balance]);
+  useEffect(()=>{ holdingsRef.current=holdings; },[holdings]);
+  useEffect(()=>{ marketPricesRef.current=marketPrices; },[marketPrices]);
+  useEffect(()=>{ userRef.current=user; },[user]);
+
   const D=dark?DK:LT;
 
   // ── Supabase helpers ────────────────────────────────────────────────────────
   const saveToDb=async(sb,uid,newOrders,newHoldings,newTrades,newBalance)=>{
     if(!uid) return;
     // balance upsert
-    sb.from('user_balance').upsert({user_id:uid,balance:newBalance},{onConflict:'user_id'});
-    // orders upsert
-    if(newOrders?.length) sb.from('user_orders').upsert(newOrders.map(o=>({id:o.id,user_id:uid,card_id:o.cardId,side:o.side,type:o.type,price:o.price,qty:o.qty,filled:o.filled,status:o.status,time:o.time,date:o.date})),{onConflict:'id,user_id'});
+    const balRes=await sb.from('user_balance').upsert({user_id:uid,balance:newBalance},{onConflict:'user_id',ignoreDuplicates:false});
+    if(balRes.error) await sb.from('user_balance').insert({user_id:uid,balance:newBalance});
+    console.log("balance save:", balRes.error?"retried OK":"OK");
+    // orders — only upsert the changed/new ones, deduplicated by id
+    if(newOrders?.length){
+      const unique=[...new Map(newOrders.map(o=>[o.id,o])).values()];
+      const ordRes=await sb.from('user_orders').upsert(unique.map(o=>({id:o.id,user_id:uid,card_id:o.cardId,side:o.side,type:o.type,price:o.price,qty:o.qty,filled:o.filled,status:o.status,time:o.time,date:o.date})),{onConflict:'id'});
+      console.log("orders save:", ordRes.error||"OK");
+    }
     // holdings replace
     if(newHoldings!==undefined){
       await sb.from('user_holdings').delete().eq('user_id',uid);
-      if(newHoldings.length) sb.from('user_holdings').insert(newHoldings.map(h=>({user_id:uid,card_id:h.cardId,qty:h.qty,avg_cost:h.avgCost,acquired:h.acquired})));
+      if(newHoldings.length){
+        const holdRes=await sb.from('user_holdings').insert(newHoldings.map(h=>({user_id:uid,card_id:h.cardId,qty:h.qty,avg_cost:h.avgCost,acquired:h.acquired})));
+        console.log("holdings save:", holdRes.error||"OK");
+      }
     }
-    // new trades insert
-    if(newTrades?.length) sb.from('user_trades').insert(newTrades.map(t=>({id:t.id,user_id:uid,card_id:t.cardId,side:t.side,price:t.price,qty:t.qty,total:t.total,date:t.date,time:t.time})));
+    // trades — upsert so duplicates are ignored
+    if(newTrades?.length){
+      const trdRes=await sb.from('user_trades').upsert(newTrades.map(t=>({id:t.id,user_id:uid,card_id:t.cardId,side:t.side,price:t.price,qty:t.qty,total:t.total,date:t.date,time:t.time})),{onConflict:'id'});
+      console.log("trades save:", trdRes.error||"OK");
+    }
   };
 
   const loadUserData=async(sb,uid)=>{
     const [balRes,ordRes,holdRes,trdRes]=await Promise.all([
-      sb.from('user_balance').select('balance').eq('user_id',uid).single(),
+      sb.from('user_balance').select('balance').eq('user_id',uid),
       sb.from('user_orders').select('*').eq('user_id',uid).order('date',{ascending:false}),
       sb.from('user_holdings').select('*').eq('user_id',uid),
       sb.from('user_trades').select('*').eq('user_id',uid).order('date',{ascending:false}),
     ]);
-    if(balRes.data) setBalance(balRes.data.balance);
-    if(ordRes.data) setOrders(ordRes.data.map(o=>({id:o.id,cardId:o.card_id,side:o.side,type:o.type,price:o.price,qty:o.qty,filled:o.filled,status:o.status,time:o.time,date:o.date})));
-    if(holdRes.data) setHoldings(holdRes.data.map(h=>({cardId:h.card_id,qty:h.qty,avgCost:h.avg_cost,acquired:h.acquired})));
-    if(trdRes.data) setTradeHistory(trdRes.data.map(t=>({id:t.id,cardId:t.card_id,side:t.side,price:t.price,qty:t.qty,total:t.total,date:t.date,time:t.time})));
+    if(balRes.data?.length) setBalance(+balRes.data[0].balance);
+    else await sb.from('user_balance').insert({user_id:uid,balance:STARTING_BALANCE});
+    setOrders(ordRes.data?.length ? ordRes.data.map(o=>({id:o.id,cardId:+o.card_id,side:o.side,type:o.type,price:+o.price,qty:+o.qty,filled:+o.filled,status:o.status,time:o.time,date:o.date})) : []);
+    setHoldings(holdRes.data?.length ? holdRes.data.map(h=>({cardId:+h.card_id,qty:+h.qty,avgCost:+h.avg_cost,acquired:h.acquired})) : []);
+    setTradeHistory(trdRes.data?.length ? trdRes.data.map(t=>({id:t.id,cardId:+t.card_id,side:t.side,price:+t.price,qty:+t.qty,total:+t.total,date:t.date,time:t.time})) : []);
   };
 
   useEffect(()=>{
@@ -1050,36 +1073,36 @@ export default function App(){
       setOrders(prev=>{
         const openOrders=prev.filter(o=>o.status==="open"||o.status==="partial");
         if(!openOrders.length) return prev;
-        const result=matchOrders(prev,marketPrices,holdings,balance);
+        const result=matchOrders(prev,marketPricesRef.current,holdingsRef.current,balanceRef.current);
         if(result.newTrades.length){
           setHoldings(result.holdings);
           setBalance(result.balance);
           setTradeHistory(h=>[...result.newTrades,...h]);
-          if(user) import('./supabase').then(({supabase})=>saveToDb(supabase,user.id,result.orders,result.holdings,result.newTrades,result.balance));
+          if(userRef.current) import('./supabase').then(({supabase})=>saveToDb(supabase,userRef.current.id,result.orders,result.holdings,result.newTrades,result.balance));
         }
         return result.orders;
       });
     },2000);
     return ()=>clearInterval(iv);
-  },[marketPrices,holdings,balance,user]);
+  },[]);
 
   const placeOrder=async(orderData)=>{
-    const o={id:newOrderId(),...orderData,filled:0,status:"open",time:nowTime(),date:nowDate()};
-    let finalOrders,finalHoldings,finalTrades,finalBalance;
+    const o={id:newOrderId(),...orderData,cardId:+orderData.cardId,filled:0,status:"open",time:nowTime(),date:nowDate()};
     if(o.type==="market"){
       const result=matchOrders([o],marketPrices,holdings,balance);
+      // result.orders contains the single filled order; merge with existing
+      const mergedOrders=[result.orders[0],...orders];
+      setOrders(mergedOrders);
       if(result.newTrades.length){
         setHoldings(result.holdings);
         setBalance(result.balance);
         setTradeHistory(h=>[...result.newTrades,...h]);
       }
-      setOrders(prev=>{ finalOrders=[...result.orders,...prev]; return finalOrders; });
-      finalOrders=[...result.orders]; finalHoldings=result.holdings; finalTrades=result.newTrades; finalBalance=result.balance;
+      if(user){ const {supabase}=await import('./supabase'); saveToDb(supabase,user.id,[result.orders[0]],result.holdings,result.newTrades,result.balance); }
     } else {
-      setOrders(prev=>{ finalOrders=[o,...prev]; return finalOrders; });
-      finalOrders=[o]; finalHoldings=undefined; finalTrades=[]; finalBalance=balance;
+      setOrders(prev=>[o,...prev]);
+      if(user){ const {supabase}=await import('./supabase'); saveToDb(supabase,user.id,[o],undefined,[],balance); }
     }
-    if(user){ const {supabase}=await import('./supabase'); saveToDb(supabase,user.id,finalOrders,finalHoldings,finalTrades,finalBalance); }
   };
 
   const cancelOrder=async(id)=>{
@@ -1100,7 +1123,7 @@ export default function App(){
   const handleAuth=async(u)=>{
     setUser(u); setAuthModal(null); setScreen("app");
     const {supabase}=await import('./supabase');
-    loadUserData(supabase,u.id);
+    await loadUserData(supabase,u.id);
   };
   const handleUpdatePrice=(cardId,price)=>setMarketPrices(p=>({...p,[cardId]:price}));
 
