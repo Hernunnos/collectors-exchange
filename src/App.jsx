@@ -1,4 +1,3 @@
-import { supabase } from './supabase'
 import { useState, useEffect } from "react";
 
 // ── Data ─────────────────────────────────────────────────────────────────────
@@ -336,10 +335,113 @@ function History({D,dark}){
   );
 }
 
+// ── Browser ───────────────────────────────────────────────────────────────────
+function Browser({D,dark,dbCards,onSelectCard}){
+  const [search,setSearch]=useState("");
+  const [gameFilter,setGameFilter]=useState("all");
+  const [condFilter,setCondFilter]=useState("all");
+  const [langFilter,setLangFilter]=useState("all");
+  const [sort,setSort]=useState("price-desc");
+
+  const allCards=dbCards.length?dbCards:CARDS.map(c=>({...c,basePrice:BASE[c.id],set_name:c.set,language:"English"}));
+
+  const games=[...new Set(allCards.map(c=>c.game))].filter(Boolean);
+  const conditions=[...new Set(allCards.map(c=>c.condition))].filter(Boolean);
+  const languages=[...new Set(allCards.map(c=>c.language||"English"))].filter(Boolean);
+
+  const filtered=allCards
+    .filter(c=>search===""||c.name.toLowerCase().includes(search.toLowerCase()))
+    .filter(c=>gameFilter==="all"||c.game===gameFilter)
+    .filter(c=>condFilter==="all"||c.condition===condFilter)
+    .filter(c=>langFilter==="all"||(c.language||"English")===langFilter)
+    .sort((a,b)=>{
+      const pa=a.basePrice||BASE[a.id]||0, pb=b.basePrice||BASE[b.id]||0;
+      if(sort==="price-desc") return pb-pa;
+      if(sort==="price-asc")  return pa-pb;
+      if(sort==="name-asc")   return a.name.localeCompare(b.name);
+      return 0;
+    });
+
+  const inBtnStyle=(active)=>({
+    padding:"5px 12px",border:`1px solid ${active?D.accD:D.bdr}`,borderRadius:"4px",
+    background:active?(dark?"rgba(0,180,60,0.12)":"rgba(22,128,58,0.08)"):"transparent",
+    color:active?D.accD:D.txtD,fontSize:"10px",fontFamily:MONO,cursor:"pointer",transition:"all 0.1s",whiteSpace:"nowrap"
+  });
+
+  return(
+    <div style={{flex:1,overflowY:"auto",padding:"20px",display:"flex",flexDirection:"column",gap:"16px"}}>
+      <div style={{background:D.bg2,border:`1px solid ${D.bdr}`,borderRadius:"6px",padding:"14px 16px",display:"flex",gap:"12px",flexWrap:"wrap",alignItems:"center"}}>
+        <input
+          type="text" value={search} onChange={e=>setSearch(e.target.value)}
+          placeholder="Search cards..."
+          style={{flex:"1 1 180px",background:D.inBg,border:`1px solid ${D.inBdr}`,borderRadius:"4px",padding:"7px 12px",color:D.txt,fontSize:"12px",fontFamily:MONO,minWidth:"140px"}}
+        />
+        <div style={{display:"flex",gap:"6px",flexWrap:"wrap",alignItems:"center"}}>
+          <span style={{color:D.txtD,fontSize:"9px",letterSpacing:"0.1em"}}>GAME</span>
+          {["all",...games].map(g=><button key={g} onClick={()=>setGameFilter(g)} style={inBtnStyle(gameFilter===g)}>{g==="all"?"ALL":g}</button>)}
+        </div>
+        <div style={{display:"flex",gap:"6px",flexWrap:"wrap",alignItems:"center"}}>
+          <span style={{color:D.txtD,fontSize:"9px",letterSpacing:"0.1em"}}>CONDITION</span>
+          {["all",...conditions].map(c=><button key={c} onClick={()=>setCondFilter(c)} style={inBtnStyle(condFilter===c)}>{c==="all"?"ALL":c}</button>)}
+        </div>
+        <div style={{display:"flex",gap:"6px",flexWrap:"wrap",alignItems:"center"}}>
+          <span style={{color:D.txtD,fontSize:"9px",letterSpacing:"0.1em"}}>LANGUAGE</span>
+          {["all",...languages].map(l=><button key={l} onClick={()=>setLangFilter(l)} style={inBtnStyle(langFilter===l)}>{l==="all"?"ALL":l}</button>)}
+        </div>
+        <div style={{display:"flex",gap:"6px",alignItems:"center"}}>
+          <span style={{color:D.txtD,fontSize:"9px",letterSpacing:"0.1em"}}>SORT</span>
+          <select value={sort} onChange={e=>setSort(e.target.value)} style={{background:D.inBg,border:`1px solid ${D.inBdr}`,borderRadius:"4px",padding:"6px 10px",color:D.txt,fontSize:"10px",fontFamily:MONO,cursor:"pointer"}}>
+            <option value="price-desc">Price: High → Low</option>
+            <option value="price-asc">Price: Low → High</option>
+            <option value="name-asc">Name: A → Z</option>
+          </select>
+        </div>
+      </div>
+
+      <div style={{color:D.txtD,fontSize:"9px",letterSpacing:"0.1em"}}>{filtered.length} CARD{filtered.length!==1?"S":""} FOUND</div>
+
+      {filtered.length===0&&(
+        <div style={{padding:"60px",textAlign:"center",color:D.txtD,fontSize:"12px",background:D.bg2,border:`1px solid ${D.bdr}`,borderRadius:"6px"}}>
+          No cards match your filters
+        </div>
+      )}
+
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(180px,1fr))",gap:"14px"}}>
+        {filtered.map(c=>{
+          const bp=c.basePrice||BASE[c.id]||0;
+          const chg=((Math.random()-0.45)*5).toFixed(2);
+          const up=+chg>=0;
+          return(
+            <div key={c.id} onClick={()=>onSelectCard(c)} style={{background:D.bg2,border:`1px solid ${D.bdr}`,borderRadius:"8px",overflow:"hidden",cursor:"pointer",transition:"border-color 0.15s,box-shadow 0.15s"}}
+              onMouseEnter={e=>{e.currentTarget.style.borderColor=D.accD;e.currentTarget.style.boxShadow=dark?`0 0 16px ${D.accD}30`:"0 4px 16px rgba(0,0,0,0.1)";}}
+              onMouseLeave={e=>{e.currentTarget.style.borderColor=D.bdr;e.currentTarget.style.boxShadow="none";}}>
+              <div style={{background:D.stBg,display:"flex",justifyContent:"center",alignItems:"center",padding:"16px",aspectRatio:"1"}}>
+                <img src={c.img||c.img_url} alt={c.name} style={{maxWidth:"100%",maxHeight:"100%",objectFit:"contain",borderRadius:"4px",boxShadow:dark?"0 4px 16px rgba(0,0,0,0.6)":"0 4px 12px rgba(0,0,0,0.15)"}} onError={e=>e.target.style.display="none"}/>
+              </div>
+              <div style={{padding:"10px 12px"}}>
+                <div style={{fontFamily:ORB,fontSize:"11px",fontWeight:700,color:D.txt,marginBottom:"3px",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{c.name}</div>
+                <div style={{color:D.txtD,fontSize:"9px",marginBottom:"8px"}}>{c.set||c.set_name} · {c.condition}</div>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline"}}>
+                  <span style={{fontFamily:ORB,fontSize:"13px",fontWeight:700,color:D.accD}}>${bp.toLocaleString("en-US",{minimumFractionDigits:2})}</span>
+                  <span style={{color:up?D.buyT:D.askT,fontSize:"9px"}}>{up?"▲":"▼"}{Math.abs(chg)}%</span>
+                </div>
+                <div style={{display:"flex",justifyContent:"space-between",marginTop:"6px"}}>
+                  <span style={{background:dark?"rgba(0,180,60,0.08)":"rgba(22,128,58,0.06)",color:D.txtM,fontSize:"8px",padding:"2px 6px",borderRadius:"3px"}}>{c.game}</span>
+                  <span style={{color:D.txtD,fontSize:"8px"}}>{c.language||"English"}</span>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ── Market ────────────────────────────────────────────────────────────────────
-function Market({D,dark}){
-  const [card,setCard]=useState(CARDS[0]);
-  const [dbCards,setDbCards]=useState([]);
+function Market({D,dark,dbCards=[],initialCard=null}){
+  const allCards=dbCards.length?dbCards:CARDS.map(c=>({...c,basePrice:BASE[c.id]}));
+  const [card,setCard]=useState(()=>initialCard||allCards[0]||CARDS[0]);
   const [asks,setAsks]=useState(()=>genOrders(BASE[1],6,"ask"));
   const [bids,setBids]=useState(()=>genOrders(BASE[1],6,"bid"));
   const [trades,setTrades]=useState(()=>Array.from({length:16},()=>genTrade(BASE[1])));
@@ -352,23 +454,7 @@ function Market({D,dark}){
   const [oStatus,setOStatus]=useState(null);
   const [hist,setHist]=useState(()=>genHist(BASE[1]));
   const base=card.basePrice||BASE[card.id]||0;
-  useEffect(()=>{
-    async function fetchCards(){
-      const {data,error}=await supabase.from('cards').select('*')
-      if(error){ console.error('Supabase error:',error) }
-      else {
-        const formatted=data.map(c=>({
-          id:c.id, name:c.name, set:c.set_name,
-          condition:c.condition, rarity:c.rarity,
-          game:c.game, img:c.img_url,
-          basePrice:c.base_price
-        }))
-        setDbCards(formatted)
-        setCard(formatted[0])
-      }
-    }
-    fetchCards()
-  },[])
+  useEffect(()=>{ if(initialCard) setCard(initialCard); },[initialCard]);
 
   useEffect(()=>{setAsks(genOrders(base,6,"ask"));setBids(genOrders(base,6,"bid"));setPrice(base);setTrades(Array.from({length:16},()=>genTrade(base)));setHist(genHist(base));setOPrice("");setOQty("");},[card]);
   useEffect(()=>{
@@ -388,7 +474,7 @@ function Market({D,dark}){
     <div style={{flex:1,display:"flex",overflow:"hidden"}}>
       <div style={{width:"186px",flexShrink:0,borderRight:`1px solid ${D.bdr}`,background:D.bg2,display:"flex",flexDirection:"column",overflowY:"auto"}}>
         <div style={{padding:"8px 12px",borderBottom:`1px solid ${D.bdr}`,color:D.txtD,fontSize:"10px",letterSpacing:"0.12em"}}>▸ INSTRUMENTS</div>
-        {(dbCards.length?dbCards:CARDS).map(c=>{const bp=c.basePrice||BASE[c.id];const chg=((Math.random()-0.45)*5).toFixed(2);const up=+chg>=0;const active=card.id===c.id;return(
+        {allCards.map(c=>{const bp=c.basePrice||BASE[c.id]||0;const chg=((Math.random()-0.45)*5).toFixed(2);const up=+chg>=0;const active=card.id===c.id;return(
           <div key={c.id} onClick={()=>setCard(c)} style={{padding:"9px 12px",borderBottom:`1px solid ${D.bdr}`,cursor:"pointer",background:active?(dark?"rgba(0,255,80,0.05)":"rgba(22,128,58,0.05)"):"transparent",borderLeft:active?`2px solid ${D.accD}`:"2px solid transparent",transition:"all 0.1s"}}>
             <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
               <img src={c.img} alt={c.name} style={{width:"28px",height:"38px",objectFit:"cover",borderRadius:"3px",border:`1px solid ${D.bdr}`,flexShrink:0}} onError={e=>e.target.style.display="none"}/>
@@ -402,7 +488,8 @@ function Market({D,dark}){
         <div style={{background:D.bg3,borderBottom:`1px solid ${D.bdr}`,padding:"8px 16px",display:"flex",alignItems:"center",gap:"18px",flexWrap:"wrap",flexShrink:0}}>
           <div><div style={{fontFamily:ORB,fontSize:"13px",fontWeight:700,color:D.txt,letterSpacing:"0.08em"}}>{card.name}</div><div style={{color:D.txtD,fontSize:"9px",marginTop:"1px"}}>{card.set} · {card.condition} · {card.rarity} · {card.game}</div></div>
           <div className={flash==="up"?"fu":flash==="down"?"fd":""} style={{display:"flex",alignItems:"baseline",gap:"6px",padding:"2px 8px",borderRadius:"3px"}}>
-          <span style={{fontFamily:ORB,fontSize:"20px",fontWeight:800,color:flash==="up"?D.buyT:flash==="down"?D.askT:D.txt,transition:"color 0.25s"}}>${(price||0).toLocaleString("en-US",{minimumFractionDigits:2})}</span>            <span style={{color:+pct>=0?D.buyT:D.askT,fontSize:"11px"}}>{+pct>=0?"▲":"▼"}{Math.abs(pct)}%</span>
+            <span style={{fontFamily:ORB,fontSize:"20px",fontWeight:800,color:flash==="up"?D.buyT:flash==="down"?D.askT:D.txt,transition:"color 0.25s"}}>${price.toLocaleString("en-US",{minimumFractionDigits:2})}</span>
+            <span style={{color:+pct>=0?D.buyT:D.askT,fontSize:"11px"}}>{+pct>=0?"▲":"▼"}{Math.abs(pct)}%</span>
           </div>
           {[["SPREAD",`$${spread.toFixed(2)}`],["VOL 24H","47 cards"],["HIGH",`$${(base*1.02).toFixed(2)}`],["LOW",`$${(base*0.982).toFixed(2)}`]].map(([k,v])=>(
             <div key={k}><div style={{color:D.txtD,fontSize:"9px",letterSpacing:"0.1em"}}>{k}</div><div style={{color:D.txtM,fontSize:"11px",marginTop:"1px"}}>{v}</div></div>
@@ -505,7 +592,22 @@ function Market({D,dark}){
 export default function App(){
   const [dark,setDark]=useState(true);
   const [tab,setTab]=useState("MARKET");
+  const [dbCards,setDbCards]=useState([]);
+  const [selectedCard,setSelectedCard]=useState(null);
   const D=dark?DK:LT;
+
+  useEffect(()=>{
+    import('./supabase').then(({supabase})=>{
+      supabase.from('cards').select('*').then(({data,error})=>{
+        if(!error&&data){
+          const fmt=data.map(c=>({id:c.id,name:c.name,set:c.set_name,set_name:c.set_name,condition:c.condition,rarity:c.rarity,game:c.game,img:c.img_url,img_url:c.img_url,basePrice:c.base_price,language:c.language||"English"}));
+          setDbCards(fmt);
+        }
+      });
+    });
+  },[]);
+
+  const handleBrowseSelect=(card)=>{ setSelectedCard(card); setTab("MARKET"); };
 
   return(
     <div style={{fontFamily:MONO,background:D.bg,color:D.txt,minHeight:"100vh",fontSize:"12px",transition:"background 0.3s,color 0.3s",display:"flex",flexDirection:"column"}}>
@@ -514,7 +616,7 @@ export default function App(){
         *{box-sizing:border-box;margin:0;padding:0;}
         ::-webkit-scrollbar{width:4px;height:4px;} ::-webkit-scrollbar-track{background:${D.bg};} ::-webkit-scrollbar-thumb{background:${D.bdr2};border-radius:2px;}
         input{outline:none;font-family:${MONO};} input:focus{border-color:${D.accD}!important;}
-        button{cursor:pointer;}
+        button{cursor:pointer;} select{outline:none;}
         @keyframes fG{0%,100%{background:transparent}50%{background:rgba(0,200,60,0.14)}}
         @keyframes fR{0%,100%{background:transparent}50%{background:rgba(220,50,50,0.14)}}
         .fu{animation:fG 0.4s ease;} .fd{animation:fR 0.4s ease;}
@@ -530,7 +632,7 @@ export default function App(){
           <span style={{color:D.txtD,fontSize:"9px",letterSpacing:"0.14em",fontStyle:"italic"}}>Buy. Sell. Collect.</span>
         </div>
         <div style={{display:"flex",gap:"2px",alignItems:"center"}}>
-          {["MARKET","PORTFOLIO","ORDERS","HISTORY"].map(t=>(
+          {["MARKET","BROWSE","PORTFOLIO","ORDERS","HISTORY"].map(t=>(
             <button key={t} onClick={()=>setTab(t)} style={{padding:"0 16px",height:"44px",border:"none",background:"transparent",color:tab===t?D.accD:D.txtD,fontSize:"10px",fontFamily:MONO,letterSpacing:"0.12em",borderBottom:`2px solid ${tab===t?D.accD:"transparent"}`,transition:"all 0.12s",cursor:"pointer"}}>{t}</button>
           ))}
         </div>
@@ -543,7 +645,8 @@ export default function App(){
       </div>
 
       <div style={{flex:1,display:"flex",overflow:"hidden"}}>
-        {tab==="MARKET"    && <Market    D={D} dark={dark}/>}
+        {tab==="MARKET"    && <Market    D={D} dark={dark} dbCards={dbCards} initialCard={selectedCard}/>}
+        {tab==="BROWSE"    && <Browser   D={D} dark={dark} dbCards={dbCards} onSelectCard={handleBrowseSelect}/>}
         {tab==="PORTFOLIO" && <Portfolio D={D} dark={dark}/>}
         {tab==="ORDERS"    && <Orders    D={D} dark={dark}/>}
         {tab==="HISTORY"   && <History   D={D} dark={dark}/>}
