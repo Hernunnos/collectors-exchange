@@ -495,19 +495,19 @@ function Market({D,dark,dbCards=[],initialCard=null}){
   const spread=asks.length&&bids.length?+(asks[0].price-bids[0].price).toFixed(2):0;
   const pct=(((price-base)/base)*100).toFixed(2);
   const minP=Math.min(...hist.map(h=>h.p)),maxP=Math.max(...hist.map(h=>h.p)),rng=maxP-minP||1;
-  const CW=560,CH=120;
+  const CW=560,CH=200;
   const lp=()=>hist.map((h,i)=>`${i===0?"M":"L"}${((i/(hist.length-1))*CW).toFixed(1)},${((CH-8)-((h.p-minP)/rng)*(CH-16)).toFixed(1)}`).join(" ");
   const submitOrder=()=>{if(!oQty||(oType==="limit"&&!oPrice))return;setOStatus({side:oSide,price:oType==="market"?price:+oPrice,qty:+oQty});setTimeout(()=>setOStatus(null),3000);setOPrice("");setOQty("");};
   const maxA=Math.max(...asks.map(a=>a.qty)),maxB=Math.max(...bids.map(b=>b.qty));
 
   return(
     <div style={{flex:1,display:"flex",overflow:"hidden"}}>
-      <div style={{width:"186px",flexShrink:0,borderRight:`1px solid ${D.bdr}`,background:D.bg2,display:"flex",flexDirection:"column",overflow:"hidden"}}>
-        <div style={{padding:"8px 12px",borderBottom:`1px solid ${D.bdr}`,flexShrink:0}}>
-          <div style={{color:D.txtD,fontSize:"10px",letterSpacing:"0.12em",marginBottom:"6px"}}>▸ INSTRUMENTS</div>
+      <div style={{width:"220px",flexShrink:0,borderRight:`1px solid ${D.bdr}`,background:D.bg2,display:"flex",flexDirection:"column",overflow:"hidden"}}>
+        <div style={{padding:"10px 14px",borderBottom:`1px solid ${D.bdr}`,flexShrink:0}}>
+          <div style={{color:D.txtD,fontSize:"11px",letterSpacing:"0.12em",marginBottom:"8px"}}>▸ INSTRUMENTS</div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"4px"}}>
             {["value","volume"].map(m=>(
-              <button key={m} onClick={()=>setSidebarMode(m)} style={{padding:"3px 0",border:`1px solid ${sidebarMode===m?D.accD:D.bdr}`,borderRadius:"3px",background:sidebarMode===m?(dark?"rgba(0,180,60,0.12)":"rgba(22,128,58,0.08)"):"transparent",color:sidebarMode===m?D.accD:D.txtD,fontSize:"9px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.06em"}}>
+              <button key={m} onClick={()=>setSidebarMode(m)} style={{padding:"5px 0",border:`1px solid ${sidebarMode===m?D.accD:D.bdr}`,borderRadius:"3px",background:sidebarMode===m?(dark?"rgba(0,180,60,0.12)":"rgba(22,128,58,0.08)"):"transparent",color:sidebarMode===m?D.accD:D.txtD,fontSize:"10px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.06em"}}>
                 {m==="value"?"TOP VALUE":"TOP VOL"}
               </button>
             ))}
@@ -515,10 +515,17 @@ function Market({D,dark,dbCards=[],initialCard=null}){
         </div>
         <div style={{overflowY:"auto",flex:1}}>
         {sidebarCards.map(c=>{const bp=c.basePrice||BASE[c.id]||0;const chg=((Math.random()-0.45)*5).toFixed(2);const up=+chg>=0;const active=card.id===c.id;return(
-          <div key={c.id} onClick={()=>setCard(c)} style={{padding:"9px 12px",borderBottom:`1px solid ${D.bdr}`,cursor:"pointer",background:active?(dark?"rgba(0,255,80,0.05)":"rgba(22,128,58,0.05)"):"transparent",borderLeft:active?`2px solid ${D.accD}`:"2px solid transparent",transition:"all 0.1s"}}>
-            <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
-              <img src={c.img||c.img_url} alt={c.name} style={{width:"28px",height:"38px",objectFit:"cover",borderRadius:"3px",border:`1px solid ${D.bdr}`,flexShrink:0}} onError={e=>e.target.style.display="none"}/>
-              <div><div style={{color:active?D.acc:D.txt,fontSize:"11px",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:"110px"}}>{c.name}</div><div style={{color:D.txtD,fontSize:"9px"}}>{c.set||c.set_name}</div><div style={{display:"flex",gap:"8px",marginTop:"2px"}}><span style={{color:D.txtM,fontSize:"10px"}}>${bp.toLocaleString()}</span><span style={{color:up?D.buyT:D.askT,fontSize:"9px"}}>{up?"▲":"▼"}{Math.abs(chg)}%</span></div></div>
+          <div key={c.id} onClick={()=>setCard(c)} style={{padding:"12px 14px",borderBottom:`1px solid ${D.bdr}`,cursor:"pointer",background:active?(dark?"rgba(0,255,80,0.05)":"rgba(22,128,58,0.05)"):"transparent",borderLeft:active?`3px solid ${D.accD}`:"3px solid transparent",transition:"all 0.1s"}}>
+            <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
+              <img src={c.img||c.img_url} alt={c.name} style={{width:"38px",height:"52px",objectFit:"cover",borderRadius:"4px",border:`1px solid ${D.bdr}`,flexShrink:0}} onError={e=>e.target.style.display="none"}/>
+              <div style={{minWidth:0}}>
+                <div style={{color:active?D.acc:D.txt,fontSize:"12px",fontWeight:600,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{c.name}</div>
+                <div style={{color:D.txtD,fontSize:"10px",marginTop:"2px",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{c.set||c.set_name}</div>
+                <div style={{display:"flex",gap:"8px",marginTop:"4px"}}>
+                  <span style={{color:D.txtM,fontSize:"11px",fontWeight:600}}>${bp.toLocaleString()}</span>
+                  <span style={{color:up?D.buyT:D.askT,fontSize:"10px"}}>{up?"▲":"▼"}{Math.abs(chg)}%</span>
+                </div>
+              </div>
             </div>
           </div>
         );})}
@@ -527,24 +534,27 @@ function Market({D,dark,dbCards=[],initialCard=null}){
 
       <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
         <div style={{background:D.bg3,borderBottom:`1px solid ${D.bdr}`,padding:"8px 16px",display:"flex",alignItems:"center",gap:"18px",flexWrap:"wrap",flexShrink:0}}>
-          <div><div style={{fontFamily:ORB,fontSize:"13px",fontWeight:700,color:D.txt,letterSpacing:"0.08em"}}>{card.name}</div><div style={{color:D.txtD,fontSize:"9px",marginTop:"1px"}}>{card.set} · {card.condition} · {card.rarity} · {card.game}</div></div>
-          <div className={flash==="up"?"fu":flash==="down"?"fd":""} style={{display:"flex",alignItems:"baseline",gap:"6px",padding:"2px 8px",borderRadius:"3px"}}>
-            <span style={{fontFamily:ORB,fontSize:"20px",fontWeight:800,color:flash==="up"?D.buyT:flash==="down"?D.askT:D.txt,transition:"color 0.25s"}}>${price.toLocaleString("en-US",{minimumFractionDigits:2})}</span>
-            <span style={{color:+pct>=0?D.buyT:D.askT,fontSize:"11px"}}>{+pct>=0?"▲":"▼"}{Math.abs(pct)}%</span>
+          <div><div style={{fontFamily:ORB,fontSize:"16px",fontWeight:700,color:D.txt,letterSpacing:"0.08em"}}>{card.name}</div><div style={{color:D.txtD,fontSize:"11px",marginTop:"3px"}}>{card.set||card.set_name} · {card.condition} · {card.rarity} · {card.game}</div></div>
+          <div className={flash==="up"?"fu":flash==="down"?"fd":""} style={{display:"flex",alignItems:"baseline",gap:"8px",padding:"3px 10px",borderRadius:"3px"}}>
+            <span style={{fontFamily:ORB,fontSize:"26px",fontWeight:800,color:flash==="up"?D.buyT:flash==="down"?D.askT:D.txt,transition:"color 0.25s"}}>${(price||0).toLocaleString("en-US",{minimumFractionDigits:2})}</span>
+            <span style={{color:+pct>=0?D.buyT:D.askT,fontSize:"13px"}}>{+pct>=0?"▲":"▼"}{Math.abs(pct)}%</span>
           </div>
-          {[["SPREAD",`$${spread.toFixed(2)}`],["VOL 24H","47 cards"],["HIGH",`$${(base*1.02).toFixed(2)}`],["LOW",`$${(base*0.982).toFixed(2)}`]].map(([k,v])=>(
-            <div key={k}><div style={{color:D.txtD,fontSize:"9px",letterSpacing:"0.1em"}}>{k}</div><div style={{color:D.txtM,fontSize:"11px",marginTop:"1px"}}>{v}</div></div>
+          {[["SPREAD",`$${spread.toFixed(2)}`],["VOL 24H","47 cards"],["HIGH",`$${((base||0)*1.02).toFixed(2)}`],["LOW",`$${((base||0)*0.982).toFixed(2)}`]].map(([k,v])=>(
+            <div key={k}><div style={{color:D.txtD,fontSize:"10px",letterSpacing:"0.1em"}}>{k}</div><div style={{color:D.txtM,fontSize:"12px",marginTop:"2px"}}>{v}</div></div>
           ))}
         </div>
 
         <div style={{flex:1,display:"flex",overflow:"hidden"}}>
-          <div style={{width:"160px",flexShrink:0,borderRight:`1px solid ${D.bdr}`,background:D.bg2,display:"flex",flexDirection:"column",alignItems:"center",padding:"14px 10px",gap:"10px"}}>
-            <div style={{width:"130px",borderRadius:"8px",overflow:"hidden",border:`1px solid ${D.bdr}`,boxShadow:dark?`0 0 20px ${D.accD}20,0 4px 16px rgba(0,0,0,0.5)`:"0 4px 16px rgba(0,0,0,0.1)",background:D.stBg,aspectRatio:"0.714",display:"flex",alignItems:"center",justifyContent:"center"}}>
-              <img src={card.img} alt={card.name} style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}} onError={e=>e.target.style.display="none"}/>
+          <div style={{width:"200px",flexShrink:0,borderRight:`1px solid ${D.bdr}`,background:D.bg2,display:"flex",flexDirection:"column",alignItems:"center",padding:"18px 14px",gap:"14px",overflowY:"auto"}}>
+            <div style={{width:"168px",borderRadius:"10px",overflow:"hidden",border:`1px solid ${D.bdr}`,boxShadow:dark?`0 0 24px ${D.accD}25,0 6px 20px rgba(0,0,0,0.5)`:"0 6px 20px rgba(0,0,0,0.12)",background:D.stBg,aspectRatio:"0.714",display:"flex",alignItems:"center",justifyContent:"center"}}>
+              <img src={card.img||card.img_url} alt={card.name} style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}} onError={e=>e.target.style.display="none"}/>
             </div>
-            <div style={{width:"100%",background:D.stBg,border:`1px solid ${D.bdr}`,borderRadius:"4px",padding:"7px 9px"}}>
-              {[["GAME",card.game],["SET",card.set],["COND.",card.condition],["RARITY",card.rarity]].map(([k,v])=>(
-                <div key={k} style={{display:"flex",justifyContent:"space-between",marginBottom:"3px"}}><span style={{color:D.txtD,fontSize:"9px"}}>{k}</span><span style={{color:D.txtM,fontSize:"9px"}}>{v}</span></div>
+            <div style={{width:"100%",background:D.stBg,border:`1px solid ${D.bdr}`,borderRadius:"6px",padding:"10px 12px"}}>
+              {[["GAME",card.game],["SET",card.set||card.set_name],["COND.",card.condition],["RARITY",card.rarity]].map(([k,v])=>(
+                <div key={k} style={{display:"flex",justifyContent:"space-between",marginBottom:"6px",alignItems:"flex-start",gap:"8px"}}>
+                  <span style={{color:D.txtD,fontSize:"10px",flexShrink:0}}>{k}</span>
+                  <span style={{color:D.txtM,fontSize:"10px",textAlign:"right"}}>{v}</span>
+                </div>
               ))}
             </div>
           </div>
@@ -573,9 +583,9 @@ function Market({D,dark,dbCards=[],initialCard=null}){
                     {rows.map((r,i)=>(
                       <div key={i} onClick={()=>setOPrice(r.price.toString())} style={{display:"grid",gridTemplateColumns:"1fr 46px 68px",padding:"4px 12px",borderBottom:`1px solid ${D.bdr}`,position:"relative",cursor:"pointer"}}>
                         <div style={{position:"absolute",[side==="bid"?"left":"right"]:0,top:0,bottom:0,width:`${(r.qty/mx)*100}%`,background:side==="bid"?(dark?"rgba(0,180,60,0.07)":"rgba(22,128,58,0.06)"):(dark?"rgba(180,40,40,0.08)":"rgba(180,30,30,0.06)")}}/>
-                        <span style={{color:tc,fontSize:"11px",zIndex:1}}>${r.price.toLocaleString("en-US",{minimumFractionDigits:2})}</span>
-                        <span style={{textAlign:"right",color:D.txtM,fontSize:"11px",zIndex:1}}>{r.qty}</span>
-                        <span style={{textAlign:"right",color:D.txtD,fontSize:"10px",zIndex:1}}>${r.total.toLocaleString()}</span>
+                        <span style={{color:tc,fontSize:"12px",zIndex:1}}>${r.price.toLocaleString("en-US",{minimumFractionDigits:2})}</span>
+                        <span style={{textAlign:"right",color:D.txtM,fontSize:"12px",zIndex:1}}>{r.qty}</span>
+                        <span style={{textAlign:"right",color:D.txtD,fontSize:"11px",zIndex:1}}>${r.total.toLocaleString()}</span>
                       </div>
                     ))}
                   </div>
@@ -587,9 +597,9 @@ function Market({D,dark,dbCards=[],initialCard=null}){
                 <div style={{flex:1,overflowY:"auto",background:D.bg2}}>
                   {trades.map(t=>(
                     <div key={t.id} style={{display:"grid",gridTemplateColumns:"62px 1fr 36px",padding:"4px 12px",borderBottom:`1px solid ${D.bdr}`}}>
-                      <span style={{color:D.txtD,fontSize:"10px"}}>{t.time}</span>
-                      <span style={{color:t.side==="buy"?D.buyT:D.askT,fontSize:"11px"}}>${t.price.toLocaleString("en-US",{minimumFractionDigits:2})}</span>
-                      <span style={{textAlign:"right",color:D.txtM,fontSize:"10px"}}>{t.qty}</span>
+                      <span style={{color:D.txtD,fontSize:"11px"}}>{t.time}</span>
+                      <span style={{color:t.side==="buy"?D.buyT:D.askT,fontSize:"12px"}}>${t.price.toLocaleString("en-US",{minimumFractionDigits:2})}</span>
+                      <span style={{textAlign:"right",color:D.txtM,fontSize:"11px"}}>{t.qty}</span>
                     </div>
                   ))}
                 </div>
@@ -631,7 +641,7 @@ function Market({D,dark,dbCards=[],initialCard=null}){
 
 // ── Root ──────────────────────────────────────────────────────────────────────
 export default function App(){
-  const [dark,setDark]=useState(true);
+  const [dark,setDark]=useState(false);
   const [tab,setTab]=useState("MARKET");
   const [dbCards,setDbCards]=useState([]);
   const [selectedCard,setSelectedCard]=useState(null);
