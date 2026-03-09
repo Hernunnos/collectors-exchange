@@ -1795,8 +1795,18 @@ function AdminPanel({D,dark,onClose,currentUserId}){
 }
 
 // ── Profile & Settings Tab ────────────────────────────────────────────────────
-function ProfileSettings({D,dark,user,profile,tradeHistory=[],holdings=[],balance=0,onProfileUpdate,onDarkToggle,isMobile=false}){
+function ProfileSettings({D,dark,user,profile,tradeHistory=[],holdings=[],balance=0,onProfileUpdate,onDarkToggle,isMobile=false,onNotifPrefsChange}){
   const [section,setSection]=useState("profile"); // "profile" | "settings" | "reviews"
+  const [notifPrefs,setNotifPrefs]=useState(()=>{
+    try{ return JSON.parse(localStorage.getItem("cx_notif_prefs")||"{}"); }catch{ return {}; }
+  });
+  const toggleNotif=(key)=>setNotifPrefs(p=>{
+    const next={...p,[key]:!(p[key]===false)};
+    try{ localStorage.setItem("cx_notif_prefs",JSON.stringify(next)); }catch{}
+    if(onNotifPrefsChange) onNotifPrefsChange(next);
+    return next;
+  });
+  const notifOn=(key)=>notifPrefs[key]!==false;
   const [editing,setEditing]=useState(false);
   const [dName,setDName]=useState(profile?.display_name||user?.user_metadata?.display_name||"");
   const [bio,setBio]=useState(profile?.bio||"");
@@ -2028,6 +2038,51 @@ function ProfileSettings({D,dark,user,profile,tradeHistory=[],holdings=[],balanc
               {pwdMsg&&<div style={{marginTop:"8px",color:pwdMsg.startsWith("Error")?D.askT:D.accD,fontSize:"10px"}}>{pwdMsg}</div>}
             </div>
 
+            {/* Notification settings */}
+            <div style={{background:D.bg2,border:`1px solid ${D.bdr}`,borderRadius:"8px",padding:"16px 18px"}}>
+              <div style={{color:D.txtD,fontSize:"9px",letterSpacing:"0.1em",marginBottom:"14px"}}>▸ NOTIFICATIONS</div>
+              {[
+                {key:"filled_buy",  label:"Buy order filled",      desc:"When a buy order executes",           icon:"🟢"},
+                {key:"filled_sell", label:"Sell order filled",     desc:"When a sell order executes",          icon:"🔴"},
+                {key:"price_alert", label:"Price alerts",          desc:"When a card hits your price target",  icon:"🎯"},
+                {key:"import",      label:"Import complete",       desc:"When a CSV import finishes",          icon:"📂"},
+              ].map(({key,label,desc,icon})=>(
+                <div key={key} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0",borderBottom:`1px solid ${D.bdr}`}}>
+                  <div style={{display:"flex",gap:"10px",alignItems:"center"}}>
+                    <span style={{fontSize:"16px"}}>{icon}</span>
+                    <div>
+                      <div style={{color:D.txtM,fontSize:"11px"}}>{label}</div>
+                      <div style={{color:D.txtD,fontSize:"9px",marginTop:"2px"}}>{desc}</div>
+                    </div>
+                  </div>
+                  <div onClick={()=>toggleNotif(key)} style={{width:"40px",height:"22px",background:notifOn(key)?(dark?"#1a3a1a":"#d1ecd1"):(dark?"#2a1a1a":"#f0d0d0"),borderRadius:"11px",border:`1px solid ${notifOn(key)?D.accD:D.bdr2}`,display:"flex",alignItems:"center",padding:"2px",transition:"all 0.2s",cursor:"pointer",flexShrink:0}}>
+                    <div style={{width:"16px",height:"16px",borderRadius:"50%",background:notifOn(key)?(dark?"#00cc40":"#15803d"):"#aaa",transform:notifOn(key)?"translateX(18px)":"translateX(0)",transition:"transform 0.2s"}}/>
+                  </div>
+                </div>
+              ))}
+              {/* Browser push permission status */}
+              <div style={{marginTop:"14px",padding:"10px 12px",background:D.bg3,border:`1px solid ${D.bdr}`,borderRadius:"6px",display:"flex",justifyContent:"space-between",alignItems:"center",gap:"10px"}}>
+                <div>
+                  <div style={{color:D.txtM,fontSize:"10px",marginBottom:"2px"}}>
+                    {typeof Notification==="undefined"?"Browser push: not supported":
+                     Notification.permission==="granted"?"🟢 Browser push: enabled":
+                     Notification.permission==="denied"?"🔴 Browser push: blocked in browser settings":
+                     "⚪ Browser push: not yet enabled"}
+                  </div>
+                  <div style={{color:D.txtD,fontSize:"9px"}}>
+                    {Notification?.permission==="denied"?"Change in your browser site settings to re-enable":"Notifies you even when you're on another tab"}
+                  </div>
+                </div>
+                {typeof Notification!=="undefined"&&Notification.permission==="default"&&(
+                  <button onClick={async()=>{const r=await Notification.requestPermission();if(onNotifPrefsChange) onNotifPrefsChange({});}} style={{padding:"5px 12px",background:dark?"rgba(0,180,60,0.15)":"rgba(22,128,58,0.10)",border:`1px solid ${D.accD}`,borderRadius:"4px",color:D.accD,fontSize:"9px",fontFamily:"'Share Tech Mono',monospace",cursor:"pointer",whiteSpace:"nowrap"}}>ENABLE</button>
+                )}
+              </div>
+              <div style={{marginTop:"10px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <span style={{color:D.txtD,fontSize:"9px"}}>Email notifications coming soon</span>
+                <button onClick={()=>{const all={filled_buy:true,filled_sell:true,price_alert:true,import:true};setNotifPrefs(all);try{localStorage.setItem("cx_notif_prefs",JSON.stringify(all));}catch{};if(onNotifPrefsChange)onNotifPrefsChange(all);}} style={{padding:"4px 10px",background:"transparent",border:`1px solid ${D.bdr}`,borderRadius:"3px",color:D.txtD,fontSize:"9px",fontFamily:"'Share Tech Mono',monospace",cursor:"pointer"}}>ENABLE ALL</button>
+              </div>
+            </div>
+
             {/* Danger zone */}
             <div style={{background:dark?"rgba(180,30,30,0.05)":"rgba(220,50,50,0.03)",border:`1px solid ${dark?"#3a1010":"#e8c5c5"}`,borderRadius:"8px",padding:"16px 18px"}}>
               <div style={{color:"#dc2626",fontSize:"9px",letterSpacing:"0.1em",marginBottom:"10px"}}>▸ DANGER ZONE</div>
@@ -2043,6 +2098,15 @@ function ProfileSettings({D,dark,user,profile,tradeHistory=[],holdings=[],balanc
 }
 export default function App(){
   const [dark,setDark]=useState(false);
+  const [notifPrefs,setNotifPrefs]=useState(()=>{
+    try{ return JSON.parse(localStorage.getItem("cx_notif_prefs")||"{}"); }catch{ return {}; }
+  });
+  const notifOn=(key)=>notifPrefs[key]!==false;
+  // Browser push permission: "default" | "granted" | "denied"
+  const [pushPermission,setPushPermission]=useState(()=>
+    typeof Notification!=="undefined"?Notification.permission:"unsupported"
+  );
+  const [showPushPrompt,setShowPushPrompt]=useState(false);
   const [screen,setScreen]=useState("landing"); // "landing" | "app"
   const isMobile=useIsMobile();
   const [drawerOpen,setDrawerOpen]=useState(false);
@@ -2311,11 +2375,31 @@ export default function App(){
   };
   const handleUpdatePrice=(cardId,price)=>setMarketPrices(p=>({...p,[cardId]:price}));
 
-  const pushNotification=(type,message)=>{
+  const pushNotification=(type,message)=>{ if(!notifOn(type)) return;
     const notif={id:`N-${Date.now()}`,type,message,time:nowTime(),read:false};
     setNotifications(prev=>[notif,...prev].slice(0,50));
-    // Auto-mark as read after 8s if toast seen
     setTimeout(()=>setNotifications(prev=>prev.map(n=>n.id===notif.id?{...n,read:true}:n)),8000);
+    // Also fire native browser push notification if permission granted
+    if(typeof Notification!=="undefined"&&Notification.permission==="granted"){
+      const icons={filled_buy:"🟢",filled_sell:"🔴",price_alert:"🎯",import:"📂"};
+      try{ new Notification("◈ Collector's Exchange",{body:message,icon:"/favicon.ico",tag:type,silent:false}); }catch{}
+    }
+  };
+
+  // Ask for push permission once user is logged in and hasn't been asked yet
+  useEffect(()=>{
+    if(user && typeof Notification!=="undefined" && Notification.permission==="default"){
+      // Small delay so it doesn't fire the instant they log in
+      const t=setTimeout(()=>setShowPushPrompt(true),2500);
+      return ()=>clearTimeout(t);
+    }
+  },[user]);
+
+  const requestPushPermission=async()=>{
+    if(typeof Notification==="undefined") return;
+    const result=await Notification.requestPermission();
+    setPushPermission(result);
+    setShowPushPrompt(false);
   };
 
   const isDemo = screen==="app" && !user;
@@ -2346,6 +2430,33 @@ export default function App(){
 
       {authModal&&<AuthModal D={D} dark={dark} onClose={()=>setAuthModal(null)} onAuth={handleAuth}/>}
       {adminOpen&&<AdminPanel D={D} dark={dark} onClose={()=>setAdminOpen(false)} currentUserId={user?.id}/>}
+
+      {/* ── Push notification permission prompt ── */}
+      {showPushPrompt&&(
+        <div style={{position:"fixed",bottom:"80px",right:"20px",zIndex:600,width:"300px",background:dark?"#1a2a1a":"#f0faf0",border:`1px solid ${dark?"#2a5a2a":"#86efac"}`,borderRadius:"12px",padding:"16px 18px",boxShadow:"0 8px 32px rgba(0,0,0,0.25)",animation:"notifPop 0.25s ease"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"10px"}}>
+            <div style={{display:"flex",gap:"10px",alignItems:"center"}}>
+              <span style={{fontSize:"22px"}}>🔔</span>
+              <div>
+                <div style={{fontFamily:"'Orbitron',sans-serif",fontSize:"11px",fontWeight:700,color:dark?"#00cc40":"#15803d",letterSpacing:"0.08em"}}>ENABLE NOTIFICATIONS</div>
+                <div style={{color:dark?"#6aaa6a":"#4a7a4a",fontSize:"9px",marginTop:"2px"}}>Get alerts for order fills & price targets</div>
+              </div>
+            </div>
+            <button onClick={()=>setShowPushPrompt(false)} style={{background:"none",border:"none",color:dark?"#6aaa6a":"#888",fontSize:"16px",cursor:"pointer",lineHeight:1,padding:"0"}}>×</button>
+          </div>
+          <div style={{color:dark?"#8aaa8a":"#555",fontSize:"10px",marginBottom:"14px",lineHeight:"1.5"}}>
+            Allow browser notifications so you hear about fills even when you're on another tab.
+          </div>
+          <div style={{display:"flex",gap:"8px"}}>
+            <button onClick={requestPushPermission} style={{flex:1,padding:"8px",background:dark?"linear-gradient(135deg,#0a3a1a,#0f5a28)":"linear-gradient(135deg,#cceacc,#a8d8a8)",border:`1px solid ${dark?"#1a5a2a":"#7ab07a"}`,borderRadius:"6px",color:dark?"#00ff55":"#1a5a2a",fontSize:"10px",fontFamily:"'Share Tech Mono',monospace",cursor:"pointer",fontWeight:"bold",letterSpacing:"0.08em"}}>
+              → ALLOW
+            </button>
+            <button onClick={()=>setShowPushPrompt(false)} style={{padding:"8px 14px",background:"transparent",border:`1px solid ${dark?"#2a4a2a":"#ccc"}`,borderRadius:"6px",color:dark?"#6aaa6a":"#888",fontSize:"10px",fontFamily:"'Share Tech Mono',monospace",cursor:"pointer"}}>
+              NOT NOW
+            </button>
+          </div>
+        </div>
+      )}
 
       {screen==="landing"&&(
         <Landing D={D} dark={dark} dbCards={dbCards}
@@ -2492,7 +2603,7 @@ export default function App(){
             {tab==="PORTFOLIO" && <Portfolio D={D} dark={dark} holdings={holdings} tradeHistory={tradeHistory} dbCards={dbCards} isMobile={isMobile}/>}
             {tab==="ORDERS"    && <Orders    D={D} dark={dark} orders={orders} onCancel={cancelOrder} dbCards={dbCards} isMobile={isMobile}/>}
             {tab==="HISTORY"   && <History   D={D} dark={dark} tradeHistory={tradeHistory} ledger={ledger} dbCards={dbCards} isMobile={isMobile}/>}
-            {tab==="PROFILE"   && user && <ProfileSettings D={D} dark={dark} user={user} profile={profile} tradeHistory={tradeHistory} holdings={holdings} balance={balance} onProfileUpdate={handleProfileUpdate} onDarkToggle={()=>setDark(d=>!d)} isMobile={isMobile}/>}
+            {tab==="PROFILE"   && user && <ProfileSettings D={D} dark={dark} user={user} profile={profile} tradeHistory={tradeHistory} holdings={holdings} balance={balance} onProfileUpdate={handleProfileUpdate} onDarkToggle={()=>setDark(d=>!d)} isMobile={isMobile} onNotifPrefsChange={p=>setNotifPrefs(p)}/>}
           </div>
         </div>
       )}
