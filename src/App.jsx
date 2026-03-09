@@ -635,9 +635,35 @@ function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[],onPlac
   const [demoHist,setDemoHist]=useState(()=>genHist(base));
   useEffect(()=>{ if(isDemo) setDemoHist(genHist(base)); },[card,isDemo]);
 
+  const [chartRange,setChartRange]=useState("1D");
+
   const cardTrades=tradeHistory.filter(t=>t.cardId===card.id);
   const realHist=cardTrades.map(t=>({p:t.price,time:t.time,date:t.date})).reverse();
-  const hist=isDemo?demoHist:realHist;
+
+  // Filter hist by selected time range
+  const filterHist=(h,range)=>{
+    if(!h.length) return h;
+    const now=new Date();
+    const cutoff=new Date(now);
+    if(range==="1H") cutoff.setHours(now.getHours()-1);
+    else if(range==="6H") cutoff.setHours(now.getHours()-6);
+    else if(range==="1D") cutoff.setDate(now.getDate()-1);
+    else if(range==="1W") cutoff.setDate(now.getDate()-7);
+    else if(range==="1M") cutoff.setMonth(now.getMonth()-1);
+    // For demo mode, just slice the array proportionally since timestamps are fake
+    if(isDemo){
+      const slices={["1H"]:Math.ceil(h.length*0.05),["6H"]:Math.ceil(h.length*0.15),["1D"]:Math.ceil(h.length*0.4),["1W"]:Math.ceil(h.length*0.75),["1M"]:h.length};
+      return h.slice(-slices[range]||h.length);
+    }
+    const filtered=h.filter(p=>{
+      if(!p.date||!p.time) return true;
+      return new Date(`${p.date} ${p.time}`)>=cutoff;
+    });
+    return filtered.length>=2?filtered:h;
+  };
+
+  const fullHist=isDemo?demoHist:realHist;
+  const hist=filterHist(fullHist,chartRange);
   const hasHistory=isDemo?true:realHist.length>=2;
 
   const spread=asks.length&&bids.length?+(asks[0].price-bids[0].price).toFixed(2):0;
@@ -865,7 +891,7 @@ function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[],onPlac
             <div style={{background:D.bg3,borderBottom:`1px solid ${D.bdr}`,padding:"10px 16px 8px",flexShrink:0}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"6px"}}>
                 <span style={{color:D.txtD,fontSize:"14px",letterSpacing:"0.12em"}}>▸ PRICE CHART</span>
-                <div style={{display:"flex",gap:"4px"}}>{["1H","6H","1D","1W","1M"].map(r=><button key={r} style={{padding:"2px 7px",border:`1px solid ${r==="1D"?D.accD:D.bdr}`,borderRadius:"3px",background:r==="1D"?(dark?"rgba(0,180,60,0.14)":"rgba(22,128,58,0.08)"):"transparent",color:r==="1D"?D.accD:D.txtD,fontSize:"13px",fontFamily:MONO,cursor:"pointer"}}>{r}</button>)}</div>
+                <div style={{display:"flex",gap:"4px"}}>{["1H","6H","1D","1W","1M"].map(r=><button key={r} onClick={()=>setChartRange(r)} style={{padding:"2px 7px",border:`1px solid ${r===chartRange?D.accD:D.bdr}`,borderRadius:"3px",background:r===chartRange?(dark?"rgba(0,180,60,0.14)":"rgba(22,128,58,0.08)"):"transparent",color:r===chartRange?D.accD:D.txtD,fontSize:"13px",fontFamily:MONO,cursor:"pointer"}}>{r}</button>)}</div>
               </div>
               {!hasHistory?(
                 <div style={{height:CH,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:"8px",opacity:0.4}}>
