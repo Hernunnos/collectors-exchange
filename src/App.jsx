@@ -1012,7 +1012,7 @@ function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[],onPlac
                 <div style={{position:"relative"}}>
                   {(() => {
                     // Chart layout with explicit margins
-                    const MARGIN={top:8,right:64,bottom:DATE_H,left:4};
+                    const MARGIN={top:8,right:72,bottom:DATE_H,left:4};
                     const IW=CW-MARGIN.left-MARGIN.right; // inner width
                     const IH=CH-MARGIN.top-MARGIN.bottom; // inner height
                     const ix=(i,len)=>MARGIN.left+((i/(len-1))*IW);
@@ -1051,14 +1051,14 @@ function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[],onPlac
                           const y=iy(p);
                           return <g key={f}>
                             <line x1={MARGIN.left} y1={y} x2={MARGIN.left+IW} y2={y} stroke={dark?"rgba(255,255,255,0.05)":"rgba(0,0,0,0.07)"} strokeWidth="1"/>
-                            <text x={MARGIN.left+IW+4} y={y+3} fontSize="9" fill={dark?"#4a7a4a":"#8a9a8a"} fontFamily="monospace">${p.toLocaleString("en-US",{maximumFractionDigits:0})}</text>
+                            <text x={MARGIN.left+IW+4} y={y+4} fontSize="11" fill={dark?"#5a8a5a":"#6a8a6a"} fontFamily="monospace">${p.toLocaleString("en-US",{maximumFractionDigits:0})}</text>
                           </g>;
                         })}
 
                         {/* Current price dashed line + live label */}
                         <line x1={MARGIN.left} y1={iy(price)} x2={MARGIN.left+IW} y2={iy(price)} stroke={D.accD} strokeWidth="0.8" strokeDasharray="4,3" opacity="0.6"/>
-                        <rect x={MARGIN.left+IW+1} y={iy(price)-8} width={58} height={16} rx="3" fill={D.accD}/>
-                        <text x={MARGIN.left+IW+30} y={iy(price)+4} fontSize="9" fill={dark?"#000":"#fff"} fontFamily="monospace" textAnchor="middle" fontWeight="bold">${price.toLocaleString("en-US",{minimumFractionDigits:2})}</text>
+                        <rect x={MARGIN.left+IW+1} y={iy(price)-10} width={62} height={20} rx="3" fill={D.accD}/>
+                        <text x={MARGIN.left+IW+32} y={iy(price)+5} fontSize="11" fill={dark?"#000":"#fff"} fontFamily="monospace" textAnchor="middle" fontWeight="bold">${price.toLocaleString("en-US",{minimumFractionDigits:2})}</text>
 
                         {/* Chart content clipped to inner area */}
                         <g clipPath="url(#chartClip)">
