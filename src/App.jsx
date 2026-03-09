@@ -160,14 +160,14 @@ function Portfolio({D,dark,holdings=[],tradeHistory=[],dbCards=[],isMobile=false
       <div style={{display:"grid",gridTemplateColumns:isMobile?"repeat(2,1fr)":"repeat(4,1fr)",gap:"12px"}}>
         {[["TOTAL VALUE",`$${totalVal.toLocaleString("en-US",{minimumFractionDigits:2})}`,""],["TOTAL COST",`$${totalCost.toLocaleString("en-US",{minimumFractionDigits:2})}`,""],["UNREALISED P&L",`${totalPnl>=0?"+":""}$${Math.abs(totalPnl).toLocaleString("en-US",{minimumFractionDigits:2})}`,totalPnl>=0?"up":"dn"],["RETURN",`${totalPct>=0?"+":""}${totalPct}%`,totalPct>=0?"up":"dn"]].map(([label,val,dir])=>(
           <div key={label} style={{background:D.bg2,border:`1px solid ${D.bdr}`,borderRadius:"6px",padding:"14px 16px"}}>
-            <div style={{color:D.txtD,fontSize:"9px",letterSpacing:"0.12em",marginBottom:"8px"}}>{label}</div>
-            <div style={{fontFamily:ORB,fontSize:"18px",fontWeight:700,color:dir==="up"?D.buyT:dir==="dn"?D.askT:D.txt}}>{val}</div>
+            <div style={{color:D.txtD,fontSize:"13px",letterSpacing:"0.12em",marginBottom:"8px"}}>{label}</div>
+            <div style={{fontFamily:ORB,fontSize:"26px",fontWeight:700,color:dir==="up"?D.buyT:dir==="dn"?D.askT:D.txt}}>{val}</div>
           </div>
         ))}
       </div>
 
       <div style={{background:D.bg2,border:`1px solid ${D.bdr}`,borderRadius:"6px",padding:"14px 16px"}}>
-        <div style={{color:D.txtD,fontSize:"10px",letterSpacing:"0.12em",marginBottom:"10px"}}>▸ PORTFOLIO VALUE — 30 DAYS</div>
+        <div style={{color:D.txtD,fontSize:"14px",letterSpacing:"0.12em",marginBottom:"10px"}}>▸ PORTFOLIO VALUE — 30 DAYS</div>
         <svg width="100%" height="70" viewBox="0 0 400 65" preserveAspectRatio="none" style={{display:"block"}}>
           <defs><linearGradient id="pg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={D.accD} stopOpacity={dark?"0.18":"0.10"}/><stop offset="100%" stopColor={D.accD} stopOpacity="0"/></linearGradient></defs>
           {[0.25,0.5,0.75].map(f=><line key={f} x1="0" y1={65*f} x2="400" y2={65*f} stroke={D.bdr} strokeWidth="0.5"/>)}
@@ -178,33 +178,33 @@ function Portfolio({D,dark,holdings=[],tradeHistory=[],dbCards=[],isMobile=false
 
       <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:"16px"}}>
         <div style={{background:D.bg2,border:`1px solid ${D.bdr}`,borderRadius:"6px",overflow:"hidden"}}>
-          <div style={{padding:"10px 14px",borderBottom:`1px solid ${D.bdr}`,color:D.txtD,fontSize:"10px",letterSpacing:"0.12em"}}>▸ HOLDINGS</div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 50px 70px 70px 70px",padding:"5px 14px",color:D.txtD,fontSize:"9px",borderBottom:`1px solid ${D.bdr}`}}>
+          <div style={{padding:"10px 14px",borderBottom:`1px solid ${D.bdr}`,color:D.txtD,fontSize:"14px",letterSpacing:"0.12em"}}>▸ HOLDINGS</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 50px 70px 70px 70px",padding:"5px 14px",color:D.txtD,fontSize:"13px",borderBottom:`1px solid ${D.bdr}`}}>
             <span>CARD</span><span style={{textAlign:"right"}}>QTY</span><span style={{textAlign:"right"}}>PRICE</span><span style={{textAlign:"right"}}>VALUE</span><span style={{textAlign:"right"}}>P&L</span>
           </div>
-          {enrichedHoldings.length===0?(<div style={{padding:"40px",textAlign:"center",color:D.txtD,fontSize:"12px"}}>No holdings yet — place your first trade in the Market tab</div>):enrichedHoldings.map(h=>(
+          {enrichedHoldings.length===0?(<div style={{padding:"40px",textAlign:"center",color:D.txtD,fontSize:"17px"}}>No holdings yet — place your first trade in the Market tab</div>):enrichedHoldings.map(h=>(
             <div key={h.cardId} onClick={()=>setSelected(selected?.cardId===h.cardId?null:h)} style={{display:"grid",gridTemplateColumns:"1fr 50px 70px 70px 70px",padding:"9px 14px",borderBottom:`1px solid ${D.bdr}`,cursor:"pointer",background:selected?.cardId===h.cardId?(dark?"rgba(0,255,80,0.05)":"rgba(22,128,58,0.05)"):"transparent",transition:"background 0.1s",alignItems:"center"}}>
               <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
                 <img src={proxyImg(h.card.img)} alt={h.card.name} style={{width:"22px",height:"30px",objectFit:"cover",borderRadius:"2px"}} onError={e=>e.target.style.display="none"}/>
-                <div><div style={{color:D.txt,fontSize:"11px"}}>{h.card.name}</div><div style={{color:D.txtD,fontSize:"9px"}}>{h.card.condition}</div></div>
+                <div><div style={{color:D.txt,fontSize:"16px"}}>{h.card.name}</div><div style={{color:D.txtD,fontSize:"13px"}}>{h.card.condition}</div></div>
               </div>
-              <span style={{textAlign:"right",color:D.txtM,fontSize:"11px"}}>
+              <span style={{textAlign:"right",color:D.txtM,fontSize:"16px"}}>
                 {h.qty}
-                {(h.lockedQty||0)>0&&<span title={`${h.lockedQty} locked in open sell orders`} style={{color:"#f59e0b",fontSize:"9px",display:"block"}}>🔒{h.lockedQty}</span>}
+                {(h.lockedQty||0)>0&&<span title={`${h.lockedQty} locked in open sell orders`} style={{color:"#f59e0b",fontSize:"13px",display:"block"}}>🔒{h.lockedQty}</span>}
               </span>
-              <span style={{textAlign:"right",color:D.txt,fontSize:"11px"}}>${h.cur.toLocaleString()}</span>
-              <span style={{textAlign:"right",color:D.txt,fontSize:"11px"}}>${h.val.toLocaleString()}</span>
-              <span style={{textAlign:"right",color:h.pnl>=0?D.buyT:D.askT,fontSize:"11px"}}>{h.pnl>=0?"+":""}${Math.abs(h.pnl).toLocaleString()}</span>
+              <span style={{textAlign:"right",color:D.txt,fontSize:"16px"}}>${h.cur.toLocaleString()}</span>
+              <span style={{textAlign:"right",color:D.txt,fontSize:"16px"}}>${h.val.toLocaleString()}</span>
+              <span style={{textAlign:"right",color:h.pnl>=0?D.buyT:D.askT,fontSize:"16px"}}>{h.pnl>=0?"+":""}${Math.abs(h.pnl).toLocaleString()}</span>
             </div>
           ))}
           {selected && (
             <div style={{borderTop:`1px solid ${D.bdr}`,padding:"10px 14px"}}>
-              <div style={{color:D.txtD,fontSize:"9px",letterSpacing:"0.1em",marginBottom:"8px"}}>▸ TRADES — {selected.card.name}</div>
+              <div style={{color:D.txtD,fontSize:"13px",letterSpacing:"0.1em",marginBottom:"8px"}}>▸ TRADES — {selected.card.name}</div>
               {tradeHistory.filter(t=>t.cardId===selected.cardId).map(t=>(
                 <div key={t.id} style={{display:"flex",justifyContent:"space-between",padding:"4px 0",borderBottom:`1px solid ${D.bdr}`}}>
-                  <span style={{color:t.side==="buy"?D.buyT:D.askT,fontSize:"10px"}}>{t.side.toUpperCase()}</span>
-                  <span style={{color:D.txtM,fontSize:"10px"}}>{t.qty}x @ ${t.price.toLocaleString()}</span>
-                  <span style={{color:D.txtD,fontSize:"10px"}}>{t.date}</span>
+                  <span style={{color:t.side==="buy"?D.buyT:D.askT,fontSize:"14px"}}>{t.side.toUpperCase()}</span>
+                  <span style={{color:D.txtM,fontSize:"14px"}}>{t.qty}x @ ${t.price.toLocaleString()}</span>
+                  <span style={{color:D.txtD,fontSize:"14px"}}>{t.date}</span>
                 </div>
               ))}
             </div>
@@ -212,11 +212,11 @@ function Portfolio({D,dark,holdings=[],tradeHistory=[],dbCards=[],isMobile=false
         </div>
 
         <div style={{background:D.bg2,border:`1px solid ${D.bdr}`,borderRadius:"6px",overflow:"hidden"}}>
-          <div style={{padding:"10px 14px",borderBottom:`1px solid ${D.bdr}`,color:D.txtD,fontSize:"10px",letterSpacing:"0.12em",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div style={{padding:"10px 14px",borderBottom:`1px solid ${D.bdr}`,color:D.txtD,fontSize:"14px",letterSpacing:"0.12em",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
             <span>▸ WATCHLIST</span>
-            <span style={{color:D.accD,fontSize:"9px",cursor:"pointer"}}>+ ADD</span>
+            <span style={{color:D.accD,fontSize:"13px",cursor:"pointer"}}>+ ADD</span>
           </div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 70px 70px 28px",padding:"5px 14px",color:D.txtD,fontSize:"9px",borderBottom:`1px solid ${D.bdr}`}}>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 70px 70px 28px",padding:"5px 14px",color:D.txtD,fontSize:"13px",borderBottom:`1px solid ${D.bdr}`}}>
             <span>CARD</span><span style={{textAlign:"right"}}>PRICE</span><span style={{textAlign:"right"}}>24H</span><span/>
           </div>
           {watchlist.map(c=>{
@@ -225,19 +225,19 @@ function Portfolio({D,dark,holdings=[],tradeHistory=[],dbCards=[],isMobile=false
               <div key={c.id} style={{display:"grid",gridTemplateColumns:"1fr 70px 70px 28px",padding:"9px 14px",borderBottom:`1px solid ${D.bdr}`,alignItems:"center"}}>
                 <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
                   <img src={proxyImg(c.img)} alt={c.name} style={{width:"22px",height:"30px",objectFit:"cover",borderRadius:"2px"}} onError={e=>e.target.style.display="none"}/>
-                  <div><div style={{color:D.txt,fontSize:"11px"}}>{c.name}</div><div style={{color:D.txtD,fontSize:"9px"}}>{c.set}</div></div>
+                  <div><div style={{color:D.txt,fontSize:"16px"}}>{c.name}</div><div style={{color:D.txtD,fontSize:"13px"}}>{c.set}</div></div>
                 </div>
-                <span style={{textAlign:"right",color:D.txt,fontSize:"11px"}}>${(c.basePrice||BASE[c.id]||0).toLocaleString()}</span>
-                <span style={{textAlign:"right",color:up?D.buyT:D.askT,fontSize:"11px"}}>{up?"+":""}{chg}%</span>
-                <span onClick={()=>setWatchlist(w=>w.filter(x=>x.id!==c.id))} style={{textAlign:"right",color:D.txtD,fontSize:"16px",cursor:"pointer",lineHeight:1}}>×</span>
+                <span style={{textAlign:"right",color:D.txt,fontSize:"16px"}}>${(c.basePrice||BASE[c.id]||0).toLocaleString()}</span>
+                <span style={{textAlign:"right",color:up?D.buyT:D.askT,fontSize:"16px"}}>{up?"+":""}{chg}%</span>
+                <span onClick={()=>setWatchlist(w=>w.filter(x=>x.id!==c.id))} style={{textAlign:"right",color:D.txtD,fontSize:"23px",cursor:"pointer",lineHeight:1}}>×</span>
               </div>
             );
           })}
           {CARDS.filter(c=>!watchlist.find(w=>w.id===c.id)&&!holdings.find(h=>h.cardId===c.id)).slice(0,2).map(c=>(
             <div key={c.id} onClick={()=>setWatchlist(w=>[...w,c])} style={{display:"flex",alignItems:"center",gap:"10px",padding:"8px 14px",borderBottom:`1px solid ${D.bdr}`,cursor:"pointer",opacity:0.5}}>
-              <span style={{color:D.accD,fontSize:"11px"}}>+</span>
+              <span style={{color:D.accD,fontSize:"16px"}}>+</span>
               <img src={proxyImg(c.img)} alt={c.name} style={{width:"18px",height:"25px",objectFit:"cover",borderRadius:"2px"}} onError={e=>e.target.style.display="none"}/>
-              <span style={{color:D.txtM,fontSize:"11px"}}>{c.name}</span>
+              <span style={{color:D.txtM,fontSize:"16px"}}>{c.name}</span>
             </div>
           ))}
         </div>
@@ -260,8 +260,8 @@ function Orders({D,dark,orders=[],onCancel,dbCards=[],isMobile=false}){
       <div style={{display:"grid",gridTemplateColumns:isMobile?"repeat(2,1fr)":"repeat(4,1fr)",gap:"12px"}}>
         {[["OPEN",orders.filter(o=>o.status==="open").length],["PARTIAL",orders.filter(o=>o.status==="partial").length],["FILLED",orders.filter(o=>o.status==="filled").length],["TOTAL",orders.length]].map(([label,val])=>(
           <div key={label} style={{background:D.bg2,border:`1px solid ${D.bdr}`,borderRadius:"6px",padding:"14px 16px"}}>
-            <div style={{color:D.txtD,fontSize:"9px",letterSpacing:"0.12em",marginBottom:"8px"}}>{label} ORDERS</div>
-            <div style={{fontFamily:ORB,fontSize:"22px",fontWeight:700,color:D.txt}}>{val}</div>
+            <div style={{color:D.txtD,fontSize:"13px",letterSpacing:"0.12em",marginBottom:"8px"}}>{label} ORDERS</div>
+            <div style={{fontFamily:ORB,fontSize:"31px",fontWeight:700,color:D.txt}}>{val}</div>
           </div>
         ))}
       </div>
@@ -269,7 +269,7 @@ function Orders({D,dark,orders=[],onCancel,dbCards=[],isMobile=false}){
       <div style={{background:D.bg2,border:`1px solid ${D.bdr}`,borderRadius:"6px",overflow:"hidden"}}>
         <div style={{display:"flex",borderBottom:`1px solid ${D.bdr}`,padding:"0 14px"}}>
           {["all","open","partial","cancelled"].map(f=>(
-            <button key={f} onClick={()=>setFilter(f)} style={{padding:"10px 14px",border:"none",background:"transparent",color:filter===f?D.accD:D.txtD,fontSize:"10px",fontFamily:MONO,letterSpacing:"0.1em",cursor:"pointer",borderBottom:`2px solid ${filter===f?D.accD:"transparent"}`,transition:"all 0.1s"}}>
+            <button key={f} onClick={()=>setFilter(f)} style={{padding:"10px 14px",border:"none",background:"transparent",color:filter===f?D.accD:D.txtD,fontSize:"14px",fontFamily:MONO,letterSpacing:"0.1em",cursor:"pointer",borderBottom:`2px solid ${filter===f?D.accD:"transparent"}`,transition:"all 0.1s"}}>
               {f.toUpperCase()}
             </button>
           ))}
@@ -277,7 +277,7 @@ function Orders({D,dark,orders=[],onCancel,dbCards=[],isMobile=false}){
         {isMobile?(
           /* Mobile: card-style order list */
           <>
-            {filtered.length===0&&<div style={{padding:"40px",textAlign:"center",color:D.txtD,fontSize:"11px"}}>{filter==="all"?"No orders yet":"No "+filter+" orders"}</div>}
+            {filtered.length===0&&<div style={{padding:"40px",textAlign:"center",color:D.txtD,fontSize:"16px"}}>{filter==="all"?"No orders yet":"No "+filter+" orders"}</div>}
             {filtered.map(o=>{
               const card=allCards.find(c=>c.id===o.cardId)||{name:"Unknown",img:"",img_url:""};
               return(
@@ -285,28 +285,28 @@ function Orders({D,dark,orders=[],onCancel,dbCards=[],isMobile=false}){
                   <img src={proxyImg(card.img||card.img_url)} alt={card.name} style={{width:"28px",height:"38px",objectFit:"cover",borderRadius:"3px",flexShrink:0}} onError={e=>e.target.style.display="none"}/>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"3px"}}>
-                      <span style={{color:D.txt,fontSize:"12px",fontWeight:600}}>{card.name}</span>
-                      <span style={{background:sBg(o.status),color:sColor(o.status),padding:"2px 6px",borderRadius:"3px",fontSize:"9px"}}>{o.status.toUpperCase()}</span>
+                      <span style={{color:D.txt,fontSize:"17px",fontWeight:600}}>{card.name}</span>
+                      <span style={{background:sBg(o.status),color:sColor(o.status),padding:"2px 6px",borderRadius:"3px",fontSize:"13px"}}>{o.status.toUpperCase()}</span>
                     </div>
                     <div style={{display:"flex",gap:"10px",alignItems:"center"}}>
-                      <span style={{color:o.side==="buy"?D.buyT:D.askT,fontSize:"11px"}}>{o.side.toUpperCase()}</span>
-                      <span style={{color:D.txtD,fontSize:"10px"}}>{o.type.toUpperCase()}</span>
-                      <span style={{color:D.txtM,fontSize:"11px"}}>${o.price.toLocaleString("en-US",{minimumFractionDigits:2})}</span>
-                      <span style={{color:D.txtD,fontSize:"10px"}}>×{o.qty}</span>
+                      <span style={{color:o.side==="buy"?D.buyT:D.askT,fontSize:"16px"}}>{o.side.toUpperCase()}</span>
+                      <span style={{color:D.txtD,fontSize:"14px"}}>{o.type.toUpperCase()}</span>
+                      <span style={{color:D.txtM,fontSize:"16px"}}>${o.price.toLocaleString("en-US",{minimumFractionDigits:2})}</span>
+                      <span style={{color:D.txtD,fontSize:"14px"}}>×{o.qty}</span>
                     </div>
                     <div style={{display:"flex",justifyContent:"space-between",marginTop:"4px",alignItems:"center"}}>
-                      <span style={{color:D.txtD,fontSize:"9px"}}>{o.id} · {o.date}</span>
+                      <span style={{color:D.txtD,fontSize:"13px"}}>{o.id} · {o.date}</span>
                       {(o.status==="open"||o.status==="partial")&&(
                         <div style={{display:"flex",gap:"6px",alignItems:"center"}}>
                           {o.expiry&&o.expiry!=="gtc"&&(
-                            <span style={{color:D.txtD,fontSize:"8px",padding:"2px 6px",border:`1px solid ${D.bdr}`,borderRadius:"3px",fontFamily:MONO}}>
+                            <span style={{color:D.txtD,fontSize:"12px",padding:"2px 6px",border:`1px solid ${D.bdr}`,borderRadius:"3px",fontFamily:MONO}}>
                               {o.expiry==="day"?"DAY":o.expiry==="week"?"WEEK":o.expiry==="month"?"MONTH":"GTC"}
                             </span>
                           )}
-                          <button onClick={()=>cancel(o.id)} style={{padding:"3px 10px",background:dark?"rgba(220,50,50,0.12)":"rgba(220,50,50,0.08)",border:`1px solid ${dark?"#5a1a1a":"#e07070"}`,borderRadius:"3px",color:D.askT,fontSize:"9px",fontFamily:MONO,cursor:"pointer"}}>CANCEL</button>
+                          <button onClick={()=>cancel(o.id)} style={{padding:"3px 10px",background:dark?"rgba(220,50,50,0.12)":"rgba(220,50,50,0.08)",border:`1px solid ${dark?"#5a1a1a":"#e07070"}`,borderRadius:"3px",color:D.askT,fontSize:"13px",fontFamily:MONO,cursor:"pointer"}}>CANCEL</button>
                         </div>
                       )}
-                      {o.status==="expired"&&<span style={{color:"#f59e0b",fontSize:"9px",fontFamily:MONO}}>EXPIRED</span>}
+                      {o.status==="expired"&&<span style={{color:"#f59e0b",fontSize:"13px",fontFamily:MONO}}>EXPIRED</span>}
                     </div>
                   </div>
                 </div>
@@ -315,28 +315,28 @@ function Orders({D,dark,orders=[],onCancel,dbCards=[],isMobile=false}){
           </>
         ):(
           <>
-            <div style={{display:"grid",gridTemplateColumns:"90px 1fr 50px 60px 80px 60px 80px 70px",padding:"6px 14px",color:D.txtD,fontSize:"9px",borderBottom:`1px solid ${D.bdr}`,letterSpacing:"0.08em"}}>
+            <div style={{display:"grid",gridTemplateColumns:"90px 1fr 50px 60px 80px 60px 80px 70px",padding:"6px 14px",color:D.txtD,fontSize:"13px",borderBottom:`1px solid ${D.bdr}`,letterSpacing:"0.08em"}}>
               <span>ORDER ID</span><span>CARD</span><span>SIDE</span><span>TYPE</span><span style={{textAlign:"right"}}>PRICE</span><span style={{textAlign:"right"}}>QTY</span><span style={{textAlign:"right"}}>STATUS</span><span style={{textAlign:"right"}}>ACTION</span>
             </div>
-            {filtered.length===0&&<div style={{padding:"40px",textAlign:"center",color:D.txtD,fontSize:"11px"}}>{filter==="all"?"No orders yet — place your first trade in the Market tab":`No ${filter} orders`}</div>}
+            {filtered.length===0&&<div style={{padding:"40px",textAlign:"center",color:D.txtD,fontSize:"16px"}}>{filter==="all"?"No orders yet — place your first trade in the Market tab":`No ${filter} orders`}</div>}
             {filtered.map(o=>{
               const card=allCards.find(c=>c.id===o.cardId)||{name:"Unknown",img:"",img_url:""};
               return(
                 <div key={o.id} style={{display:"grid",gridTemplateColumns:"90px 1fr 50px 60px 80px 60px 80px 70px",padding:"10px 14px",borderBottom:`1px solid ${D.bdr}`,alignItems:"center"}}>
-                  <span style={{color:D.txtM,fontSize:"10px"}}>{o.id}</span>
+                  <span style={{color:D.txtM,fontSize:"14px"}}>{o.id}</span>
                   <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
                     <img src={proxyImg(card.img)} alt={card.name} style={{width:"20px",height:"28px",objectFit:"cover",borderRadius:"2px"}} onError={e=>e.target.style.display="none"}/>
-                    <div><div style={{color:D.txt,fontSize:"11px"}}>{card.name}</div><div style={{color:D.txtD,fontSize:"9px"}}>{o.date} {o.time}</div></div>
+                    <div><div style={{color:D.txt,fontSize:"16px"}}>{card.name}</div><div style={{color:D.txtD,fontSize:"13px"}}>{o.date} {o.time}</div></div>
                   </div>
-                  <span style={{color:o.side==="buy"?D.buyT:D.askT,fontSize:"10px"}}>{o.side.toUpperCase()}</span>
-                  <span style={{color:D.txtM,fontSize:"10px"}}>{o.type.toUpperCase()}</span>
-                  <span style={{textAlign:"right",color:D.txt,fontSize:"11px"}}>${o.price.toLocaleString("en-US",{minimumFractionDigits:2})}</span>
-                  <span style={{textAlign:"right",color:D.txtM,fontSize:"11px"}}>{o.filled}/{o.qty}</span>
-                  <div style={{textAlign:"right"}}><span style={{background:sBg(o.status),color:sColor(o.status),padding:"2px 7px",borderRadius:"3px",fontSize:"9px"}}>{o.status.toUpperCase()}</span></div>
+                  <span style={{color:o.side==="buy"?D.buyT:D.askT,fontSize:"14px"}}>{o.side.toUpperCase()}</span>
+                  <span style={{color:D.txtM,fontSize:"14px"}}>{o.type.toUpperCase()}</span>
+                  <span style={{textAlign:"right",color:D.txt,fontSize:"16px"}}>${o.price.toLocaleString("en-US",{minimumFractionDigits:2})}</span>
+                  <span style={{textAlign:"right",color:D.txtM,fontSize:"16px"}}>{o.filled}/{o.qty}</span>
+                  <div style={{textAlign:"right"}}><span style={{background:sBg(o.status),color:sColor(o.status),padding:"2px 7px",borderRadius:"3px",fontSize:"13px"}}>{o.status.toUpperCase()}</span></div>
                   <div style={{textAlign:"right"}}>
                     {(o.status==="open"||o.status==="partial")?(
-                      <button onClick={()=>cancel(o.id)} style={{padding:"3px 8px",background:dark?"rgba(220,50,50,0.12)":"rgba(220,50,50,0.08)",border:`1px solid ${dark?"#5a1a1a":"#e07070"}`,borderRadius:"3px",color:D.askT,fontSize:"9px",fontFamily:MONO,cursor:"pointer"}}>CANCEL</button>
-                    ):<span style={{color:D.txtD,fontSize:"9px"}}>—</span>}
+                      <button onClick={()=>cancel(o.id)} style={{padding:"3px 8px",background:dark?"rgba(220,50,50,0.12)":"rgba(220,50,50,0.08)",border:`1px solid ${dark?"#5a1a1a":"#e07070"}`,borderRadius:"3px",color:D.askT,fontSize:"13px",fontFamily:MONO,cursor:"pointer"}}>CANCEL</button>
+                    ):<span style={{color:D.txtD,fontSize:"13px"}}>—</span>}
                   </div>
                 </div>
               );
@@ -365,31 +365,31 @@ function History({D,dark,tradeHistory=[],ledger=[],dbCards=[],isMobile=false}){
         <div style={{display:"flex",borderBottom:`1px solid ${D.bdr}`,padding:"0 14px",justifyContent:"space-between",alignItems:"center"}}>
           <div style={{display:"flex"}}>
             {[["trades","TRADES"],["ledger","DEPOSITS & WITHDRAWALS"],["alerts","PRICE ALERTS"]].map(([key,label])=>(
-              <button key={key} onClick={()=>setTab(key)} style={{padding:"10px 14px",border:"none",background:"transparent",color:tab===key?D.accD:D.txtD,fontSize:"10px",fontFamily:MONO,letterSpacing:"0.08em",cursor:"pointer",borderBottom:`2px solid ${tab===key?D.accD:"transparent"}`,transition:"all 0.1s"}}>{label}</button>
+              <button key={key} onClick={()=>setTab(key)} style={{padding:"10px 14px",border:"none",background:"transparent",color:tab===key?D.accD:D.txtD,fontSize:"14px",fontFamily:MONO,letterSpacing:"0.08em",cursor:"pointer",borderBottom:`2px solid ${tab===key?D.accD:"transparent"}`,transition:"all 0.1s"}}>{label}</button>
             ))}
           </div>
           {tab==="trades"&&(
-            <button onClick={downloadCSV} style={{padding:"5px 12px",background:dark?"rgba(0,180,60,0.1)":"rgba(22,128,58,0.08)",border:`1px solid ${dark?"#1a4a2a":"#8acc8a"}`,borderRadius:"4px",color:D.accD,fontSize:"9px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.08em",marginRight:"4px"}}>↓ DOWNLOAD CSV</button>
+            <button onClick={downloadCSV} style={{padding:"5px 12px",background:dark?"rgba(0,180,60,0.1)":"rgba(22,128,58,0.08)",border:`1px solid ${dark?"#1a4a2a":"#8acc8a"}`,borderRadius:"4px",color:D.accD,fontSize:"13px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.08em",marginRight:"4px"}}>↓ DOWNLOAD CSV</button>
           )}
         </div>
 
         {tab==="trades"&&(
           <>
-            <div style={{display:"grid",gridTemplateColumns:"90px 1fr 50px 80px 50px 90px 110px",padding:"6px 14px",color:D.txtD,fontSize:"9px",borderBottom:`1px solid ${D.bdr}`,letterSpacing:"0.08em"}}>
+            <div style={{display:"grid",gridTemplateColumns:"90px 1fr 50px 80px 50px 90px 110px",padding:"6px 14px",color:D.txtD,fontSize:"13px",borderBottom:`1px solid ${D.bdr}`,letterSpacing:"0.08em"}}>
               <span>TRADE ID</span><span>CARD</span><span>SIDE</span><span style={{textAlign:"right"}}>PRICE</span><span style={{textAlign:"right"}}>QTY</span><span style={{textAlign:"right"}}>TOTAL</span><span style={{textAlign:"right"}}>DATE</span>
             </div>
-            {tradeHistory.length===0?(<div style={{padding:"40px",textAlign:"center",color:D.txtD,fontSize:"12px"}}>No trades yet</div>):tradeHistory.map(t=>{const card=allCards.find(c=>c.id===t.cardId)||{name:"Unknown",img:"",img_url:""};return(
+            {tradeHistory.length===0?(<div style={{padding:"40px",textAlign:"center",color:D.txtD,fontSize:"17px"}}>No trades yet</div>):tradeHistory.map(t=>{const card=allCards.find(c=>c.id===t.cardId)||{name:"Unknown",img:"",img_url:""};return(
               <div key={t.id} style={{display:"grid",gridTemplateColumns:"90px 1fr 50px 80px 50px 90px 110px",padding:"10px 14px",borderBottom:`1px solid ${D.bdr}`,alignItems:"center"}}>
-                <span style={{color:D.txtM,fontSize:"10px"}}>{t.id}</span>
+                <span style={{color:D.txtM,fontSize:"14px"}}>{t.id}</span>
                 <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
                   <img src={proxyImg(card.img)} alt={card.name} style={{width:"20px",height:"28px",objectFit:"cover",borderRadius:"2px"}} onError={e=>e.target.style.display="none"}/>
-                  <span style={{color:D.txt,fontSize:"11px"}}>{card.name}</span>
+                  <span style={{color:D.txt,fontSize:"16px"}}>{card.name}</span>
                 </div>
-                <span style={{color:t.side==="buy"?D.buyT:D.askT,fontSize:"10px"}}>{t.side.toUpperCase()}</span>
-                <span style={{textAlign:"right",color:D.txt,fontSize:"11px"}}>${t.price.toLocaleString("en-US",{minimumFractionDigits:2})}</span>
-                <span style={{textAlign:"right",color:D.txtM,fontSize:"11px"}}>{t.qty}</span>
-                <span style={{textAlign:"right",color:D.txt,fontSize:"11px"}}>${t.total.toLocaleString("en-US",{minimumFractionDigits:2})}</span>
-                <span style={{textAlign:"right",color:D.txtD,fontSize:"10px"}}>{t.date} {t.time}</span>
+                <span style={{color:t.side==="buy"?D.buyT:D.askT,fontSize:"14px"}}>{t.side.toUpperCase()}</span>
+                <span style={{textAlign:"right",color:D.txt,fontSize:"16px"}}>${t.price.toLocaleString("en-US",{minimumFractionDigits:2})}</span>
+                <span style={{textAlign:"right",color:D.txtM,fontSize:"16px"}}>{t.qty}</span>
+                <span style={{textAlign:"right",color:D.txt,fontSize:"16px"}}>${t.total.toLocaleString("en-US",{minimumFractionDigits:2})}</span>
+                <span style={{textAlign:"right",color:D.txtD,fontSize:"14px"}}>{t.date} {t.time}</span>
               </div>
             );})}
           </>
@@ -397,49 +397,49 @@ function History({D,dark,tradeHistory=[],ledger=[],dbCards=[],isMobile=false}){
 
         {tab==="ledger"&&(
           <>
-            <div style={{display:"grid",gridTemplateColumns:"90px 110px 1fr 100px 100px",padding:"6px 14px",color:D.txtD,fontSize:"9px",borderBottom:`1px solid ${D.bdr}`,letterSpacing:"0.08em"}}>
+            <div style={{display:"grid",gridTemplateColumns:"90px 110px 1fr 100px 100px",padding:"6px 14px",color:D.txtD,fontSize:"13px",borderBottom:`1px solid ${D.bdr}`,letterSpacing:"0.08em"}}>
               <span>ID</span><span>TYPE</span><span>METHOD</span><span style={{textAlign:"right"}}>AMOUNT</span><span style={{textAlign:"right"}}>DATE</span>
             </div>
             {ledger.map(l=>(
               <div key={l.id} style={{display:"grid",gridTemplateColumns:"90px 110px 1fr 100px 100px",padding:"10px 14px",borderBottom:`1px solid ${D.bdr}`,alignItems:"center"}}>
-                <span style={{color:D.txtM,fontSize:"10px"}}>{l.id}</span>
-                <span style={{color:l.type==="deposit"?D.buyT:D.askT,fontSize:"10px"}}>{l.type.toUpperCase()}</span>
-                <span style={{color:D.txtM,fontSize:"11px"}}>{l.method}</span>
-                <span style={{textAlign:"right",color:l.type==="deposit"?D.buyT:D.askT,fontSize:"11px"}}>{l.type==="deposit"?"+":"-"}${l.amount.toLocaleString("en-US",{minimumFractionDigits:2})}</span>
-                <span style={{textAlign:"right",color:D.txtD,fontSize:"10px"}}>{l.date}</span>
+                <span style={{color:D.txtM,fontSize:"14px"}}>{l.id}</span>
+                <span style={{color:l.type==="deposit"?D.buyT:D.askT,fontSize:"14px"}}>{l.type.toUpperCase()}</span>
+                <span style={{color:D.txtM,fontSize:"16px"}}>{l.method}</span>
+                <span style={{textAlign:"right",color:l.type==="deposit"?D.buyT:D.askT,fontSize:"16px"}}>{l.type==="deposit"?"+":"-"}${l.amount.toLocaleString("en-US",{minimumFractionDigits:2})}</span>
+                <span style={{textAlign:"right",color:D.txtD,fontSize:"14px"}}>{l.date}</span>
               </div>
             ))}
             <div style={{padding:"12px 14px",borderTop:`1px solid ${D.bdr}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <span style={{color:D.txtD,fontSize:"10px"}}>NET BALANCE</span>
-              <span style={{color:D.buyT,fontSize:"13px",fontFamily:ORB}}>${ledger.reduce((s,l)=>l.type==="deposit"?s+l.amount:s-l.amount,0).toLocaleString("en-US",{minimumFractionDigits:2})}</span>
+              <span style={{color:D.txtD,fontSize:"14px"}}>NET BALANCE</span>
+              <span style={{color:D.buyT,fontSize:"19px",fontFamily:ORB}}>${ledger.reduce((s,l)=>l.type==="deposit"?s+l.amount:s-l.amount,0).toLocaleString("en-US",{minimumFractionDigits:2})}</span>
             </div>
           </>
         )}
 
         {tab==="alerts"&&(
           <>
-            <div style={{display:"grid",gridTemplateColumns:"90px 1fr 90px 80px 90px 130px",padding:"6px 14px",color:D.txtD,fontSize:"9px",borderBottom:`1px solid ${D.bdr}`,letterSpacing:"0.08em"}}>
+            <div style={{display:"grid",gridTemplateColumns:"90px 1fr 90px 80px 90px 130px",padding:"6px 14px",color:D.txtD,fontSize:"13px",borderBottom:`1px solid ${D.bdr}`,letterSpacing:"0.08em"}}>
               <span>ID</span><span>CARD</span><span>CONDITION</span><span style={{textAlign:"right"}}>TARGET</span><span style={{textAlign:"right"}}>STATUS</span><span style={{textAlign:"right"}}>TRIGGERED AT</span>
             </div>
             {SAMPLE_ALERTS.map(a=>{const card=allCards.find(c=>c.id===a.cardId)||{name:"Unknown",img:""};return(
               <div key={a.id} style={{display:"grid",gridTemplateColumns:"90px 1fr 90px 80px 90px 130px",padding:"10px 14px",borderBottom:`1px solid ${D.bdr}`,alignItems:"center"}}>
-                <span style={{color:D.txtM,fontSize:"10px"}}>{a.id}</span>
+                <span style={{color:D.txtM,fontSize:"14px"}}>{a.id}</span>
                 <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
                   <img src={proxyImg(card.img)} alt={card.name} style={{width:"20px",height:"28px",objectFit:"cover",borderRadius:"2px"}} onError={e=>e.target.style.display="none"}/>
-                  <span style={{color:D.txt,fontSize:"11px"}}>{card.name}</span>
+                  <span style={{color:D.txt,fontSize:"16px"}}>{card.name}</span>
                 </div>
-                <span style={{color:D.txtM,fontSize:"10px"}}>{a.condition.toUpperCase()} </span>
-                <span style={{textAlign:"right",color:D.txt,fontSize:"11px"}}>${a.target.toLocaleString()}</span>
+                <span style={{color:D.txtM,fontSize:"14px"}}>{a.condition.toUpperCase()} </span>
+                <span style={{textAlign:"right",color:D.txt,fontSize:"16px"}}>${a.target.toLocaleString()}</span>
                 <div style={{textAlign:"right"}}>
-                  <span style={{padding:"2px 7px",borderRadius:"3px",fontSize:"9px",color:a.triggered?D.buyT:a.active?"#f59e0b":D.txtD,background:a.triggered?(dark?"rgba(0,200,60,0.08)":"rgba(22,128,58,0.06)"):a.active?(dark?"rgba(245,158,11,0.08)":"rgba(245,158,11,0.06)"):"transparent"}}>
+                  <span style={{padding:"2px 7px",borderRadius:"3px",fontSize:"13px",color:a.triggered?D.buyT:a.active?"#f59e0b":D.txtD,background:a.triggered?(dark?"rgba(0,200,60,0.08)":"rgba(22,128,58,0.06)"):a.active?(dark?"rgba(245,158,11,0.08)":"rgba(245,158,11,0.06)"):"transparent"}}>
                     {a.triggered?"TRIGGERED":a.active?"ACTIVE":"INACTIVE"}
                   </span>
                 </div>
-                <span style={{textAlign:"right",color:D.txtD,fontSize:"10px"}}>{a.triggeredAt||"—"}</span>
+                <span style={{textAlign:"right",color:D.txtD,fontSize:"14px"}}>{a.triggeredAt||"—"}</span>
               </div>
             );})}
             <div style={{padding:"12px 14px",display:"flex",justifyContent:"flex-end"}}>
-              <button style={{padding:"6px 14px",background:dark?"rgba(0,180,60,0.1)":"rgba(22,128,58,0.08)",border:`1px solid ${dark?"#1a4a2a":"#8acc8a"}`,borderRadius:"4px",color:D.accD,fontSize:"9px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.08em"}}>+ ADD ALERT</button>
+              <button style={{padding:"6px 14px",background:dark?"rgba(0,180,60,0.1)":"rgba(22,128,58,0.08)",border:`1px solid ${dark?"#1a4a2a":"#8acc8a"}`,borderRadius:"4px",color:D.accD,fontSize:"13px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.08em"}}>+ ADD ALERT</button>
             </div>
           </>
         )}
@@ -484,11 +484,11 @@ function Browser({D,dark,dbCards,onSelectCard,isMobile=false}){
   const inBtnStyle=(active)=>({
     padding:"5px 12px",border:`1px solid ${active?D.accD:D.bdr}`,borderRadius:"4px",
     background:active?(dark?"rgba(0,180,60,0.12)":"rgba(22,128,58,0.08)"):"transparent",
-    color:active?D.accD:D.txtD,fontSize:"10px",fontFamily:MONO,cursor:"pointer",transition:"all 0.1s",whiteSpace:"nowrap"
+    color:active?D.accD:D.txtD,fontSize:"14px",fontFamily:MONO,cursor:"pointer",transition:"all 0.1s",whiteSpace:"nowrap"
   });
 
   const pgBtn=(label,onClick,disabled)=>(
-    <button onClick={onClick} disabled={disabled} style={{padding:"5px 10px",border:`1px solid ${D.bdr}`,borderRadius:"4px",background:"transparent",color:disabled?D.txtD:D.accD,fontSize:"10px",fontFamily:MONO,cursor:disabled?"default":"pointer",opacity:disabled?0.4:1}}>{label}</button>
+    <button onClick={onClick} disabled={disabled} style={{padding:"5px 10px",border:`1px solid ${D.bdr}`,borderRadius:"4px",background:"transparent",color:disabled?D.txtD:D.accD,fontSize:"14px",fontFamily:MONO,cursor:disabled?"default":"pointer",opacity:disabled?0.4:1}}>{label}</button>
   );
 
   const pageNums=[];
@@ -497,7 +497,7 @@ function Browser({D,dark,dbCards,onSelectCard,isMobile=false}){
 
   const Pagination=()=>(
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:"8px"}}>
-      <span style={{color:D.txtD,fontSize:"9px",letterSpacing:"0.1em"}}>{filtered.length.toLocaleString()} CARDS · PAGE {page} OF {totalPages.toLocaleString()}</span>
+      <span style={{color:D.txtD,fontSize:"13px",letterSpacing:"0.1em"}}>{filtered.length.toLocaleString()} CARDS · PAGE {page} OF {totalPages.toLocaleString()}</span>
       <div style={{display:"flex",gap:"4px",alignItems:"center"}}>
         {pgBtn("«",()=>setPage(1),page===1)}
         {pgBtn("‹",()=>setPage(p=>p-1),page===1)}
@@ -512,22 +512,22 @@ function Browser({D,dark,dbCards,onSelectCard,isMobile=false}){
     <div style={{flex:1,overflowY:"auto",padding:"20px",display:"flex",flexDirection:"column",gap:"16px"}}>
       <div style={{background:D.bg2,border:`1px solid ${D.bdr}`,borderRadius:"6px",padding:"14px 16px",display:"flex",gap:"12px",flexWrap:"wrap",alignItems:"center"}}>
         <input type="text" value={search} onChange={e=>{setSearch(e.target.value);resetPage();}} placeholder="Search cards..."
-          style={{flex:"1 1 180px",background:D.inBg,border:`1px solid ${D.inBdr}`,borderRadius:"4px",padding:"7px 12px",color:D.txt,fontSize:"12px",fontFamily:MONO,minWidth:"140px"}}/>
+          style={{flex:"1 1 180px",background:D.inBg,border:`1px solid ${D.inBdr}`,borderRadius:"4px",padding:"7px 12px",color:D.txt,fontSize:"17px",fontFamily:MONO,minWidth:"140px"}}/>
         <div style={{display:"flex",gap:"6px",flexWrap:"wrap",alignItems:"center"}}>
-          <span style={{color:D.txtD,fontSize:"9px",letterSpacing:"0.1em"}}>GAME</span>
+          <span style={{color:D.txtD,fontSize:"13px",letterSpacing:"0.1em"}}>GAME</span>
           {["all",...games].map(g=><button key={g} onClick={()=>{setGameFilter(g);resetPage();}} style={inBtnStyle(gameFilter===g)}>{g==="all"?"ALL":g}</button>)}
         </div>
         <div style={{display:"flex",gap:"6px",flexWrap:"wrap",alignItems:"center"}}>
-          <span style={{color:D.txtD,fontSize:"9px",letterSpacing:"0.1em"}}>CONDITION</span>
+          <span style={{color:D.txtD,fontSize:"13px",letterSpacing:"0.1em"}}>CONDITION</span>
           {["all",...conditions].map(c=><button key={c} onClick={()=>{setCondFilter(c);resetPage();}} style={inBtnStyle(condFilter===c)}>{c==="all"?"ALL":c}</button>)}
         </div>
         <div style={{display:"flex",gap:"6px",flexWrap:"wrap",alignItems:"center"}}>
-          <span style={{color:D.txtD,fontSize:"9px",letterSpacing:"0.1em"}}>LANGUAGE</span>
+          <span style={{color:D.txtD,fontSize:"13px",letterSpacing:"0.1em"}}>LANGUAGE</span>
           {["all",...languages].map(l=><button key={l} onClick={()=>{setLangFilter(l);resetPage();}} style={inBtnStyle(langFilter===l)}>{l==="all"?"ALL":l}</button>)}
         </div>
         <div style={{display:"flex",gap:"6px",alignItems:"center"}}>
-          <span style={{color:D.txtD,fontSize:"9px",letterSpacing:"0.1em"}}>SORT</span>
-          <select value={sort} onChange={e=>{setSort(e.target.value);resetPage();}} style={{background:D.inBg,border:`1px solid ${D.inBdr}`,borderRadius:"4px",padding:"6px 10px",color:D.txt,fontSize:"10px",fontFamily:MONO,cursor:"pointer"}}>
+          <span style={{color:D.txtD,fontSize:"13px",letterSpacing:"0.1em"}}>SORT</span>
+          <select value={sort} onChange={e=>{setSort(e.target.value);resetPage();}} style={{background:D.inBg,border:`1px solid ${D.inBdr}`,borderRadius:"4px",padding:"6px 10px",color:D.txt,fontSize:"14px",fontFamily:MONO,cursor:"pointer"}}>
             <option value="price-desc">Price: High to Low</option>
             <option value="price-asc">Price: Low to High</option>
             <option value="name-asc">Name: A to Z</option>
@@ -538,7 +538,7 @@ function Browser({D,dark,dbCards,onSelectCard,isMobile=false}){
       <Pagination/>
 
       {filtered.length===0&&(
-        <div style={{padding:"60px",textAlign:"center",color:D.txtD,fontSize:"12px",background:D.bg2,border:`1px solid ${D.bdr}`,borderRadius:"6px"}}>No cards match your filters</div>
+        <div style={{padding:"60px",textAlign:"center",color:D.txtD,fontSize:"17px",background:D.bg2,border:`1px solid ${D.bdr}`,borderRadius:"6px"}}>No cards match your filters</div>
       )}
 
       <div style={{display:"grid",gridTemplateColumns:isMobile?"repeat(2,1fr)":"repeat(auto-fill,minmax(180px,1fr))",gap:isMobile?"10px":"14px"}}>
@@ -553,15 +553,15 @@ function Browser({D,dark,dbCards,onSelectCard,isMobile=false}){
                 <img src={proxyImg(c.img||c.img_url)} alt={c.name} style={{maxWidth:"100%",maxHeight:"100%",objectFit:"contain",borderRadius:"4px",boxShadow:dark?"0 4px 16px rgba(0,0,0,0.6)":"0 4px 12px rgba(0,0,0,0.15)"}} onError={e=>e.target.style.display="none"}/>
               </div>
               <div style={{padding:"10px 12px"}}>
-                <div style={{fontFamily:ORB,fontSize:"11px",fontWeight:700,color:D.txt,marginBottom:"3px",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{c.name}</div>
-                <div style={{color:D.txtD,fontSize:"9px",marginBottom:"8px"}}>{c.set||c.set_name} · {c.condition}</div>
+                <div style={{fontFamily:ORB,fontSize:"16px",fontWeight:700,color:D.txt,marginBottom:"3px",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{c.name}</div>
+                <div style={{color:D.txtD,fontSize:"13px",marginBottom:"8px"}}>{c.set||c.set_name} · {c.condition}</div>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline"}}>
-                  <span style={{fontFamily:ORB,fontSize:"13px",fontWeight:700,color:D.accD}}>${bp.toLocaleString("en-US",{minimumFractionDigits:2})}</span>
-                  <span style={{color:up?D.buyT:D.askT,fontSize:"9px"}}>{up?"▲":"▼"}{Math.abs(chg)}%</span>
+                  <span style={{fontFamily:ORB,fontSize:"19px",fontWeight:700,color:D.accD}}>${bp.toLocaleString("en-US",{minimumFractionDigits:2})}</span>
+                  <span style={{color:up?D.buyT:D.askT,fontSize:"13px"}}>{up?"▲":"▼"}{Math.abs(chg)}%</span>
                 </div>
                 <div style={{display:"flex",justifyContent:"space-between",marginTop:"6px"}}>
-                  <span style={{background:dark?"rgba(0,180,60,0.08)":"rgba(22,128,58,0.06)",color:D.txtM,fontSize:"8px",padding:"2px 6px",borderRadius:"3px"}}>{c.game}</span>
-                  <span style={{color:D.txtD,fontSize:"8px"}}>{c.language||"English"}</span>
+                  <span style={{background:dark?"rgba(0,180,60,0.08)":"rgba(22,128,58,0.06)",color:D.txtM,fontSize:"12px",padding:"2px 6px",borderRadius:"3px"}}>{c.game}</span>
+                  <span style={{color:D.txtD,fontSize:"12px"}}>{c.language||"English"}</span>
                 </div>
               </div>
             </div>
@@ -685,7 +685,7 @@ function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[],onPlac
             return(
               <div key={c.id} onClick={()=>setCard(c)} style={{flexShrink:0,padding:"8px 10px",borderRight:`1px solid ${D.bdr}`,background:active?(dark?"rgba(0,255,80,0.06)":"rgba(22,128,58,0.06)"):"transparent",borderBottom:`2px solid ${active?D.accD:"transparent"}`,cursor:"pointer",minWidth:"80px",textAlign:"center"}}>
                 <img src={proxyImg(c.img||c.img_url)} alt={c.name} style={{width:"32px",height:"44px",objectFit:"cover",borderRadius:"3px",display:"block",margin:"0 auto 4px"}} onError={e=>e.target.style.display="none"}/>
-                <div style={{color:active?D.acc:D.txtM,fontSize:"9px",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:"72px"}}>{c.name.split(" ")[0]}</div>
+                <div style={{color:active?D.acc:D.txtM,fontSize:"13px",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:"72px"}}>{c.name.split(" ")[0]}</div>
               </div>
             );
           })}
@@ -693,10 +693,10 @@ function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[],onPlac
 
         {/* Price header */}
         <div style={{background:D.bg3,borderBottom:`1px solid ${D.bdr}`,padding:"10px 14px",flexShrink:0}}>
-          <div style={{fontFamily:ORB,fontSize:"13px",fontWeight:700,color:D.txt,marginBottom:"2px"}}>{card.name}</div>
+          <div style={{fontFamily:ORB,fontSize:"19px",fontWeight:700,color:D.txt,marginBottom:"2px"}}>{card.name}</div>
           <div style={{display:"flex",alignItems:"baseline",gap:"10px"}}>
-            <span className={flash==="up"?"fu":flash==="down"?"fd":""} style={{fontFamily:ORB,fontSize:"22px",fontWeight:800,color:flash==="up"?D.buyT:flash==="down"?D.askT:D.txt}}>${(price||0).toLocaleString("en-US",{minimumFractionDigits:2})}</span>
-            <span style={{color:+pct>=0?D.buyT:D.askT,fontSize:"12px"}}>{+pct>=0?"▲":"▼"}{Math.abs(pct)}%</span>
+            <span className={flash==="up"?"fu":flash==="down"?"fd":""} style={{fontFamily:ORB,fontSize:"31px",fontWeight:800,color:flash==="up"?D.buyT:flash==="down"?D.askT:D.txt}}>${(price||0).toLocaleString("en-US",{minimumFractionDigits:2})}</span>
+            <span style={{color:+pct>=0?D.buyT:D.askT,fontSize:"17px"}}>{+pct>=0?"▲":"▼"}{Math.abs(pct)}%</span>
           </div>
         </div>
 
@@ -705,7 +705,7 @@ function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[],onPlac
           {!hasHistory?(
             <div style={{height:"100px",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",opacity:0.4,gap:"6px"}}>
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={D.txtD} strokeWidth="1.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-              <span style={{color:D.txtD,fontSize:"9px"}}>NO TRADE HISTORY YET</span>
+              <span style={{color:D.txtD,fontSize:"13px"}}>NO TRADE HISTORY YET</span>
             </div>
           ):(
             <svg width="100%" height="100" viewBox={`0 0 ${CW} ${CH}`} preserveAspectRatio="none" style={{display:"block"}}>
@@ -721,16 +721,16 @@ function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[],onPlac
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr"}}>
             {[["BUY PRICE",bids,maxB,D.bidT,"bid"],["SELL PRICE",asks,maxA,D.askT,"ask"]].map(([label,rows,mx,tc,side])=>(
               <div key={label} style={{borderRight:`1px solid ${D.bdr}`}}>
-                <div style={{padding:"6px 10px",borderBottom:`1px solid ${D.bdr}`,background:D.bg3,color:tc,fontSize:"9px",letterSpacing:"0.1em"}}>▸ {label}</div>
+                <div style={{padding:"6px 10px",borderBottom:`1px solid ${D.bdr}`,background:D.bg3,color:tc,fontSize:"13px",letterSpacing:"0.1em"}}>▸ {label}</div>
                 {rows.slice(0,6).map((r,i)=>{
                   const rowTotal=+(r.price*r.qty).toFixed(2);
                   return(
                     <div key={i} onClick={()=>{setOPrice(r.price.toString());setOSide(side==="bid"?"sell":"buy");setSheetOpen(true);}} style={{padding:"6px 10px",borderBottom:`1px solid ${D.bdr}`,cursor:"pointer",position:"relative"}}>
                       <div style={{position:"absolute",[side==="bid"?"left":"right"]:0,top:0,bottom:0,width:`${(r.qty/mx)*100}%`,background:side==="bid"?(dark?"rgba(0,180,60,0.07)":"rgba(22,128,58,0.06)"):(dark?"rgba(180,40,40,0.08)":"rgba(180,30,30,0.06)")}}/>
-                      <div style={{color:tc,fontSize:"11px",zIndex:1,position:"relative"}}>${r.price.toLocaleString("en-US",{minimumFractionDigits:2})} <span style={{color:D.txtD,fontSize:"9px"}}>/ card</span></div>
+                      <div style={{color:tc,fontSize:"16px",zIndex:1,position:"relative"}}>${r.price.toLocaleString("en-US",{minimumFractionDigits:2})} <span style={{color:D.txtD,fontSize:"13px"}}>/ card</span></div>
                       <div style={{display:"flex",justifyContent:"space-between",zIndex:1,position:"relative"}}>
-                        <span style={{color:D.txtD,fontSize:"9px"}}>qty {r.qty}</span>
-                        <span style={{color:D.txtM,fontSize:"9px",fontWeight:"bold"}}>${rowTotal.toLocaleString("en-US",{maximumFractionDigits:0})} total</span>
+                        <span style={{color:D.txtD,fontSize:"13px"}}>qty {r.qty}</span>
+                        <span style={{color:D.txtM,fontSize:"13px",fontWeight:"bold"}}>${rowTotal.toLocaleString("en-US",{maximumFractionDigits:0})} total</span>
                       </div>
                     </div>
                   );
@@ -740,12 +740,12 @@ function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[],onPlac
           </div>
           {/* Recent trades */}
           <div style={{borderTop:`1px solid ${D.bdr}`}}>
-            <div style={{padding:"6px 12px",background:D.bg3,color:D.txtD,fontSize:"9px",borderBottom:`1px solid ${D.bdr}`,letterSpacing:"0.1em",display:"flex",justifyContent:"space-between"}}><span>▸ RECENT TRADES</span><span style={{color:D.buyT}}>● LIVE</span></div>
+            <div style={{padding:"6px 12px",background:D.bg3,color:D.txtD,fontSize:"13px",borderBottom:`1px solid ${D.bdr}`,letterSpacing:"0.1em",display:"flex",justifyContent:"space-between"}}><span>▸ RECENT TRADES</span><span style={{color:D.buyT}}>● LIVE</span></div>
             {trades.slice(0,8).map(t=>(
               <div key={t.id} style={{display:"grid",gridTemplateColumns:"1fr 1fr 40px",padding:"5px 12px",borderBottom:`1px solid ${D.bdr}`}}>
-                <span style={{color:D.txtD,fontSize:"10px"}}>{t.time}</span>
-                <span style={{color:t.side==="buy"?D.buyT:D.askT,fontSize:"11px"}}>${t.price.toLocaleString("en-US",{minimumFractionDigits:2})}</span>
-                <span style={{textAlign:"right",color:D.txtM,fontSize:"10px"}}>{t.qty}</span>
+                <span style={{color:D.txtD,fontSize:"14px"}}>{t.time}</span>
+                <span style={{color:t.side==="buy"?D.buyT:D.askT,fontSize:"16px"}}>${t.price.toLocaleString("en-US",{minimumFractionDigits:2})}</span>
+                <span style={{textAlign:"right",color:D.txtM,fontSize:"14px"}}>{t.qty}</span>
               </div>
             ))}
           </div>
@@ -753,8 +753,8 @@ function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[],onPlac
 
         {/* Fixed Buy/Sell button */}
         <div style={{position:"sticky",bottom:0,padding:"12px 14px",background:D.hdrBg,borderTop:`1px solid ${D.bdr2}`,display:"grid",gridTemplateColumns:"1fr 1fr",gap:"10px",flexShrink:0}}>
-          <button onClick={()=>{setOSide("buy");setSheetOpen(true);}} style={{padding:"13px",border:`1px solid ${dark?"#1a5a2a":"#7ab07a"}`,borderRadius:"6px",fontSize:"12px",fontFamily:MONO,fontWeight:"bold",letterSpacing:"0.1em",background:dark?"linear-gradient(135deg,#0a3a1a,#0f5a28)":"linear-gradient(135deg,#cceacc,#a8d8a8)",color:dark?"#00ff55":"#1a5a2a",cursor:"pointer"}}>▲ BUY</button>
-          <button onClick={()=>{setOSide("sell");setSheetOpen(true);}} style={{padding:"13px",border:`1px solid ${dark?"#5a1a1a":"#c07070"}`,borderRadius:"6px",fontSize:"12px",fontFamily:MONO,fontWeight:"bold",letterSpacing:"0.1em",background:dark?"linear-gradient(135deg,#3a0a0a,#5a1010)":"linear-gradient(135deg,#eacccc,#d8a8a8)",color:dark?"#ff5555":"#9a1a1a",cursor:"pointer"}}>▼ SELL</button>
+          <button onClick={()=>{setOSide("buy");setSheetOpen(true);}} style={{padding:"13px",border:`1px solid ${dark?"#1a5a2a":"#7ab07a"}`,borderRadius:"6px",fontSize:"17px",fontFamily:MONO,fontWeight:"bold",letterSpacing:"0.1em",background:dark?"linear-gradient(135deg,#0a3a1a,#0f5a28)":"linear-gradient(135deg,#cceacc,#a8d8a8)",color:dark?"#00ff55":"#1a5a2a",cursor:"pointer"}}>▲ BUY</button>
+          <button onClick={()=>{setOSide("sell");setSheetOpen(true);}} style={{padding:"13px",border:`1px solid ${dark?"#5a1a1a":"#c07070"}`,borderRadius:"6px",fontSize:"17px",fontFamily:MONO,fontWeight:"bold",letterSpacing:"0.1em",background:dark?"linear-gradient(135deg,#3a0a0a,#5a1010)":"linear-gradient(135deg,#eacccc,#d8a8a8)",color:dark?"#ff5555":"#9a1a1a",cursor:"pointer"}}>▼ SELL</button>
         </div>
 
         {/* Order entry bottom sheet */}
@@ -763,37 +763,37 @@ function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[],onPlac
             <div className="overlay" onClick={()=>setSheetOpen(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:300}}/>
             <div className="sheet" style={{position:"fixed",bottom:0,left:0,right:0,background:D.bg2,borderTop:`2px solid ${D.bdr2}`,borderRadius:"16px 16px 0 0",zIndex:301,padding:"0 0 24px"}}>
               <div style={{padding:"12px 16px",borderBottom:`1px solid ${D.bdr}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                <span style={{color:D.txtD,fontSize:"10px",letterSpacing:"0.12em"}}>▸ PLACE ORDER — {card.name.split(" ")[0].toUpperCase()}</span>
-                <button onClick={()=>setSheetOpen(false)} style={{background:"none",border:"none",color:D.txtD,fontSize:"20px",padding:"0 4px",cursor:"pointer"}}>✕</button>
+                <span style={{color:D.txtD,fontSize:"14px",letterSpacing:"0.12em"}}>▸ PLACE ORDER — {card.name.split(" ")[0].toUpperCase()}</span>
+                <button onClick={()=>setSheetOpen(false)} style={{background:"none",border:"none",color:D.txtD,fontSize:"29px",padding:"0 4px",cursor:"pointer"}}>✕</button>
               </div>
               <div style={{padding:"14px 16px",display:"flex",flexDirection:"column",gap:"12px"}}>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",border:`1px solid ${D.bdr}`,borderRadius:"6px",overflow:"hidden"}}>
-                  {["buy","sell"].map(s=><button key={s} onClick={()=>setOSide(s)} style={{padding:"11px",border:"none",cursor:"pointer",fontFamily:MONO,fontSize:"13px",letterSpacing:"0.1em",background:oSide===s?(s==="buy"?(dark?"rgba(0,180,60,0.22)":"rgba(22,128,58,0.15)"):(dark?"rgba(180,30,30,0.22)":"rgba(180,30,30,0.14)")):"transparent",color:oSide===s?(s==="buy"?D.buyT:D.askT):D.txtD,borderBottom:`2px solid ${oSide===s?(s==="buy"?D.buyT:D.askT):"transparent"}`}}>{s.toUpperCase()}</button>)}
+                  {["buy","sell"].map(s=><button key={s} onClick={()=>setOSide(s)} style={{padding:"11px",border:"none",cursor:"pointer",fontFamily:MONO,fontSize:"19px",letterSpacing:"0.1em",background:oSide===s?(s==="buy"?(dark?"rgba(0,180,60,0.22)":"rgba(22,128,58,0.15)"):(dark?"rgba(180,30,30,0.22)":"rgba(180,30,30,0.14)")):"transparent",color:oSide===s?(s==="buy"?D.buyT:D.askT):D.txtD,borderBottom:`2px solid ${oSide===s?(s==="buy"?D.buyT:D.askT):"transparent"}`}}>{s.toUpperCase()}</button>)}
                 </div>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px"}}>
-                  <div style={{padding:"6px 12px",background:dark?"rgba(0,100,30,0.1)":"rgba(22,128,58,0.06)",border:`1px solid ${D.accD}`,borderRadius:"5px",color:D.accD,fontSize:"11px",fontFamily:MONO,letterSpacing:"0.08em"}}>SET PRICE</div>
+                  <div style={{padding:"6px 12px",background:dark?"rgba(0,100,30,0.1)":"rgba(22,128,58,0.06)",border:`1px solid ${D.accD}`,borderRadius:"5px",color:D.accD,fontSize:"16px",fontFamily:MONO,letterSpacing:"0.08em"}}>SET PRICE</div>
                 </div>
-                <div><div style={{color:D.txtD,fontSize:"9px",marginBottom:"6px"}}>PRICE (USD)</div><input type="number" value={oPrice} onChange={e=>setOPrice(e.target.value)} placeholder={price.toFixed(2)} style={{width:"100%",background:D.inBg,border:`1px solid ${D.inBdr}`,borderRadius:"5px",padding:"10px 12px",color:D.txt,fontSize:"16px",fontFamily:MONO}}/></div>
-                <div><div style={{color:D.txtD,fontSize:"9px",marginBottom:"6px"}}>QUANTITY</div><input type="number" value={oQty} onChange={e=>setOQty(e.target.value)} placeholder="0" style={{width:"100%",background:D.inBg,border:`1px solid ${D.inBdr}`,borderRadius:"5px",padding:"10px 12px",color:D.txt,fontSize:"16px",fontFamily:MONO}}/></div>
+                <div><div style={{color:D.txtD,fontSize:"13px",marginBottom:"6px"}}>PRICE (USD)</div><input type="number" value={oPrice} onChange={e=>setOPrice(e.target.value)} placeholder={price.toFixed(2)} style={{width:"100%",background:D.inBg,border:`1px solid ${D.inBdr}`,borderRadius:"5px",padding:"10px 12px",color:D.txt,fontSize:"23px",fontFamily:MONO}}/></div>
+                <div><div style={{color:D.txtD,fontSize:"13px",marginBottom:"6px"}}>QUANTITY</div><input type="number" value={oQty} onChange={e=>setOQty(e.target.value)} placeholder="0" style={{width:"100%",background:D.inBg,border:`1px solid ${D.inBdr}`,borderRadius:"5px",padding:"10px 12px",color:D.txt,fontSize:"23px",fontFamily:MONO}}/></div>
                 <div>
-                  <div style={{color:D.txtD,fontSize:"9px",marginBottom:"6px"}}>TIME IN FORCE</div>
+                  <div style={{color:D.txtD,fontSize:"13px",marginBottom:"6px"}}>TIME IN FORCE</div>
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"4px"}}>
                     {EXPIRY_OPTS.map(o=>(
-                      <button key={o.val} onClick={()=>setOExpiry(o.val)} style={{padding:"7px 4px",border:`1px solid ${oExpiry===o.val?D.accD:D.bdr}`,borderRadius:"4px",background:oExpiry===o.val?(dark?"rgba(0,100,30,0.15)":"rgba(22,128,58,0.08)"):"transparent",color:oExpiry===o.val?D.accD:D.txtD,fontSize:"9px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.06em",textAlign:"center"}}>
+                      <button key={o.val} onClick={()=>setOExpiry(o.val)} style={{padding:"7px 4px",border:`1px solid ${oExpiry===o.val?D.accD:D.bdr}`,borderRadius:"4px",background:oExpiry===o.val?(dark?"rgba(0,100,30,0.15)":"rgba(22,128,58,0.08)"):"transparent",color:oExpiry===o.val?D.accD:D.txtD,fontSize:"13px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.06em",textAlign:"center"}}>
                         <div>{o.short}</div>
-                        <div style={{fontSize:"8px",opacity:0.7,marginTop:"2px"}}>{o.label}</div>
+                        <div style={{fontSize:"12px",opacity:0.7,marginTop:"2px"}}>{o.label}</div>
                       </button>
                     ))}
                   </div>
                 </div>
                 <div style={{background:D.stBg,border:`1px solid ${D.bdr}`,borderRadius:"5px",padding:"10px 12px",display:"flex",justifyContent:"space-between"}}>
-                  <span style={{color:D.txtD,fontSize:"10px"}}>TOTAL</span>
-                  <span style={{color:D.txtM,fontSize:"14px"}}>${((+oPrice||price)*(+oQty||0)).toLocaleString("en-US",{minimumFractionDigits:2})}</span>
+                  <span style={{color:D.txtD,fontSize:"14px"}}>TOTAL</span>
+                  <span style={{color:D.txtM,fontSize:"17px"}}>${((+oPrice||price)*(+oQty||0)).toLocaleString("en-US",{minimumFractionDigits:2})}</span>
                 </div>
-                <button onClick={()=>{submitOrder();setSheetOpen(false);}} style={{padding:"14px",border:`1px solid ${oSide==="buy"?(dark?"#1a5a2a":"#7ab07a"):(dark?"#5a1a1a":"#c07070")}`,borderRadius:"6px",fontSize:"13px",fontFamily:MONO,letterSpacing:"0.1em",fontWeight:"bold",background:oSide==="buy"?(dark?"linear-gradient(135deg,#0a3a1a,#0f5a28)":"linear-gradient(135deg,#cceacc,#a8d8a8)"):(dark?"linear-gradient(135deg,#3a0a0a,#5a1010)":"linear-gradient(135deg,#eacccc,#d8a8a8)"),color:oSide==="buy"?(dark?"#00ff55":"#1a5a2a"):(dark?"#ff5555":"#9a1a1a"),cursor:"pointer"}}>
+                <button onClick={()=>{submitOrder();setSheetOpen(false);}} style={{padding:"14px",border:`1px solid ${oSide==="buy"?(dark?"#1a5a2a":"#7ab07a"):(dark?"#5a1a1a":"#c07070")}`,borderRadius:"6px",fontSize:"19px",fontFamily:MONO,letterSpacing:"0.1em",fontWeight:"bold",background:oSide==="buy"?(dark?"linear-gradient(135deg,#0a3a1a,#0f5a28)":"linear-gradient(135deg,#cceacc,#a8d8a8)"):(dark?"linear-gradient(135deg,#3a0a0a,#5a1010)":"linear-gradient(135deg,#eacccc,#d8a8a8)"),color:oSide==="buy"?(dark?"#00ff55":"#1a5a2a"):(dark?"#ff5555":"#9a1a1a"),cursor:"pointer"}}>
                   {oSide==="buy"?"▲ BUY":"▼ SELL"} {card.name.split(" ")[0].toUpperCase()}
                 </button>
-                {oStatus&&<div style={{padding:"10px 12px",background:oStatus.error?(dark?"rgba(180,30,30,0.08)":"rgba(220,50,50,0.06)"):(dark?"rgba(0,180,60,0.08)":"rgba(22,128,58,0.08)"),border:`1px solid ${oStatus.error?D.askT:D.accD}`,borderRadius:"5px",fontSize:"11px",color:oStatus.error?D.askT:D.accD}}>{oStatus.error?`⚠ ${oStatus.error}`:`✓ ORDER PLACED — ${oStatus.side?.toUpperCase()} ${oStatus.qty}x @ $${oStatus.price?.toFixed(2)}`}</div>}
+                {oStatus&&<div style={{padding:"10px 12px",background:oStatus.error?(dark?"rgba(180,30,30,0.08)":"rgba(220,50,50,0.06)"):(dark?"rgba(0,180,60,0.08)":"rgba(22,128,58,0.08)"),border:`1px solid ${oStatus.error?D.askT:D.accD}`,borderRadius:"5px",fontSize:"16px",color:oStatus.error?D.askT:D.accD}}>{oStatus.error?`⚠ ${oStatus.error}`:`✓ ORDER PLACED — ${oStatus.side?.toUpperCase()} ${oStatus.qty}x @ $${oStatus.price?.toFixed(2)}`}</div>}
               </div>
             </div>
           </>
@@ -806,10 +806,10 @@ function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[],onPlac
     <div style={{flex:1,display:"flex",overflow:"hidden"}}>
       <div style={{width:"220px",flexShrink:0,borderRight:`1px solid ${D.bdr}`,background:D.bg2,display:"flex",flexDirection:"column",overflow:"hidden"}}>
         <div style={{padding:"10px 14px",borderBottom:`1px solid ${D.bdr}`,flexShrink:0}}>
-          <div style={{color:D.txtD,fontSize:"11px",letterSpacing:"0.12em",marginBottom:"8px"}}>▸ INSTRUMENTS</div>
+          <div style={{color:D.txtD,fontSize:"16px",letterSpacing:"0.12em",marginBottom:"8px"}}>▸ INSTRUMENTS</div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"4px"}}>
             {["value","volume"].map(m=>(
-              <button key={m} onClick={()=>setSidebarMode(m)} style={{padding:"5px 0",border:`1px solid ${sidebarMode===m?D.accD:D.bdr}`,borderRadius:"3px",background:sidebarMode===m?(dark?"rgba(0,180,60,0.12)":"rgba(22,128,58,0.08)"):"transparent",color:sidebarMode===m?D.accD:D.txtD,fontSize:"10px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.06em"}}>
+              <button key={m} onClick={()=>setSidebarMode(m)} style={{padding:"5px 0",border:`1px solid ${sidebarMode===m?D.accD:D.bdr}`,borderRadius:"3px",background:sidebarMode===m?(dark?"rgba(0,180,60,0.12)":"rgba(22,128,58,0.08)"):"transparent",color:sidebarMode===m?D.accD:D.txtD,fontSize:"14px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.06em"}}>
                 {m==="value"?"TOP VALUE":"TOP VOL"}
               </button>
             ))}
@@ -821,11 +821,11 @@ function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[],onPlac
             <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
               <img src={proxyImg(c.img||c.img_url)} alt={c.name} style={{width:"38px",height:"52px",objectFit:"cover",borderRadius:"4px",border:`1px solid ${D.bdr}`,flexShrink:0}} onError={e=>e.target.style.display="none"}/>
               <div style={{minWidth:0}}>
-                <div style={{color:active?D.acc:D.txt,fontSize:"12px",fontWeight:600,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{c.name}</div>
-                <div style={{color:D.txtD,fontSize:"10px",marginTop:"2px",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{c.set||c.set_name}</div>
+                <div style={{color:active?D.acc:D.txt,fontSize:"17px",fontWeight:600,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{c.name}</div>
+                <div style={{color:D.txtD,fontSize:"14px",marginTop:"2px",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{c.set||c.set_name}</div>
                 <div style={{display:"flex",gap:"8px",marginTop:"4px"}}>
-                  <span style={{color:D.txtM,fontSize:"11px",fontWeight:600}}>${bp.toLocaleString()}</span>
-                  <span style={{color:up?D.buyT:D.askT,fontSize:"10px"}}>{up?"▲":"▼"}{Math.abs(chg)}%</span>
+                  <span style={{color:D.txtM,fontSize:"16px",fontWeight:600}}>${bp.toLocaleString()}</span>
+                  <span style={{color:up?D.buyT:D.askT,fontSize:"14px"}}>{up?"▲":"▼"}{Math.abs(chg)}%</span>
                 </div>
               </div>
             </div>
@@ -836,13 +836,13 @@ function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[],onPlac
 
       <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
         <div style={{background:D.bg3,borderBottom:`1px solid ${D.bdr}`,padding:"8px 16px",display:"flex",alignItems:"center",gap:"18px",flexWrap:"wrap",flexShrink:0}}>
-          <div><div style={{fontFamily:ORB,fontSize:"16px",fontWeight:700,color:D.txt,letterSpacing:"0.08em"}}>{card.name}</div><div style={{color:D.txtD,fontSize:"11px",marginTop:"3px"}}>{card.set||card.set_name} · {card.condition} · {card.rarity} · {card.game}</div></div>
+          <div><div style={{fontFamily:ORB,fontSize:"23px",fontWeight:700,color:D.txt,letterSpacing:"0.08em"}}>{card.name}</div><div style={{color:D.txtD,fontSize:"16px",marginTop:"3px"}}>{card.set||card.set_name} · {card.condition} · {card.rarity} · {card.game}</div></div>
           <div className={flash==="up"?"fu":flash==="down"?"fd":""} style={{display:"flex",alignItems:"baseline",gap:"8px",padding:"3px 10px",borderRadius:"3px"}}>
-            <span style={{fontFamily:ORB,fontSize:"26px",fontWeight:800,color:flash==="up"?D.buyT:flash==="down"?D.askT:D.txt,transition:"color 0.25s"}}>${(price||0).toLocaleString("en-US",{minimumFractionDigits:2})}</span>
-            <span style={{color:+pct>=0?D.buyT:D.askT,fontSize:"13px"}}>{+pct>=0?"▲":"▼"}{Math.abs(pct)}%</span>
+            <span style={{fontFamily:ORB,fontSize:"37px",fontWeight:800,color:flash==="up"?D.buyT:flash==="down"?D.askT:D.txt,transition:"color 0.25s"}}>${(price||0).toLocaleString("en-US",{minimumFractionDigits:2})}</span>
+            <span style={{color:+pct>=0?D.buyT:D.askT,fontSize:"19px"}}>{+pct>=0?"▲":"▼"}{Math.abs(pct)}%</span>
           </div>
           {[["SPREAD",`$${spread.toFixed(2)}`],["VOL 24H","47 cards"],["HIGH",`$${((base||0)*1.02).toFixed(2)}`],["LOW",`$${((base||0)*0.982).toFixed(2)}`]].map(([k,v])=>(
-            <div key={k}><div style={{color:D.txtD,fontSize:"10px",letterSpacing:"0.1em"}}>{k}</div><div style={{color:D.txtM,fontSize:"12px",marginTop:"2px"}}>{v}</div></div>
+            <div key={k}><div style={{color:D.txtD,fontSize:"14px",letterSpacing:"0.1em"}}>{k}</div><div style={{color:D.txtM,fontSize:"17px",marginTop:"2px"}}>{v}</div></div>
           ))}
         </div>
 
@@ -854,8 +854,8 @@ function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[],onPlac
             <div style={{width:"100%",background:D.stBg,border:`1px solid ${D.bdr}`,borderRadius:"6px",padding:"10px 12px"}}>
               {[["GAME",card.game],["SET",card.set||card.set_name],["COND.",card.condition],["RARITY",card.rarity]].map(([k,v])=>(
                 <div key={k} style={{display:"flex",justifyContent:"space-between",marginBottom:"6px",alignItems:"flex-start",gap:"8px"}}>
-                  <span style={{color:D.txtD,fontSize:"10px",flexShrink:0}}>{k}</span>
-                  <span style={{color:D.txtM,fontSize:"10px",textAlign:"right"}}>{v}</span>
+                  <span style={{color:D.txtD,fontSize:"14px",flexShrink:0}}>{k}</span>
+                  <span style={{color:D.txtM,fontSize:"14px",textAlign:"right"}}>{v}</span>
                 </div>
               ))}
             </div>
@@ -864,14 +864,14 @@ function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[],onPlac
           <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
             <div style={{background:D.bg3,borderBottom:`1px solid ${D.bdr}`,padding:"10px 16px 8px",flexShrink:0}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"6px"}}>
-                <span style={{color:D.txtD,fontSize:"10px",letterSpacing:"0.12em"}}>▸ PRICE CHART</span>
-                <div style={{display:"flex",gap:"4px"}}>{["1H","6H","1D","1W","1M"].map(r=><button key={r} style={{padding:"2px 7px",border:`1px solid ${r==="1D"?D.accD:D.bdr}`,borderRadius:"3px",background:r==="1D"?(dark?"rgba(0,180,60,0.14)":"rgba(22,128,58,0.08)"):"transparent",color:r==="1D"?D.accD:D.txtD,fontSize:"9px",fontFamily:MONO,cursor:"pointer"}}>{r}</button>)}</div>
+                <span style={{color:D.txtD,fontSize:"14px",letterSpacing:"0.12em"}}>▸ PRICE CHART</span>
+                <div style={{display:"flex",gap:"4px"}}>{["1H","6H","1D","1W","1M"].map(r=><button key={r} style={{padding:"2px 7px",border:`1px solid ${r==="1D"?D.accD:D.bdr}`,borderRadius:"3px",background:r==="1D"?(dark?"rgba(0,180,60,0.14)":"rgba(22,128,58,0.08)"):"transparent",color:r==="1D"?D.accD:D.txtD,fontSize:"13px",fontFamily:MONO,cursor:"pointer"}}>{r}</button>)}</div>
               </div>
               {!hasHistory?(
                 <div style={{height:CH,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:"8px",opacity:0.4}}>
                   <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke={D.txtD} strokeWidth="1.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-                  <span style={{color:D.txtD,fontSize:"10px",letterSpacing:"0.12em"}}>NO TRADE HISTORY YET</span>
-                  <span style={{color:D.txtD,fontSize:"9px"}}>Place a trade to start recording price history</span>
+                  <span style={{color:D.txtD,fontSize:"14px",letterSpacing:"0.12em"}}>NO TRADE HISTORY YET</span>
+                  <span style={{color:D.txtD,fontSize:"13px"}}>Place a trade to start recording price history</span>
                 </div>
               ):(
                 <svg width="100%" height={CH} viewBox={`0 0 ${CW} ${CH}`} preserveAspectRatio="none" style={{display:"block"}}>
@@ -893,8 +893,8 @@ function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[],onPlac
             <div style={{flex:1,display:"flex",overflow:"hidden"}}>
               {[["BUY PRICE",bids,maxB,D.bidT,"bid"],["SELL PRICE",asks,maxA,D.askT,"ask"]].map(([label,rows,mx,tc,side])=>(
                 <div key={label} style={{flex:1,display:"flex",flexDirection:"column",borderRight:`1px solid ${D.bdr}`,overflow:"hidden"}}>
-                  <div style={{padding:"5px 12px",borderBottom:`1px solid ${D.bdr}`,background:D.bg3,color:tc,fontSize:"10px",letterSpacing:"0.1em",flexShrink:0}}>▸ {label}</div>
-                  <div style={{display:"grid",gridTemplateColumns:"1fr 36px 70px 70px",padding:"3px 12px",color:D.txtD,fontSize:"9px",borderBottom:`1px solid ${D.bdr}`,background:D.bg3,flexShrink:0}}>
+                  <div style={{padding:"5px 12px",borderBottom:`1px solid ${D.bdr}`,background:D.bg3,color:tc,fontSize:"14px",letterSpacing:"0.1em",flexShrink:0}}>▸ {label}</div>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 36px 70px 70px",padding:"3px 12px",color:D.txtD,fontSize:"13px",borderBottom:`1px solid ${D.bdr}`,background:D.bg3,flexShrink:0}}>
                     <span>PER UNIT</span><span style={{textAlign:"right"}}>QTY</span><span style={{textAlign:"right"}}>TOTAL</span><span style={{textAlign:"right",opacity:0}}> </span>
                   </div>
                   <div style={{flex:1,overflowY:"auto",background:D.bg2}}>
@@ -904,12 +904,12 @@ function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[],onPlac
                         <div key={i} onClick={()=>{setOPrice(r.price.toString());setOSide(side==="bid"?"sell":"buy");}} style={{display:"grid",gridTemplateColumns:"1fr 36px 70px 70px",padding:"4px 12px",borderBottom:`1px solid ${D.bdr}`,position:"relative",cursor:"pointer",alignItems:"center"}}>
                           <div style={{position:"absolute",[side==="bid"?"left":"right"]:0,top:0,bottom:0,width:`${(r.qty/mx)*100}%`,background:side==="bid"?(dark?"rgba(0,180,60,0.07)":"rgba(22,128,58,0.06)"):(dark?"rgba(180,40,40,0.08)":"rgba(180,30,30,0.06)")}}/>
                           <div style={{zIndex:1}}>
-                            <div style={{color:tc,fontSize:"12px"}}>${r.price.toLocaleString("en-US",{minimumFractionDigits:2})}</div>
-                            <div style={{color:D.txtD,fontSize:"9px"}}>per card</div>
+                            <div style={{color:tc,fontSize:"17px"}}>${r.price.toLocaleString("en-US",{minimumFractionDigits:2})}</div>
+                            <div style={{color:D.txtD,fontSize:"13px"}}>per card</div>
                           </div>
-                          <span style={{textAlign:"right",color:D.txtM,fontSize:"12px",zIndex:1}}>{r.qty}</span>
-                          <span style={{textAlign:"right",color:D.txtM,fontSize:"11px",zIndex:1,fontWeight:"bold"}}>${rowTotal.toLocaleString("en-US",{minimumFractionDigits:2})}</span>
-                          <span style={{textAlign:"right",color:D.txtD,fontSize:"9px",zIndex:1}}>total</span>
+                          <span style={{textAlign:"right",color:D.txtM,fontSize:"17px",zIndex:1}}>{r.qty}</span>
+                          <span style={{textAlign:"right",color:D.txtM,fontSize:"16px",zIndex:1,fontWeight:"bold"}}>${rowTotal.toLocaleString("en-US",{minimumFractionDigits:2})}</span>
+                          <span style={{textAlign:"right",color:D.txtD,fontSize:"13px",zIndex:1}}>total</span>
                         </div>
                       );
                     })}
@@ -917,14 +917,14 @@ function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[],onPlac
                 </div>
               ))}
               <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
-                <div style={{padding:"5px 12px",borderBottom:`1px solid ${D.bdr}`,background:D.bg3,color:D.txtD,fontSize:"10px",letterSpacing:"0.1em",display:"flex",justifyContent:"space-between",flexShrink:0}}><span>▸ TRADES</span><span style={{color:D.buyT,fontSize:"9px"}}>● LIVE</span></div>
-                <div style={{display:"grid",gridTemplateColumns:"62px 1fr 36px",padding:"3px 12px",color:D.txtD,fontSize:"9px",borderBottom:`1px solid ${D.bdr}`,background:D.bg3,flexShrink:0}}><span>TIME</span><span>PRICE</span><span style={{textAlign:"right"}}>QTY</span></div>
+                <div style={{padding:"5px 12px",borderBottom:`1px solid ${D.bdr}`,background:D.bg3,color:D.txtD,fontSize:"14px",letterSpacing:"0.1em",display:"flex",justifyContent:"space-between",flexShrink:0}}><span>▸ TRADES</span><span style={{color:D.buyT,fontSize:"13px"}}>● LIVE</span></div>
+                <div style={{display:"grid",gridTemplateColumns:"62px 1fr 36px",padding:"3px 12px",color:D.txtD,fontSize:"13px",borderBottom:`1px solid ${D.bdr}`,background:D.bg3,flexShrink:0}}><span>TIME</span><span>PRICE</span><span style={{textAlign:"right"}}>QTY</span></div>
                 <div style={{flex:1,overflowY:"auto",background:D.bg2}}>
                   {trades.map(t=>(
                     <div key={t.id} style={{display:"grid",gridTemplateColumns:"62px 1fr 36px",padding:"4px 12px",borderBottom:`1px solid ${D.bdr}`}}>
-                      <span style={{color:D.txtD,fontSize:"11px"}}>{t.time}</span>
-                      <span style={{color:t.side==="buy"?D.buyT:D.askT,fontSize:"12px"}}>${t.price.toLocaleString("en-US",{minimumFractionDigits:2})}</span>
-                      <span style={{textAlign:"right",color:D.txtM,fontSize:"11px"}}>{t.qty}</span>
+                      <span style={{color:D.txtD,fontSize:"16px"}}>{t.time}</span>
+                      <span style={{color:t.side==="buy"?D.buyT:D.askT,fontSize:"17px"}}>${t.price.toLocaleString("en-US",{minimumFractionDigits:2})}</span>
+                      <span style={{textAlign:"right",color:D.txtM,fontSize:"16px"}}>{t.qty}</span>
                     </div>
                   ))}
                 </div>
@@ -934,48 +934,48 @@ function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[],onPlac
 
           <div style={{width:"220px",borderLeft:`1px solid ${D.bdr}`,background:D.bg2,flexShrink:0,overflowY:"auto"}}>
             <div style={{padding:"8px 14px",borderBottom:`1px solid ${D.bdr}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <span style={{color:D.txtD,fontSize:"10px",letterSpacing:"0.12em"}}>▸ PLACE ORDER</span>
-              <span style={{color:D.txtM,fontSize:"10px"}}>💵 ${balance.toLocaleString("en-US",{minimumFractionDigits:2})}</span>
+              <span style={{color:D.txtD,fontSize:"14px",letterSpacing:"0.12em"}}>▸ PLACE ORDER</span>
+              <span style={{color:D.txtM,fontSize:"14px"}}>💵 ${balance.toLocaleString("en-US",{minimumFractionDigits:2})}</span>
             </div>
             <div style={{padding:"14px"}}>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",border:`1px solid ${D.bdr}`,borderRadius:"5px",overflow:"hidden",marginBottom:"14px"}}>
-                {["buy","sell"].map(s=><button key={s} onClick={()=>setOSide(s)} style={{padding:"9px",border:"none",cursor:"pointer",fontFamily:MONO,fontSize:"11px",letterSpacing:"0.1em",background:oSide===s?(s==="buy"?(dark?"rgba(0,180,60,0.18)":"rgba(22,128,58,0.12)"):(dark?"rgba(180,30,30,0.18)":"rgba(180,30,30,0.10)")):"transparent",color:oSide===s?(s==="buy"?D.buyT:D.askT):D.txtD,borderBottom:`2px solid ${oSide===s?(s==="buy"?D.buyT:D.askT):"transparent"}`,transition:"all 0.14s"}}>{s.toUpperCase()}</button>)}
+                {["buy","sell"].map(s=><button key={s} onClick={()=>setOSide(s)} style={{padding:"9px",border:"none",cursor:"pointer",fontFamily:MONO,fontSize:"16px",letterSpacing:"0.1em",background:oSide===s?(s==="buy"?(dark?"rgba(0,180,60,0.18)":"rgba(22,128,58,0.12)"):(dark?"rgba(180,30,30,0.18)":"rgba(180,30,30,0.10)")):"transparent",color:oSide===s?(s==="buy"?D.buyT:D.askT):D.txtD,borderBottom:`2px solid ${oSide===s?(s==="buy"?D.buyT:D.askT):"transparent"}`,transition:"all 0.14s"}}>{s.toUpperCase()}</button>)}
               </div>
               <div style={{marginBottom:"12px"}}>
-                <div style={{color:D.txtD,fontSize:"9px",letterSpacing:"0.1em",marginBottom:"5px"}}>ORDER TYPE</div>
+                <div style={{color:D.txtD,fontSize:"13px",letterSpacing:"0.1em",marginBottom:"5px"}}>ORDER TYPE</div>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"5px"}}>
-                  <div style={{padding:"5px 10px",background:dark?"rgba(0,100,30,0.1)":"rgba(22,128,58,0.06)",border:`1px solid ${D.accD}`,borderRadius:"4px",color:D.accD,fontSize:"10px",fontFamily:MONO,letterSpacing:"0.08em"}}>SET PRICE</div>
+                  <div style={{padding:"5px 10px",background:dark?"rgba(0,100,30,0.1)":"rgba(22,128,58,0.06)",border:`1px solid ${D.accD}`,borderRadius:"4px",color:D.accD,fontSize:"14px",fontFamily:MONO,letterSpacing:"0.08em"}}>SET PRICE</div>
                 </div>
               </div>
-              <div style={{marginBottom:"10px"}}><div style={{color:D.txtD,fontSize:"9px",marginBottom:"4px"}}>PRICE (USD)</div><input type="number" value={oPrice} onChange={e=>setOPrice(e.target.value)} placeholder={price.toFixed(2)} style={{width:"100%",background:D.inBg,border:`1px solid ${D.inBdr}`,borderRadius:"4px",padding:"7px 10px",color:D.txt,fontSize:"12px"}}/></div>
+              <div style={{marginBottom:"10px"}}><div style={{color:D.txtD,fontSize:"13px",marginBottom:"4px"}}>PRICE (USD)</div><input type="number" value={oPrice} onChange={e=>setOPrice(e.target.value)} placeholder={price.toFixed(2)} style={{width:"100%",background:D.inBg,border:`1px solid ${D.inBdr}`,borderRadius:"4px",padding:"7px 10px",color:D.txt,fontSize:"17px"}}/></div>
               <div style={{marginBottom:"10px"}}>
                 <div style={{display:"flex",justifyContent:"space-between",marginBottom:"4px"}}>
-                  <span style={{color:D.txtD,fontSize:"9px"}}>QUANTITY</span>
+                  <span style={{color:D.txtD,fontSize:"13px"}}>QUANTITY</span>
                   {oSide==="sell"&&(()=>{
                     const h=holdings.find(hh=>hh.cardId===card.id);
                     const owned=h?.qty||0;
                     const locked=h?.lockedQty||0;
                     const free=owned-locked;
                     return owned>0?(
-                      <span style={{fontSize:"9px",color:locked>0?"#f59e0b":D.txtD,cursor:"pointer"}} onClick={()=>setOQty(String(free))} title="Click to fill max free qty">
+                      <span style={{fontSize:"13px",color:locked>0?"#f59e0b":D.txtD,cursor:"pointer"}} onClick={()=>setOQty(String(free))} title="Click to fill max free qty">
                         {locked>0?`${free} free / ${locked} 🔒`:`${owned} owned`} (MAX)
                       </span>
                     ):null;
                   })()}
                 </div>
-                <input type="number" value={oQty} onChange={e=>setOQty(e.target.value)} placeholder="0" style={{width:"100%",background:D.inBg,border:`1px solid ${D.inBdr}`,borderRadius:"4px",padding:"7px 10px",color:D.txt,fontSize:"12px"}}/>
+                <input type="number" value={oQty} onChange={e=>setOQty(e.target.value)} placeholder="0" style={{width:"100%",background:D.inBg,border:`1px solid ${D.inBdr}`,borderRadius:"4px",padding:"7px 10px",color:D.txt,fontSize:"17px"}}/>
               <div style={{marginBottom:"10px"}}>
-                <div style={{color:D.txtD,fontSize:"9px",marginBottom:"6px"}}>TIME IN FORCE</div>
+                <div style={{color:D.txtD,fontSize:"13px",marginBottom:"6px"}}>TIME IN FORCE</div>
                 <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:"4px"}}>
                   {EXPIRY_OPTS.map(o=>(
-                    <button key={o.val} onClick={()=>setOExpiry(o.val)} style={{padding:"6px 2px",border:`1px solid ${oExpiry===o.val?D.accD:D.bdr}`,borderRadius:"4px",background:oExpiry===o.val?(dark?"rgba(0,100,30,0.15)":"rgba(22,128,58,0.08)"):"transparent",color:oExpiry===o.val?D.accD:D.txtD,fontSize:"8px",fontFamily:MONO,cursor:"pointer",textAlign:"center"}}>
+                    <button key={o.val} onClick={()=>setOExpiry(o.val)} style={{padding:"6px 2px",border:`1px solid ${oExpiry===o.val?D.accD:D.bdr}`,borderRadius:"4px",background:oExpiry===o.val?(dark?"rgba(0,100,30,0.15)":"rgba(22,128,58,0.08)"):"transparent",color:oExpiry===o.val?D.accD:D.txtD,fontSize:"12px",fontFamily:MONO,cursor:"pointer",textAlign:"center"}}>
                       <div style={{fontWeight:"bold"}}>{o.short}</div>
                     </button>
                   ))}
                 </div>
               </div>
               </div>
-              <div style={{background:D.stBg,border:`1px solid ${D.bdr}`,borderRadius:"4px",padding:"8px 10px",marginBottom:"14px",display:"flex",justifyContent:"space-between"}}><span style={{color:D.txtD,fontSize:"9px"}}>TOTAL</span><span style={{color:D.txtM,fontSize:"13px"}}>${((+oPrice||price)*(+oQty||0)).toLocaleString("en-US",{minimumFractionDigits:2})}</span></div>
+              <div style={{background:D.stBg,border:`1px solid ${D.bdr}`,borderRadius:"4px",padding:"8px 10px",marginBottom:"14px",display:"flex",justifyContent:"space-between"}}><span style={{color:D.txtD,fontSize:"13px"}}>TOTAL</span><span style={{color:D.txtM,fontSize:"19px"}}>${((+oPrice||price)*(+oQty||0)).toLocaleString("en-US",{minimumFractionDigits:2})}</span></div>
               {/* Instant buy/sell */}
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"5px",marginBottom:"8px"}}>
                 <button onClick={()=>{
@@ -984,22 +984,22 @@ function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[],onPlac
                   if(onPlaceOrder) onPlaceOrder({cardId:card.id,side:"buy",type:"market",price:asks[0]?.price||price,qty:+oQty});
                   setOStatus({side:"buy",price:asks[0]?.price||price,qty:+oQty});
                   setTimeout(()=>setOStatus(null),3000); setOQty("");
-                }} style={{padding:"7px",border:`1px solid ${dark?"#1a5a2a":"#7ab07a"}`,borderRadius:"4px",fontSize:"9px",fontFamily:MONO,letterSpacing:"0.06em",fontWeight:"bold",background:dark?"rgba(0,180,60,0.18)":"rgba(22,128,58,0.12)",color:dark?"#00ff55":"#1a5a2a",cursor:"pointer"}}>⚡ INSTANT BUY</button>
+                }} style={{padding:"7px",border:`1px solid ${dark?"#1a5a2a":"#7ab07a"}`,borderRadius:"4px",fontSize:"13px",fontFamily:MONO,letterSpacing:"0.06em",fontWeight:"bold",background:dark?"rgba(0,180,60,0.18)":"rgba(22,128,58,0.12)",color:dark?"#00ff55":"#1a5a2a",cursor:"pointer"}}>⚡ INSTANT BUY</button>
                 <button onClick={()=>{
                   if(!oQty){setOStatus({error:"Enter quantity"});setTimeout(()=>setOStatus(null),2000);return;}
                   setOSide("sell");setOType("market");
                   if(onPlaceOrder) onPlaceOrder({cardId:card.id,side:"sell",type:"market",price:bids[0]?.price||price,qty:+oQty});
                   setOStatus({side:"sell",price:bids[0]?.price||price,qty:+oQty});
                   setTimeout(()=>setOStatus(null),3000); setOQty("");
-                }} style={{padding:"7px",border:`1px solid ${dark?"#5a1a1a":"#c07070"}`,borderRadius:"4px",fontSize:"9px",fontFamily:MONO,letterSpacing:"0.06em",fontWeight:"bold",background:dark?"rgba(180,30,30,0.18)":"rgba(180,30,30,0.10)",color:dark?"#ff5555":"#9a1a1a",cursor:"pointer"}}>⚡ INSTANT SELL</button>
+                }} style={{padding:"7px",border:`1px solid ${dark?"#5a1a1a":"#c07070"}`,borderRadius:"4px",fontSize:"13px",fontFamily:MONO,letterSpacing:"0.06em",fontWeight:"bold",background:dark?"rgba(180,30,30,0.18)":"rgba(180,30,30,0.10)",color:dark?"#ff5555":"#9a1a1a",cursor:"pointer"}}>⚡ INSTANT SELL</button>
               </div>
-              <button onClick={submitOrder} style={{width:"100%",padding:"10px",border:`1px solid ${oSide==="buy"?(dark?"#1a5a2a":"#7ab07a"):(dark?"#5a1a1a":"#c07070")}`,borderRadius:"5px",fontSize:"11px",fontFamily:MONO,letterSpacing:"0.1em",fontWeight:"bold",background:oSide==="buy"?(dark?"linear-gradient(135deg,#0a3a1a,#0f5a28)":"linear-gradient(135deg,#cceacc,#a8d8a8)"):(dark?"linear-gradient(135deg,#3a0a0a,#5a1010)":"linear-gradient(135deg,#eacccc,#d8a8a8)"),color:oSide==="buy"?(dark?"#00ff55":"#1a5a2a"):(dark?"#ff5555":"#9a1a1a"),cursor:"pointer"}}>
+              <button onClick={submitOrder} style={{width:"100%",padding:"10px",border:`1px solid ${oSide==="buy"?(dark?"#1a5a2a":"#7ab07a"):(dark?"#5a1a1a":"#c07070")}`,borderRadius:"5px",fontSize:"16px",fontFamily:MONO,letterSpacing:"0.1em",fontWeight:"bold",background:oSide==="buy"?(dark?"linear-gradient(135deg,#0a3a1a,#0f5a28)":"linear-gradient(135deg,#cceacc,#a8d8a8)"):(dark?"linear-gradient(135deg,#3a0a0a,#5a1010)":"linear-gradient(135deg,#eacccc,#d8a8a8)"),color:oSide==="buy"?(dark?"#00ff55":"#1a5a2a"):(dark?"#ff5555":"#9a1a1a"),cursor:"pointer"}}>
                 {oSide==="buy"?"▲ BUY":"▼ SELL"} {card.name.split(" ")[0].toUpperCase()}
               </button>
-              {oStatus&&<div style={{marginTop:"10px",padding:"8px 10px",background:oStatus.error?(dark?"rgba(180,30,30,0.08)":"rgba(220,50,50,0.06)"):(dark?"rgba(0,180,60,0.08)":"rgba(22,128,58,0.08)"),border:`1px solid ${oStatus.error?(dark?"#5a1a1a":"#e07070"):(dark?"#1a4a1a":"#8acc8a")}`,borderRadius:"4px",fontSize:"10px",color:oStatus.error?D.askT:D.accD,lineHeight:"1.8"}}>{oStatus.error?`⚠ ${oStatus.error}`:<>✓ ORDER PLACED<br/><span style={{color:D.txtM}}>{oStatus.side?.toUpperCase()} {oStatus.qty}x @ ${oStatus.price?.toFixed(2)}</span></>}</div>}
+              {oStatus&&<div style={{marginTop:"10px",padding:"8px 10px",background:oStatus.error?(dark?"rgba(180,30,30,0.08)":"rgba(220,50,50,0.06)"):(dark?"rgba(0,180,60,0.08)":"rgba(22,128,58,0.08)"),border:`1px solid ${oStatus.error?(dark?"#5a1a1a":"#e07070"):(dark?"#1a4a1a":"#8acc8a")}`,borderRadius:"4px",fontSize:"14px",color:oStatus.error?D.askT:D.accD,lineHeight:"1.8"}}>{oStatus.error?`⚠ ${oStatus.error}`:<>✓ ORDER PLACED<br/><span style={{color:D.txtM}}>{oStatus.side?.toUpperCase()} {oStatus.qty}x @ ${oStatus.price?.toFixed(2)}</span></>}</div>}
               <div style={{marginTop:"16px",paddingTop:"12px",borderTop:`1px solid ${D.bdr}`}}>
                 {[["BEST SELL PRICE",`$${asks[0]?.price.toFixed(2)}`],["BEST BUY PRICE",`$${bids[0]?.price.toFixed(2)}`],["LAST TRADE",`$${price.toFixed(2)}`],["SPREAD",`$${spread.toFixed(2)}`]].map(([k,v])=>(
-                  <div key={k} style={{display:"flex",justifyContent:"space-between",marginBottom:"5px"}}><span style={{color:D.txtD,fontSize:"9px"}}>{k}</span><span style={{color:D.txtM,fontSize:"10px"}}>{v}</span></div>
+                  <div key={k} style={{display:"flex",justifyContent:"space-between",marginBottom:"5px"}}><span style={{color:D.txtD,fontSize:"13px"}}>{k}</span><span style={{color:D.txtM,fontSize:"14px"}}>{v}</span></div>
                 ))}
               </div>
             </div>
@@ -1052,46 +1052,46 @@ function AuthModal({D,dark,onClose,onAuth}){
       <div style={{background:D.bg2,border:`1px solid ${D.bdr2}`,borderRadius:isMobile?"0":"12px",padding:isMobile?"24px 20px":"32px",width:isMobile?"100vw":"380px",maxHeight:isMobile?"100vh":"auto",overflowY:"auto",boxShadow:"0 24px 60px rgba(0,0,0,0.4)",position:isMobile?"fixed":"relative",inset:isMobile?"0":undefined}} onClick={e=>e.stopPropagation()}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"24px"}}>
           <div>
-            <div style={{fontFamily:ORB,fontSize:"18px",fontWeight:800,color:D.acc,letterSpacing:"0.12em"}}>◈ CX</div>
-            <div style={{color:D.txtD,fontSize:"11px",marginTop:"2px"}}>{mode==="login"?"Welcome back":"Create your account"}</div>
+            <div style={{fontFamily:ORB,fontSize:"26px",fontWeight:800,color:D.acc,letterSpacing:"0.12em"}}>◈ CX</div>
+            <div style={{color:D.txtD,fontSize:"16px",marginTop:"2px"}}>{mode==="login"?"Welcome back":"Create your account"}</div>
           </div>
-          <button onClick={onClose} style={{background:"transparent",border:"none",color:D.txtD,fontSize:"20px",lineHeight:1,cursor:"pointer"}}>×</button>
+          <button onClick={onClose} style={{background:"transparent",border:"none",color:D.txtD,fontSize:"29px",lineHeight:1,cursor:"pointer"}}>×</button>
         </div>
 
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",border:`1px solid ${D.bdr}`,borderRadius:"6px",overflow:"hidden",marginBottom:"20px"}}>
           {[["login","LOG IN"],["signup","SIGN UP"]].map(([m,label])=>(
-            <button key={m} onClick={()=>{setMode(m);setError("");setSuccess("");}} style={{padding:"9px",border:"none",cursor:"pointer",fontFamily:MONO,fontSize:"10px",letterSpacing:"0.1em",background:mode===m?(dark?"rgba(0,180,60,0.18)":"rgba(22,128,58,0.10)"):"transparent",color:mode===m?D.accD:D.txtD,borderBottom:`2px solid ${mode===m?D.accD:"transparent"}`,transition:"all 0.14s"}}>{label}</button>
+            <button key={m} onClick={()=>{setMode(m);setError("");setSuccess("");}} style={{padding:"9px",border:"none",cursor:"pointer",fontFamily:MONO,fontSize:"14px",letterSpacing:"0.1em",background:mode===m?(dark?"rgba(0,180,60,0.18)":"rgba(22,128,58,0.10)"):"transparent",color:mode===m?D.accD:D.txtD,borderBottom:`2px solid ${mode===m?D.accD:"transparent"}`,transition:"all 0.14s"}}>{label}</button>
           ))}
         </div>
 
         {mode==="signup"&&(
           <div style={{marginBottom:"14px"}}>
-            <div style={{color:D.txtD,fontSize:"10px",marginBottom:"5px",letterSpacing:"0.08em"}}>DISPLAY NAME</div>
-            <input value={name} onChange={e=>setName(e.target.value)} placeholder="Your name" style={{width:"100%",background:D.inBg,border:`1px solid ${D.inBdr}`,borderRadius:"5px",padding:"10px 12px",color:D.txt,fontSize:"12px",fontFamily:MONO}}/>
+            <div style={{color:D.txtD,fontSize:"14px",marginBottom:"5px",letterSpacing:"0.08em"}}>DISPLAY NAME</div>
+            <input value={name} onChange={e=>setName(e.target.value)} placeholder="Your name" style={{width:"100%",background:D.inBg,border:`1px solid ${D.inBdr}`,borderRadius:"5px",padding:"10px 12px",color:D.txt,fontSize:"17px",fontFamily:MONO}}/>
           </div>
         )}
         <div style={{marginBottom:"14px"}}>
-          <div style={{color:D.txtD,fontSize:"10px",marginBottom:"5px",letterSpacing:"0.08em"}}>EMAIL</div>
-          <input type="email" value={email} onChange={e=>setEmail(e.target.value)} onKeyDown={e=>e.key==="Enter"&&submit()} placeholder="you@email.com" style={{width:"100%",background:D.inBg,border:`1px solid ${D.inBdr}`,borderRadius:"5px",padding:"10px 12px",color:D.txt,fontSize:"12px",fontFamily:MONO}}/>
+          <div style={{color:D.txtD,fontSize:"14px",marginBottom:"5px",letterSpacing:"0.08em"}}>EMAIL</div>
+          <input type="email" value={email} onChange={e=>setEmail(e.target.value)} onKeyDown={e=>e.key==="Enter"&&submit()} placeholder="you@email.com" style={{width:"100%",background:D.inBg,border:`1px solid ${D.inBdr}`,borderRadius:"5px",padding:"10px 12px",color:D.txt,fontSize:"17px",fontFamily:MONO}}/>
         </div>
         <div style={{marginBottom:"14px"}}>
-          <div style={{color:D.txtD,fontSize:"10px",marginBottom:"5px",letterSpacing:"0.08em"}}>PASSWORD</div>
-          <input type="password" value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>e.key==="Enter"&&submit()} placeholder="••••••••" style={{width:"100%",background:D.inBg,border:`1px solid ${D.inBdr}`,borderRadius:"5px",padding:"10px 12px",color:D.txt,fontSize:"12px",fontFamily:MONO}}/>
+          <div style={{color:D.txtD,fontSize:"14px",marginBottom:"5px",letterSpacing:"0.08em"}}>PASSWORD</div>
+          <input type="password" value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>e.key==="Enter"&&submit()} placeholder="••••••••" style={{width:"100%",background:D.inBg,border:`1px solid ${D.inBdr}`,borderRadius:"5px",padding:"10px 12px",color:D.txt,fontSize:"17px",fontFamily:MONO}}/>
         </div>
 
         {mode==="login"&&(
           <div style={{display:"flex",alignItems:"center",gap:"8px",marginBottom:"18px",cursor:"pointer"}} onClick={()=>setRememberMe(r=>!r)}>
             <div style={{width:"16px",height:"16px",borderRadius:"3px",border:`1px solid ${rememberMe?D.accD:D.bdr2}`,background:rememberMe?(dark?"rgba(0,180,60,0.25)":"rgba(22,128,58,0.15)"):"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,transition:"all 0.15s"}}>
-              {rememberMe&&<span style={{color:D.accD,fontSize:"11px",lineHeight:1}}>✓</span>}
+              {rememberMe&&<span style={{color:D.accD,fontSize:"16px",lineHeight:1}}>✓</span>}
             </div>
-            <span style={{color:D.txtD,fontSize:"10px",userSelect:"none"}}>Remember me for 30 days</span>
+            <span style={{color:D.txtD,fontSize:"14px",userSelect:"none"}}>Remember me for 30 days</span>
           </div>
         )}
 
-        {error&&<div style={{marginBottom:"14px",padding:"8px 12px",background:dark?"rgba(180,30,30,0.1)":"rgba(220,50,50,0.06)",border:`1px solid ${dark?"#5a1a1a":"#e07070"}`,borderRadius:"4px",color:D.askT,fontSize:"10px"}}>{error}</div>}
-        {success&&<div style={{marginBottom:"14px",padding:"8px 12px",background:dark?"rgba(0,180,60,0.1)":"rgba(22,128,58,0.06)",border:`1px solid ${dark?"#1a4a1a":"#8acc8a"}`,borderRadius:"4px",color:D.accD,fontSize:"10px"}}>{success}</div>}
+        {error&&<div style={{marginBottom:"14px",padding:"8px 12px",background:dark?"rgba(180,30,30,0.1)":"rgba(220,50,50,0.06)",border:`1px solid ${dark?"#5a1a1a":"#e07070"}`,borderRadius:"4px",color:D.askT,fontSize:"14px"}}>{error}</div>}
+        {success&&<div style={{marginBottom:"14px",padding:"8px 12px",background:dark?"rgba(0,180,60,0.1)":"rgba(22,128,58,0.06)",border:`1px solid ${dark?"#1a4a1a":"#8acc8a"}`,borderRadius:"4px",color:D.accD,fontSize:"14px"}}>{success}</div>}
 
-        <button onClick={submit} disabled={loading} style={{width:"100%",padding:"11px",border:`1px solid ${dark?"#1a5a2a":"#7ab07a"}`,borderRadius:"6px",fontSize:"11px",fontFamily:MONO,letterSpacing:"0.1em",fontWeight:"bold",background:dark?"linear-gradient(135deg,#0a3a1a,#0f5a28)":"linear-gradient(135deg,#cceacc,#a8d8a8)",color:dark?"#00ff55":"#1a5a2a",cursor:loading?"wait":"pointer",opacity:loading?0.7:1}}>
+        <button onClick={submit} disabled={loading} style={{width:"100%",padding:"11px",border:`1px solid ${dark?"#1a5a2a":"#7ab07a"}`,borderRadius:"6px",fontSize:"16px",fontFamily:MONO,letterSpacing:"0.1em",fontWeight:"bold",background:dark?"linear-gradient(135deg,#0a3a1a,#0f5a28)":"linear-gradient(135deg,#cceacc,#a8d8a8)",color:dark?"#00ff55":"#1a5a2a",cursor:loading?"wait":"pointer",opacity:loading?0.7:1}}>
           {loading?"...":(mode==="login"?"→ LOG IN":"→ CREATE ACCOUNT")}
         </button>
       </div>
@@ -1465,12 +1465,12 @@ function Ticker({D,dark,tradeHistory=[],dbCards=[],marketPrices={}}){
         whiteSpace:"nowrap",
       }}>
         {items.map((item,i)=>(
-          <span key={`${item.id}-${i}`} style={{display:"inline-flex",alignItems:"center",gap:"6px",padding:"0 20px",borderRight:`1px solid ${D.bdr}`,fontSize:"10px",letterSpacing:"0.06em",flexShrink:0}}>
-            <span style={{color:item.side==="buy"?D.buyT:D.askT,fontSize:"9px"}}>{item.side==="buy"?"▲":"▼"}</span>
+          <span key={`${item.id}-${i}`} style={{display:"inline-flex",alignItems:"center",gap:"6px",padding:"0 20px",borderRight:`1px solid ${D.bdr}`,fontSize:"14px",letterSpacing:"0.06em",flexShrink:0}}>
+            <span style={{color:item.side==="buy"?D.buyT:D.askT,fontSize:"13px"}}>{item.side==="buy"?"▲":"▼"}</span>
             <span style={{color:D.txtM,fontWeight:600}}>{item.name}</span>
-            <span style={{color:dark?"#00cc40":"#15803d",fontFamily:ORB,fontSize:"10px",fontWeight:700}}>${item.price?.toLocaleString("en-US",{minimumFractionDigits:2})}</span>
+            <span style={{color:dark?"#00cc40":"#15803d",fontFamily:ORB,fontSize:"14px",fontWeight:700}}>${item.price?.toLocaleString("en-US",{minimumFractionDigits:2})}</span>
             <span style={{color:D.txtD}}>×{item.qty}</span>
-            {item.game&&<span style={{color:D.txtD,fontSize:"9px",opacity:0.6}}>{item.game}</span>}
+            {item.game&&<span style={{color:D.txtD,fontSize:"13px",opacity:0.6}}>{item.game}</span>}
           </span>
         ))}
       </div>
@@ -1484,29 +1484,29 @@ function NotificationBell({D,dark,notifications=[],onClear,onClearAll}){
   const unread=notifications.filter(n=>!n.read).length;
   return(
     <div style={{position:"relative"}}>
-      <button onClick={()=>setOpen(o=>!o)} style={{position:"relative",background:"none",border:`1px solid ${D.bdr}`,borderRadius:"4px",padding:"3px 8px",color:D.txtD,cursor:"pointer",display:"flex",alignItems:"center",gap:"4px",fontSize:"14px"}}>
+      <button onClick={()=>setOpen(o=>!o)} style={{position:"relative",background:"none",border:`1px solid ${D.bdr}`,borderRadius:"4px",padding:"3px 8px",color:D.txtD,cursor:"pointer",display:"flex",alignItems:"center",gap:"4px",fontSize:"17px"}}>
         🔔
-        {unread>0&&<span style={{position:"absolute",top:"-4px",right:"-4px",background:"#dc2626",color:"#fff",borderRadius:"50%",width:"14px",height:"14px",fontSize:"8px",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:MONO,fontWeight:"bold"}}>{unread>9?"9+":unread}</span>}
+        {unread>0&&<span style={{position:"absolute",top:"-4px",right:"-4px",background:"#dc2626",color:"#fff",borderRadius:"50%",width:"14px",height:"14px",fontSize:"12px",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:MONO,fontWeight:"bold"}}>{unread>9?"9+":unread}</span>}
       </button>
       {open&&(
         <>
           <div onClick={()=>setOpen(false)} style={{position:"fixed",inset:0,zIndex:299}}/>
           <div style={{position:"absolute",right:0,top:"36px",width:"300px",background:D.bg2,border:`1px solid ${D.bdr2}`,borderRadius:"8px",boxShadow:"0 8px 32px rgba(0,0,0,0.3)",zIndex:300,overflow:"hidden"}}>
             <div style={{padding:"10px 14px",borderBottom:`1px solid ${D.bdr}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <span style={{color:D.txtD,fontSize:"10px",letterSpacing:"0.12em"}}>▸ NOTIFICATIONS</span>
-              {notifications.length>0&&<button onClick={()=>{onClearAll();setOpen(false);}} style={{background:"none",border:"none",color:D.txtD,fontSize:"9px",cursor:"pointer",fontFamily:MONO}}>CLEAR ALL</button>}
+              <span style={{color:D.txtD,fontSize:"14px",letterSpacing:"0.12em"}}>▸ NOTIFICATIONS</span>
+              {notifications.length>0&&<button onClick={()=>{onClearAll();setOpen(false);}} style={{background:"none",border:"none",color:D.txtD,fontSize:"13px",cursor:"pointer",fontFamily:MONO}}>CLEAR ALL</button>}
             </div>
             <div style={{maxHeight:"320px",overflowY:"auto"}}>
               {notifications.length===0?(
-                <div style={{padding:"32px",textAlign:"center",color:D.txtD,fontSize:"11px"}}>No notifications yet</div>
+                <div style={{padding:"32px",textAlign:"center",color:D.txtD,fontSize:"16px"}}>No notifications yet</div>
               ):notifications.map(n=>(
                 <div key={n.id} style={{padding:"10px 14px",borderBottom:`1px solid ${D.bdr}`,background:n.read?"transparent":(dark?"rgba(0,200,60,0.04)":"rgba(22,128,58,0.03)"),display:"flex",gap:"10px",alignItems:"flex-start"}}>
-                  <span style={{fontSize:"14px",flexShrink:0}}>{n.type==="filled_buy"?"📈":n.type==="filled_sell"?"📉":n.type==="partial"?"⏳":"🔔"}</span>
+                  <span style={{fontSize:"20px",flexShrink:0}}>{n.type==="filled_buy"?"📈":n.type==="filled_sell"?"📉":n.type==="partial"?"⏳":"🔔"}</span>
                   <div style={{flex:1,minWidth:0}}>
-                    <div style={{color:D.txt,fontSize:"11px",lineHeight:1.4}}>{n.message}</div>
-                    <div style={{color:D.txtD,fontSize:"9px",marginTop:"3px"}}>{n.time}</div>
+                    <div style={{color:D.txt,fontSize:"16px",lineHeight:1.4}}>{n.message}</div>
+                    <div style={{color:D.txtD,fontSize:"13px",marginTop:"3px"}}>{n.time}</div>
                   </div>
-                  <button onClick={()=>onClear(n.id)} style={{background:"none",border:"none",color:D.txtD,fontSize:"14px",cursor:"pointer",flexShrink:0,lineHeight:1}}>×</button>
+                  <button onClick={()=>onClear(n.id)} style={{background:"none",border:"none",color:D.txtD,fontSize:"20px",cursor:"pointer",flexShrink:0,lineHeight:1}}>×</button>
                 </div>
               ))}
             </div>
@@ -1637,10 +1637,10 @@ function CSVImportModal({D,dark,dbCards=[],onImport,onClose,marketPrices={},trad
         {/* Header */}
         <div style={{padding:"16px 20px",borderBottom:`1px solid ${D.bdr}`,display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
           <div>
-            <div style={{fontFamily:ORB,fontSize:"14px",fontWeight:800,color:D.acc,letterSpacing:"0.12em"}}>
+            <div style={{fontFamily:ORB,fontSize:"20px",fontWeight:800,color:D.acc,letterSpacing:"0.12em"}}>
               ◈ {isTCGPlayer?"TCGPLAYER IMPORT":"IMPORT COLLECTION"}
             </div>
-            <div style={{color:D.txtD,fontSize:"10px",marginTop:"3px"}}>
+            <div style={{color:D.txtD,fontSize:"14px",marginTop:"3px"}}>
               {step==="upload"&&"Upload your TCGPlayer export or any collection CSV"}
               {step==="preview"&&(isTCGPlayer?"TCGPlayer inventory detected — review pricing opportunities":"Review matched cards")}
               {step==="done"&&"Import complete"}
@@ -1650,12 +1650,12 @@ function CSVImportModal({D,dark,dbCards=[],onImport,onClose,marketPrices={},trad
           <div style={{display:"flex",alignItems:"center",gap:"8px",marginRight:"16px"}}>
             {["upload","preview","done"].map((s,i)=>(
               <div key={s} style={{display:"flex",alignItems:"center",gap:"6px"}}>
-                <div style={{width:"20px",height:"20px",borderRadius:"50%",background:step===s?D.acc:(["upload","preview","done"].indexOf(step)>i?D.accD:"transparent"),border:`1px solid ${step===s||["upload","preview","done"].indexOf(step)>i?D.accD:D.bdr}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"9px",color:step===s||["upload","preview","done"].indexOf(step)>i?"#000":D.txtD,fontWeight:"bold"}}>{i+1}</div>
+                <div style={{width:"20px",height:"20px",borderRadius:"50%",background:step===s?D.acc:(["upload","preview","done"].indexOf(step)>i?D.accD:"transparent"),border:`1px solid ${step===s||["upload","preview","done"].indexOf(step)>i?D.accD:D.bdr}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"13px",color:step===s||["upload","preview","done"].indexOf(step)>i?"#000":D.txtD,fontWeight:"bold"}}>{i+1}</div>
                 {i<2&&<div style={{width:"16px",height:"1px",background:D.bdr}}/>}
               </div>
             ))}
           </div>
-          <button onClick={onClose} style={{background:"none",border:"none",color:D.txtD,fontSize:"20px",cursor:"pointer"}}>×</button>
+          <button onClick={onClose} style={{background:"none",border:"none",color:D.txtD,fontSize:"29px",cursor:"pointer"}}>×</button>
         </div>
 
         <div style={{flex:1,overflowY:"auto",padding:"20px"}}>
@@ -1665,36 +1665,36 @@ function CSVImportModal({D,dark,dbCards=[],onImport,onClose,marketPrices={},trad
             <div>
               {/* TCGPlayer callout */}
               <div style={{background:dark?"rgba(0,100,200,0.08)":"rgba(59,130,246,0.06)",border:`1px solid ${dark?"#1a3a6a":"#bfdbfe"}`,borderRadius:"8px",padding:"14px 16px",marginBottom:"20px",display:"flex",gap:"12px",alignItems:"flex-start"}}>
-                <span style={{fontSize:"20px",flexShrink:0}}>🏪</span>
+                <span style={{fontSize:"29px",flexShrink:0}}>🏪</span>
                 <div>
-                  <div style={{color:dark?"#60a5fa":"#1d4ed8",fontSize:"11px",fontWeight:"bold",marginBottom:"4px"}}>TCGPlayer sellers — auto-detected</div>
-                  <div style={{color:D.txtD,fontSize:"10px",lineHeight:"1.5"}}>Export your inventory from TCGPlayer → My Inventory → Export. We'll automatically detect the format, map your conditions, and show you where CX prices give you a better deal.</div>
+                  <div style={{color:dark?"#60a5fa":"#1d4ed8",fontSize:"16px",fontWeight:"bold",marginBottom:"4px"}}>TCGPlayer sellers — auto-detected</div>
+                  <div style={{color:D.txtD,fontSize:"14px",lineHeight:"1.5"}}>Export your inventory from TCGPlayer → My Inventory → Export. We'll automatically detect the format, map your conditions, and show you where CX prices give you a better deal.</div>
                 </div>
               </div>
               <div style={{border:`2px dashed ${D.bdr2}`,borderRadius:"8px",padding:"40px 24px",textAlign:"center",marginBottom:"20px"}}>
-                <div style={{fontSize:"32px",marginBottom:"12px"}}>📂</div>
-                <div style={{color:D.txtM,fontSize:"12px",marginBottom:"6px"}}>Drop your CSV here or click to browse</div>
-                <div style={{color:D.txtD,fontSize:"10px",marginBottom:"20px"}}>TCGPlayer, Binder, Moxfield, or any spreadsheet</div>
-                <label style={{padding:"10px 24px",background:dark?"rgba(0,180,60,0.15)":"rgba(22,128,58,0.10)",border:`1px solid ${D.accD}`,borderRadius:"6px",color:D.accD,fontSize:"10px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.1em"}}>
+                <div style={{fontSize:"46px",marginBottom:"12px"}}>📂</div>
+                <div style={{color:D.txtM,fontSize:"17px",marginBottom:"6px"}}>Drop your CSV here or click to browse</div>
+                <div style={{color:D.txtD,fontSize:"14px",marginBottom:"20px"}}>TCGPlayer, Binder, Moxfield, or any spreadsheet</div>
+                <label style={{padding:"10px 24px",background:dark?"rgba(0,180,60,0.15)":"rgba(22,128,58,0.10)",border:`1px solid ${D.accD}`,borderRadius:"6px",color:D.accD,fontSize:"14px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.1em"}}>
                   CHOOSE FILE <input type="file" accept=".csv" onChange={handleFile} style={{display:"none"}}/>
                 </label>
               </div>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"10px"}}>
                 <div style={{background:D.bg3,border:`1px solid ${D.bdr}`,borderRadius:"6px",padding:"12px 14px"}}>
-                  <div style={{color:dark?"#60a5fa":"#1d4ed8",fontSize:"9px",letterSpacing:"0.1em",marginBottom:"8px"}}>▸ TCGPLAYER COLUMNS</div>
+                  <div style={{color:dark?"#60a5fa":"#1d4ed8",fontSize:"13px",letterSpacing:"0.1em",marginBottom:"8px"}}>▸ TCGPLAYER COLUMNS</div>
                   {[["Product Name","Card name"],["Set Name","Set"],["Condition","NM, LP, MP etc"],["Add to Quantity","How many"],["TCG Marketplace Price","Your current price (reference only)"]].map(([c,d])=>(
                     <div key={c} style={{display:"flex",gap:"8px",marginBottom:"5px"}}>
-                      <span style={{color:D.acc,fontSize:"9px",fontFamily:MONO,minWidth:"140px"}}>{c}</span>
-                      <span style={{color:D.txtD,fontSize:"9px"}}>{d}</span>
+                      <span style={{color:D.acc,fontSize:"13px",fontFamily:MONO,minWidth:"140px"}}>{c}</span>
+                      <span style={{color:D.txtD,fontSize:"13px"}}>{d}</span>
                     </div>
                   ))}
                 </div>
                 <div style={{background:D.bg3,border:`1px solid ${D.bdr}`,borderRadius:"6px",padding:"12px 14px"}}>
-                  <div style={{color:D.txtD,fontSize:"9px",letterSpacing:"0.1em",marginBottom:"8px"}}>▸ GENERIC COLUMNS</div>
+                  <div style={{color:D.txtD,fontSize:"13px",letterSpacing:"0.1em",marginBottom:"8px"}}>▸ GENERIC COLUMNS</div>
                   {[["Name / Card Name","Card name"],["Set / Expansion","Set name"],["Condition / Cond","Condition"],["Qty / Quantity","How many"]].map(([c,d])=>(
                     <div key={c} style={{display:"flex",gap:"8px",marginBottom:"5px"}}>
-                      <span style={{color:D.acc,fontSize:"9px",fontFamily:MONO,minWidth:"140px"}}>{c}</span>
-                      <span style={{color:D.txtD,fontSize:"9px"}}>{d}</span>
+                      <span style={{color:D.acc,fontSize:"13px",fontFamily:MONO,minWidth:"140px"}}>{c}</span>
+                      <span style={{color:D.txtD,fontSize:"13px"}}>{d}</span>
                     </div>
                   ))}
                 </div>
@@ -1714,22 +1714,22 @@ function CSVImportModal({D,dark,dbCards=[],onImport,onClose,marketPrices={},trad
                   ["UNMATCHED",rows.filter(r=>!r.matchedCard).length,D.askT],
                 ].map(([label,val,color])=>(
                   <div key={label} style={{background:D.bg3,border:`1px solid ${D.bdr}`,borderRadius:"6px",padding:"10px 12px",textAlign:"center"}}>
-                    <div style={{fontFamily:ORB,fontSize:"18px",fontWeight:700,color:color||D.txtM}}>{val}</div>
-                    <div style={{color:D.txtD,fontSize:"8px",letterSpacing:"0.08em",marginTop:"3px"}}>{label}</div>
+                    <div style={{fontFamily:ORB,fontSize:"26px",fontWeight:700,color:color||D.txtM}}>{val}</div>
+                    <div style={{color:D.txtD,fontSize:"12px",letterSpacing:"0.08em",marginTop:"3px"}}>{label}</div>
                   </div>
                 ))}
               </div>
 
               {/* TCGPlayer notice */}
               {isTCGPlayer&&(
-                <div style={{background:dark?"rgba(0,100,200,0.06)":"rgba(59,130,246,0.04)",border:`1px solid ${dark?"#1a3a6a":"#bfdbfe"}`,borderRadius:"6px",padding:"10px 14px",marginBottom:"14px",fontSize:"10px",color:D.txtD,lineHeight:"1.5"}}>
+                <div style={{background:dark?"rgba(0,100,200,0.06)":"rgba(59,130,246,0.04)",border:`1px solid ${dark?"#1a3a6a":"#bfdbfe"}`,borderRadius:"6px",padding:"10px 14px",marginBottom:"14px",fontSize:"14px",color:D.txtD,lineHeight:"1.5"}}>
                   <span style={{color:dark?"#60a5fa":"#1d4ed8",fontWeight:"bold"}}>ℹ TCGPlayer prices shown as reference only.</span> CX suggested prices are calculated from our own order book activity — not from TCGPlayer. Your CX listing price is fully independent.
                 </div>
               )}
 
               {/* Table */}
               <div style={{border:`1px solid ${D.bdr}`,borderRadius:"6px",overflow:"hidden"}}>
-                <div style={{display:"grid",gridTemplateColumns:`${isTCGPlayer?"24px ":""}1fr 50px 50px${isTCGPlayer?" 80px 80px":""} 110px 90px`,padding:"7px 12px",background:D.bg3,color:D.txtD,fontSize:"8px",letterSpacing:"0.08em",borderBottom:`1px solid ${D.bdr}`,gap:"8px",alignItems:"center"}}>
+                <div style={{display:"grid",gridTemplateColumns:`${isTCGPlayer?"24px ":""}1fr 50px 50px${isTCGPlayer?" 80px 80px":""} 110px 90px`,padding:"7px 12px",background:D.bg3,color:D.txtD,fontSize:"12px",letterSpacing:"0.08em",borderBottom:`1px solid ${D.bdr}`,gap:"8px",alignItems:"center"}}>
                   {isTCGPlayer&&<span/>}
                   <span>CARD</span>
                   <span style={{textAlign:"center"}}>COND</span>
@@ -1749,41 +1749,41 @@ function CSVImportModal({D,dark,dbCards=[],onImport,onClose,marketPrices={},trad
                         <input type="checkbox" checked={matched&&listSelected[i]!==false} disabled={!matched} onChange={e=>setListSelected(p=>({...p,[i]:e.target.checked}))} style={{cursor:matched?"pointer":"default",accentColor:D.acc,width:"14px",height:"14px"}}/>
                       )}
                       <div style={{minWidth:0}}>
-                        <div style={{color:matched?D.txt:D.txtD,fontSize:"11px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.name}</div>
-                        <div style={{color:D.txtD,fontSize:"9px"}}>{r.set||"—"}</div>
-                        {matched&&r.hasBuyers&&<div style={{color:"#f59e0b",fontSize:"8px"}}>● buyers waiting</div>}
+                        <div style={{color:matched?D.txt:D.txtD,fontSize:"16px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.name}</div>
+                        <div style={{color:D.txtD,fontSize:"13px"}}>{r.set||"—"}</div>
+                        {matched&&r.hasBuyers&&<div style={{color:"#f59e0b",fontSize:"12px"}}>● buyers waiting</div>}
                       </div>
-                      <span style={{textAlign:"center",color:D.txtD,fontSize:"9px"}}>{r.condition}</span>
-                      <span style={{textAlign:"center",color:D.txtM,fontSize:"11px"}}>{r.qty}</span>
-                      {isTCGPlayer&&<span style={{textAlign:"right",color:D.txtD,fontSize:"10px"}}>{r.tcgRef?`$${r.tcgRef.toFixed(2)}`:"—"}</span>}
-                      {isTCGPlayer&&<span style={{textAlign:"right",color:D.txtM,fontSize:"10px"}}>{r.cxPrice?`$${r.cxPrice.toFixed(2)}`:"—"}</span>}
+                      <span style={{textAlign:"center",color:D.txtD,fontSize:"13px"}}>{r.condition}</span>
+                      <span style={{textAlign:"center",color:D.txtM,fontSize:"16px"}}>{r.qty}</span>
+                      {isTCGPlayer&&<span style={{textAlign:"right",color:D.txtD,fontSize:"14px"}}>{r.tcgRef?`$${r.tcgRef.toFixed(2)}`:"—"}</span>}
+                      {isTCGPlayer&&<span style={{textAlign:"right",color:D.txtM,fontSize:"14px"}}>{r.cxPrice?`$${r.cxPrice.toFixed(2)}`:"—"}</span>}
                       <div style={{textAlign:"right"}}>
                         {matched?(
                           <div style={{display:"flex",alignItems:"center",gap:"4px",justifyContent:"flex-end"}}>
-                            <span style={{color:D.txtD,fontSize:"9px"}}>$</span>
+                            <span style={{color:D.txtD,fontSize:"13px"}}>$</span>
                             <input
                               type="number"
                               value={listingPrices[i]||""}
                               onChange={e=>setListingPrices(p=>({...p,[i]:e.target.value}))}
                               placeholder={r.suggested?.toFixed(2)||"—"}
-                              style={{width:"62px",background:D.inBg,border:`1px solid ${D.inBdr}`,borderRadius:"3px",padding:"3px 6px",color:D.txt,fontSize:"10px",fontFamily:MONO,textAlign:"right"}}
+                              style={{width:"62px",background:D.inBg,border:`1px solid ${D.inBdr}`,borderRadius:"3px",padding:"3px 6px",color:D.txt,fontSize:"14px",fontFamily:MONO,textAlign:"right"}}
                             />
                           </div>
-                        ):<span style={{color:D.txtD,fontSize:"9px"}}>—</span>}
-                        {matched&&r.suggested&&<div style={{color:D.txtD,fontSize:"8px",textAlign:"right",marginTop:"2px"}}>24h suggest: ${r.suggested.toFixed(2)}</div>}
+                        ):<span style={{color:D.txtD,fontSize:"13px"}}>—</span>}
+                        {matched&&r.suggested&&<div style={{color:D.txtD,fontSize:"12px",textAlign:"right",marginTop:"2px"}}>24h suggest: ${r.suggested.toFixed(2)}</div>}
                       </div>
                       <div style={{textAlign:"center"}}>
                         {matched?(
                           <div>
-                            <span style={{color:D.buyT,fontSize:"8px",background:dark?"rgba(0,200,60,0.1)":"rgba(22,128,58,0.08)",padding:"2px 6px",borderRadius:"3px"}}>● MATCHED</span>
+                            <span style={{color:D.buyT,fontSize:"12px",background:dark?"rgba(0,200,60,0.1)":"rgba(22,128,58,0.08)",padding:"2px 6px",borderRadius:"3px"}}>● MATCHED</span>
                             {isTCGPlayer&&opportunity!==null&&(
-                              <div style={{color:oppColor,fontSize:"8px",marginTop:"3px"}}>
+                              <div style={{color:oppColor,fontSize:"12px",marginTop:"3px"}}>
                                 {opportunity>0.05?"▲ CX higher":opportunity<-0.05?"▼ CX lower":"≈ similar"}
                               </div>
                             )}
                           </div>
                         ):(
-                          <span style={{color:"#f59e0b",fontSize:"8px",background:dark?"rgba(245,158,11,0.1)":"rgba(245,158,11,0.08)",padding:"2px 6px",borderRadius:"3px"}}>● NO MATCH</span>
+                          <span style={{color:"#f59e0b",fontSize:"12px",background:dark?"rgba(245,158,11,0.1)":"rgba(245,158,11,0.08)",padding:"2px 6px",borderRadius:"3px"}}>● NO MATCH</span>
                         )}
                       </div>
                     </div>
@@ -1796,10 +1796,10 @@ function CSVImportModal({D,dark,dbCards=[],onImport,onClose,marketPrices={},trad
           {/* ── DONE step ── */}
           {step==="done"&&(
             <div style={{textAlign:"center",padding:"40px 20px"}}>
-              <div style={{fontSize:"48px",marginBottom:"16px"}}>✅</div>
-              <div style={{fontFamily:ORB,fontSize:"16px",color:D.acc,marginBottom:"8px"}}>IMPORT COMPLETE</div>
-              <div style={{color:D.txtM,fontSize:"11px",marginBottom:"6px"}}>{matchedRows.length} cards added to your portfolio</div>
-              <div style={{color:D.txtD,fontSize:"10px"}}>Check your Orders tab — sell orders have been placed for selected cards</div>
+              <div style={{fontSize:"70px",marginBottom:"16px"}}>✅</div>
+              <div style={{fontFamily:ORB,fontSize:"23px",color:D.acc,marginBottom:"8px"}}>IMPORT COMPLETE</div>
+              <div style={{color:D.txtM,fontSize:"16px",marginBottom:"6px"}}>{matchedRows.length} cards added to your portfolio</div>
+              <div style={{color:D.txtD,fontSize:"14px"}}>Check your Orders tab — sell orders have been placed for selected cards</div>
             </div>
           )}
         </div>
@@ -1807,12 +1807,12 @@ function CSVImportModal({D,dark,dbCards=[],onImport,onClose,marketPrices={},trad
         {/* Footer */}
         {step==="preview"&&(
           <div style={{padding:"14px 20px",borderTop:`1px solid ${D.bdr}`,display:"flex",gap:"10px",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
-            <div style={{color:D.txtD,fontSize:"10px"}}>
+            <div style={{color:D.txtD,fontSize:"14px"}}>
               {isTCGPlayer&&`${Object.values(listSelected).filter(Boolean).length} cards selected for listing`}
             </div>
             <div style={{display:"flex",gap:"10px"}}>
-              <button onClick={()=>setStep("upload")} style={{padding:"9px 20px",background:"transparent",border:`1px solid ${D.bdr}`,borderRadius:"5px",color:D.txtD,fontSize:"10px",fontFamily:MONO,cursor:"pointer"}}>← BACK</button>
-              <button onClick={handleImport} disabled={importing||matchedRows.length===0} style={{padding:"9px 24px",background:dark?"linear-gradient(135deg,#0a3a1a,#0f5a28)":"linear-gradient(135deg,#cceacc,#a8d8a8)",border:`1px solid ${D.accD}`,borderRadius:"5px",color:dark?"#00ff55":"#1a5a2a",fontSize:"10px",fontFamily:MONO,cursor:"pointer",fontWeight:"bold",letterSpacing:"0.1em",opacity:matchedRows.length===0?0.5:1}}>
+              <button onClick={()=>setStep("upload")} style={{padding:"9px 20px",background:"transparent",border:`1px solid ${D.bdr}`,borderRadius:"5px",color:D.txtD,fontSize:"14px",fontFamily:MONO,cursor:"pointer"}}>← BACK</button>
+              <button onClick={handleImport} disabled={importing||matchedRows.length===0} style={{padding:"9px 24px",background:dark?"linear-gradient(135deg,#0a3a1a,#0f5a28)":"linear-gradient(135deg,#cceacc,#a8d8a8)",border:`1px solid ${D.accD}`,borderRadius:"5px",color:dark?"#00ff55":"#1a5a2a",fontSize:"14px",fontFamily:MONO,cursor:"pointer",fontWeight:"bold",letterSpacing:"0.1em",opacity:matchedRows.length===0?0.5:1}}>
                 {importing?"IMPORTING...":isTCGPlayer?`IMPORT + LIST ${Object.values(listSelected).filter(Boolean).length} CARDS →`:`IMPORT ${matchedRows.length} CARDS →`}
               </button>
             </div>
@@ -1820,7 +1820,7 @@ function CSVImportModal({D,dark,dbCards=[],onImport,onClose,marketPrices={},trad
         )}
         {step==="done"&&(
           <div style={{padding:"14px 20px",borderTop:`1px solid ${D.bdr}`,flexShrink:0}}>
-            <button onClick={onClose} style={{width:"100%",padding:"10px",background:dark?"linear-gradient(135deg,#0a3a1a,#0f5a28)":"linear-gradient(135deg,#cceacc,#a8d8a8)",border:`1px solid ${D.accD}`,borderRadius:"5px",color:dark?"#00ff55":"#1a5a2a",fontSize:"10px",fontFamily:MONO,cursor:"pointer",fontWeight:"bold"}}>DONE →</button>
+            <button onClick={onClose} style={{width:"100%",padding:"10px",background:dark?"linear-gradient(135deg,#0a3a1a,#0f5a28)":"linear-gradient(135deg,#cceacc,#a8d8a8)",border:`1px solid ${D.accD}`,borderRadius:"5px",color:dark?"#00ff55":"#1a5a2a",fontSize:"14px",fontFamily:MONO,cursor:"pointer",fontWeight:"bold"}}>DONE →</button>
           </div>
         )}
       </div>
@@ -1886,15 +1886,15 @@ function AdminPanel({D,dark,onClose,currentUserId}){
         {/* Header */}
         <div style={{padding:"16px 20px",borderBottom:`1px solid ${D.bdr}`,display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
           <div>
-            <div style={{fontFamily:"'Orbitron',sans-serif",fontSize:"14px",fontWeight:800,color:"#f59e0b",letterSpacing:"0.14em"}}>⚙ ADMIN PANEL</div>
-            <div style={{color:D.txtD,fontSize:"9px",marginTop:"2px",letterSpacing:"0.1em"}}>COLLECTOR'S EXCHANGE — OWNER VIEW</div>
+            <div style={{fontFamily:"'Orbitron',sans-serif",fontSize:"20px",fontWeight:800,color:"#f59e0b",letterSpacing:"0.14em"}}>⚙ ADMIN PANEL</div>
+            <div style={{color:D.txtD,fontSize:"13px",marginTop:"2px",letterSpacing:"0.1em"}}>COLLECTOR'S EXCHANGE — OWNER VIEW</div>
           </div>
-          <button onClick={onClose} style={{background:"none",border:"none",color:D.txtD,fontSize:"20px",cursor:"pointer"}}>×</button>
+          <button onClick={onClose} style={{background:"none",border:"none",color:D.txtD,fontSize:"29px",cursor:"pointer"}}>×</button>
         </div>
         {/* Tabs */}
         <div style={{display:"flex",borderBottom:`1px solid ${D.bdr}`,flexShrink:0}}>
           {[["users","👥 USERS"],["reports","🚩 REPORTS"]].map(([t,label])=>(
-            <button key={t} onClick={()=>setTab(t)} style={{padding:"10px 20px",border:"none",background:"transparent",color:tab===t?D.acc:D.txtD,fontSize:"10px",fontFamily:"'Share Tech Mono',monospace",letterSpacing:"0.1em",cursor:"pointer",borderBottom:`2px solid ${tab===t?D.acc:"transparent"}`}}>{label}{t==="reports"&&reports.filter(r=>!r.resolved).length>0&&<span style={{marginLeft:"6px",background:"#dc2626",color:"#fff",borderRadius:"50%",padding:"1px 5px",fontSize:"8px"}}>{reports.filter(r=>!r.resolved).length}</span>}</button>
+            <button key={t} onClick={()=>setTab(t)} style={{padding:"10px 20px",border:"none",background:"transparent",color:tab===t?D.acc:D.txtD,fontSize:"14px",fontFamily:"'Share Tech Mono',monospace",letterSpacing:"0.1em",cursor:"pointer",borderBottom:`2px solid ${tab===t?D.acc:"transparent"}`}}>{label}{t==="reports"&&reports.filter(r=>!r.resolved).length>0&&<span style={{marginLeft:"6px",background:"#dc2626",color:"#fff",borderRadius:"50%",padding:"1px 5px",fontSize:"12px"}}>{reports.filter(r=>!r.resolved).length}</span>}</button>
           ))}
         </div>
         {/* Body */}
@@ -1906,7 +1906,7 @@ function AdminPanel({D,dark,onClose,currentUserId}){
               <thead>
                 <tr style={{background:D.bg3}}>
                   {["USER","EMAIL","JOINED","TRADES","REP","STATUS","ACTION"].map(h=>(
-                    <th key={h} style={{padding:"8px 14px",textAlign:"left",color:D.txtD,fontSize:"9px",letterSpacing:"0.1em",fontWeight:"normal",borderBottom:`1px solid ${D.bdr}`}}>{h}</th>
+                    <th key={h} style={{padding:"8px 14px",textAlign:"left",color:D.txtD,fontSize:"13px",letterSpacing:"0.1em",fontWeight:"normal",borderBottom:`1px solid ${D.bdr}`}}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -1914,21 +1914,21 @@ function AdminPanel({D,dark,onClose,currentUserId}){
                 {users.map(u=>(
                   <tr key={u.user_id} style={{borderBottom:`1px solid ${D.bdr}`}}>
                     <td style={{padding:"10px 14px"}}>
-                      <div style={{color:D.txt,fontSize:"11px"}}>{u.display_name||"—"}</div>
-                      {u.verified&&<span style={{color:"#2563eb",fontSize:"9px"}}>✓ verified</span>}
+                      <div style={{color:D.txt,fontSize:"16px"}}>{u.display_name||"—"}</div>
+                      {u.verified&&<span style={{color:"#2563eb",fontSize:"13px"}}>✓ verified</span>}
                     </td>
-                    <td style={{padding:"10px 14px",color:D.txtD,fontSize:"10px"}}>{u.email||"—"}</td>
-                    <td style={{padding:"10px 14px",color:D.txtD,fontSize:"10px"}}>{u.joined_at||"—"}</td>
-                    <td style={{padding:"10px 14px",color:D.txtM,fontSize:"11px",textAlign:"center"}}>{u.trade_count||0}</td>
+                    <td style={{padding:"10px 14px",color:D.txtD,fontSize:"14px"}}>{u.email||"—"}</td>
+                    <td style={{padding:"10px 14px",color:D.txtD,fontSize:"14px"}}>{u.joined_at||"—"}</td>
+                    <td style={{padding:"10px 14px",color:D.txtM,fontSize:"16px",textAlign:"center"}}>{u.trade_count||0}</td>
                     <td style={{padding:"10px 14px"}}><RepBadge tradeCount={u.trade_count||0}/></td>
                     <td style={{padding:"10px 14px"}}>
-                      <span style={{color:u.suspended?"#dc2626":D.buyT,fontSize:"9px"}}>{u.suspended?"⊘ SUSPENDED":"● ACTIVE"}</span>
+                      <span style={{color:u.suspended?"#dc2626":D.buyT,fontSize:"13px"}}>{u.suspended?"⊘ SUSPENDED":"● ACTIVE"}</span>
                     </td>
                     <td style={{padding:"10px 14px"}}>
                       {u.user_id!==currentUserId&&!u.suspended&&(
-                        <button onClick={()=>suspendUser(u.user_id)} style={{padding:"3px 10px",background:"transparent",border:"1px solid #dc2626",borderRadius:"3px",color:"#dc2626",fontSize:"9px",fontFamily:"'Share Tech Mono',monospace",cursor:"pointer"}}>SUSPEND</button>
+                        <button onClick={()=>suspendUser(u.user_id)} style={{padding:"3px 10px",background:"transparent",border:"1px solid #dc2626",borderRadius:"3px",color:"#dc2626",fontSize:"13px",fontFamily:"'Share Tech Mono',monospace",cursor:"pointer"}}>SUSPEND</button>
                       )}
-                      {u.suspended&&<span style={{color:D.txtD,fontSize:"9px"}}>suspended</span>}
+                      {u.suspended&&<span style={{color:D.txtD,fontSize:"13px"}}>suspended</span>}
                     </td>
                   </tr>
                 ))}
@@ -1937,21 +1937,21 @@ function AdminPanel({D,dark,onClose,currentUserId}){
           ):(
             <div>
               {reports.length===0?(
-                <div style={{padding:"48px",textAlign:"center",color:D.txtD,fontSize:"11px"}}>No reports yet</div>
+                <div style={{padding:"48px",textAlign:"center",color:D.txtD,fontSize:"16px"}}>No reports yet</div>
               ):reports.map(r=>(
                 <div key={r.id} style={{padding:"14px 20px",borderBottom:`1px solid ${D.bdr}`,opacity:r.resolved?0.5:1}}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                     <div>
-                      <div style={{color:D.txt,fontSize:"11px",marginBottom:"4px"}}>
+                      <div style={{color:D.txt,fontSize:"16px",marginBottom:"4px"}}>
                         <span style={{color:"#dc2626"}}>🚩 {r.reason}</span>
-                        <span style={{color:D.txtD,marginLeft:"10px",fontSize:"9px"}}>{r.created_at?.split("T")[0]}</span>
+                        <span style={{color:D.txtD,marginLeft:"10px",fontSize:"13px"}}>{r.created_at?.split("T")[0]}</span>
                       </div>
-                      <div style={{color:D.txtD,fontSize:"10px"}}>{r.details||"No additional details"}</div>
+                      <div style={{color:D.txtD,fontSize:"14px"}}>{r.details||"No additional details"}</div>
                     </div>
                     {!r.resolved&&(
-                      <button onClick={()=>resolveReport(r.id)} style={{padding:"4px 12px",background:"transparent",border:`1px solid ${D.accD}`,borderRadius:"3px",color:D.accD,fontSize:"9px",fontFamily:"'Share Tech Mono',monospace",cursor:"pointer",flexShrink:0,marginLeft:"12px"}}>RESOLVE</button>
+                      <button onClick={()=>resolveReport(r.id)} style={{padding:"4px 12px",background:"transparent",border:`1px solid ${D.accD}`,borderRadius:"3px",color:D.accD,fontSize:"13px",fontFamily:"'Share Tech Mono',monospace",cursor:"pointer",flexShrink:0,marginLeft:"12px"}}>RESOLVE</button>
                     )}
-                    {r.resolved&&<span style={{color:D.txtD,fontSize:"9px",flexShrink:0}}>✓ resolved</span>}
+                    {r.resolved&&<span style={{color:D.txtD,fontSize:"13px",flexShrink:0}}>✓ resolved</span>}
                   </div>
                 </div>
               ))}
@@ -1959,8 +1959,8 @@ function AdminPanel({D,dark,onClose,currentUserId}){
           )}
         </div>
         <div style={{padding:"12px 20px",borderTop:`1px solid ${D.bdr}`,flexShrink:0,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <span style={{color:D.txtD,fontSize:"9px"}}>{users.length} accounts · {reports.filter(r=>!r.resolved).length} open reports</span>
-          <button onClick={onClose} style={{padding:"7px 20px",background:"transparent",border:`1px solid ${D.bdr}`,borderRadius:"4px",color:D.txtD,fontSize:"9px",fontFamily:"'Share Tech Mono',monospace",cursor:"pointer"}}>CLOSE</button>
+          <span style={{color:D.txtD,fontSize:"13px"}}>{users.length} accounts · {reports.filter(r=>!r.resolved).length} open reports</span>
+          <button onClick={onClose} style={{padding:"7px 20px",background:"transparent",border:`1px solid ${D.bdr}`,borderRadius:"4px",color:D.txtD,fontSize:"13px",fontFamily:"'Share Tech Mono',monospace",cursor:"pointer"}}>CLOSE</button>
         </div>
       </div>
     </div>
@@ -2041,7 +2041,7 @@ function ProfileSettings({D,dark,user,profile,tradeHistory=[],holdings=[],balanc
       {/* Section tabs */}
       <div style={{display:"flex",borderBottom:`1px solid ${D.bdr}`,background:D.bg2,flexShrink:0}}>
         {SECTIONS.map(([s,label])=>(
-          <button key={s} onClick={()=>setSection(s)} style={{padding:"10px 20px",border:"none",background:"transparent",color:section===s?D.accD:D.txtD,fontSize:"10px",fontFamily:"'Share Tech Mono',monospace",letterSpacing:"0.1em",cursor:"pointer",borderBottom:`2px solid ${section===s?D.accD:"transparent"}`,transition:"all 0.12s"}}>{label}</button>
+          <button key={s} onClick={()=>setSection(s)} style={{padding:"10px 20px",border:"none",background:"transparent",color:section===s?D.accD:D.txtD,fontSize:"14px",fontFamily:"'Share Tech Mono',monospace",letterSpacing:"0.1em",cursor:"pointer",borderBottom:`2px solid ${section===s?D.accD:"transparent"}`,transition:"all 0.12s"}}>{label}</button>
         ))}
       </div>
 
@@ -2058,34 +2058,34 @@ function ProfileSettings({D,dark,user,profile,tradeHistory=[],holdings=[],balanc
               <div style={{flex:1,minWidth:0}}>
                 <div style={{fontFamily:"'Orbitron',sans-serif",fontSize:isMobile?"15px":"18px",fontWeight:800,color:D.txt,marginBottom:"4px"}}>{profile?.display_name||user?.user_metadata?.display_name||user?.email?.split("@")[0]}</div>
                 <RepBadge tradeCount={tradeCount} size="lg"/>
-                {profile?.verified&&<span style={{marginLeft:"10px",color:"#2563eb",fontSize:"10px"}}>✓ VERIFIED</span>}
-                <div style={{color:D.txtD,fontSize:"10px",marginTop:"4px"}}>Member since {joinDate}</div>
+                {profile?.verified&&<span style={{marginLeft:"10px",color:"#2563eb",fontSize:"14px"}}>✓ VERIFIED</span>}
+                <div style={{color:D.txtD,fontSize:"14px",marginTop:"4px"}}>Member since {joinDate}</div>
               </div>
-              <button onClick={()=>setEditing(e=>!e)} style={{padding:"6px 14px",background:"transparent",border:`1px solid ${D.bdr2}`,borderRadius:"4px",color:D.txtD,fontSize:"9px",fontFamily:"'Share Tech Mono',monospace",cursor:"pointer",flexShrink:0}}>{editing?"CANCEL":"EDIT"}</button>
+              <button onClick={()=>setEditing(e=>!e)} style={{padding:"6px 14px",background:"transparent",border:`1px solid ${D.bdr2}`,borderRadius:"4px",color:D.txtD,fontSize:"13px",fontFamily:"'Share Tech Mono',monospace",cursor:"pointer",flexShrink:0}}>{editing?"CANCEL":"EDIT"}</button>
             </div>
 
             {/* Edit form */}
             {editing&&(
               <div style={{background:D.bg2,border:`1px solid ${D.bdr2}`,borderRadius:"8px",padding:"18px",marginBottom:"20px"}}>
-                <div style={{color:D.txtD,fontSize:"10px",letterSpacing:"0.1em",marginBottom:"14px"}}>▸ EDIT PROFILE</div>
+                <div style={{color:D.txtD,fontSize:"14px",letterSpacing:"0.1em",marginBottom:"14px"}}>▸ EDIT PROFILE</div>
                 <div style={{marginBottom:"12px"}}>
-                  <div style={{color:D.txtD,fontSize:"9px",marginBottom:"5px"}}>DISPLAY NAME</div>
-                  <input value={dName} onChange={e=>setDName(e.target.value)} style={{width:"100%",background:D.inBg,border:`1px solid ${D.inBdr}`,borderRadius:"4px",padding:"8px 12px",color:D.txt,fontSize:"12px",fontFamily:"'Share Tech Mono',monospace"}}/>
+                  <div style={{color:D.txtD,fontSize:"13px",marginBottom:"5px"}}>DISPLAY NAME</div>
+                  <input value={dName} onChange={e=>setDName(e.target.value)} style={{width:"100%",background:D.inBg,border:`1px solid ${D.inBdr}`,borderRadius:"4px",padding:"8px 12px",color:D.txt,fontSize:"17px",fontFamily:"'Share Tech Mono',monospace"}}/>
                 </div>
                 <div style={{marginBottom:"14px"}}>
-                  <div style={{color:D.txtD,fontSize:"9px",marginBottom:"5px"}}>BIO</div>
-                  <textarea value={bio} onChange={e=>setBio(e.target.value)} rows={3} placeholder="Tell the community about yourself..." style={{width:"100%",background:D.inBg,border:`1px solid ${D.inBdr}`,borderRadius:"4px",padding:"8px 12px",color:D.txt,fontSize:"12px",fontFamily:"'Share Tech Mono',monospace",resize:"vertical"}}/>
+                  <div style={{color:D.txtD,fontSize:"13px",marginBottom:"5px"}}>BIO</div>
+                  <textarea value={bio} onChange={e=>setBio(e.target.value)} rows={3} placeholder="Tell the community about yourself..." style={{width:"100%",background:D.inBg,border:`1px solid ${D.inBdr}`,borderRadius:"4px",padding:"8px 12px",color:D.txt,fontSize:"17px",fontFamily:"'Share Tech Mono',monospace",resize:"vertical"}}/>
                 </div>
-                <button onClick={saveProfile} disabled={saving} style={{padding:"8px 24px",background:dark?"linear-gradient(135deg,#0a3a1a,#0f5a28)":"linear-gradient(135deg,#cceacc,#a8d8a8)",border:`1px solid ${D.accD}`,borderRadius:"5px",color:dark?"#00ff55":"#1a5a2a",fontSize:"10px",fontFamily:"'Share Tech Mono',monospace",cursor:"pointer",fontWeight:"bold"}}>{saving?"SAVING...":"SAVE PROFILE"}</button>
-                {saveMsg&&<span style={{marginLeft:"12px",color:D.accD,fontSize:"10px"}}>{saveMsg}</span>}
+                <button onClick={saveProfile} disabled={saving} style={{padding:"8px 24px",background:dark?"linear-gradient(135deg,#0a3a1a,#0f5a28)":"linear-gradient(135deg,#cceacc,#a8d8a8)",border:`1px solid ${D.accD}`,borderRadius:"5px",color:dark?"#00ff55":"#1a5a2a",fontSize:"14px",fontFamily:"'Share Tech Mono',monospace",cursor:"pointer",fontWeight:"bold"}}>{saving?"SAVING...":"SAVE PROFILE"}</button>
+                {saveMsg&&<span style={{marginLeft:"12px",color:D.accD,fontSize:"14px"}}>{saveMsg}</span>}
               </div>
             )}
 
             {/* Bio display */}
             {!editing&&profile?.bio&&(
               <div style={{background:D.bg2,border:`1px solid ${D.bdr}`,borderRadius:"8px",padding:"14px 18px",marginBottom:"20px"}}>
-                <div style={{color:D.txtD,fontSize:"9px",letterSpacing:"0.1em",marginBottom:"8px"}}>▸ BIO</div>
-                <div style={{color:D.txtM,fontSize:"11px",lineHeight:"1.6"}}>{profile.bio}</div>
+                <div style={{color:D.txtD,fontSize:"13px",letterSpacing:"0.1em",marginBottom:"8px"}}>▸ BIO</div>
+                <div style={{color:D.txtM,fontSize:"16px",lineHeight:"1.6"}}>{profile.bio}</div>
               </div>
             )}
 
@@ -2098,16 +2098,16 @@ function ProfileSettings({D,dark,user,profile,tradeHistory=[],holdings=[],balanc
                 ["BALANCE","$"+balance.toLocaleString("en-US",{maximumFractionDigits:0}),"available"],
               ].map(([label,val,sub])=>(
                 <div key={label} style={{background:D.bg2,border:`1px solid ${D.bdr}`,borderRadius:"8px",padding:"14px"}}>
-                  <div style={{color:D.txtD,fontSize:"9px",letterSpacing:"0.1em",marginBottom:"6px"}}>{label}</div>
-                  <div style={{fontFamily:"'Orbitron',sans-serif",fontSize:"16px",fontWeight:700,color:D.acc,marginBottom:"3px"}}>{val}</div>
-                  <div style={{color:D.txtD,fontSize:"9px"}}>{sub}</div>
+                  <div style={{color:D.txtD,fontSize:"13px",letterSpacing:"0.1em",marginBottom:"6px"}}>{label}</div>
+                  <div style={{fontFamily:"'Orbitron',sans-serif",fontSize:"23px",fontWeight:700,color:D.acc,marginBottom:"3px"}}>{val}</div>
+                  <div style={{color:D.txtD,fontSize:"13px"}}>{sub}</div>
                 </div>
               ))}
             </div>
 
             {/* Reputation tiers */}
             <div style={{background:D.bg2,border:`1px solid ${D.bdr}`,borderRadius:"8px",padding:"16px 18px"}}>
-              <div style={{color:D.txtD,fontSize:"9px",letterSpacing:"0.1em",marginBottom:"14px"}}>▸ REPUTATION TIERS</div>
+              <div style={{color:D.txtD,fontSize:"13px",letterSpacing:"0.1em",marginBottom:"14px"}}>▸ REPUTATION TIERS</div>
               <div style={{display:"flex",flexDirection:"column",gap:"10px"}}>
                 {REP_TIERS.map((t,i)=>{
                   const next=REP_TIERS[i+1];
@@ -2117,8 +2117,8 @@ function ProfileSettings({D,dark,user,profile,tradeHistory=[],holdings=[],balanc
                   return(
                     <div key={t.label} style={{opacity:done||active?1:0.45}}>
                       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"4px"}}>
-                        <span style={{color:active?t.color:(done?t.color:D.txtD),fontSize:"11px",fontWeight:active?"bold":"normal"}}>{t.icon} {t.label} {active&&"← YOU ARE HERE"}</span>
-                        <span style={{color:D.txtD,fontSize:"9px"}}>{t.min}+ trades</span>
+                        <span style={{color:active?t.color:(done?t.color:D.txtD),fontSize:"16px",fontWeight:active?"bold":"normal"}}>{t.icon} {t.label} {active&&"← YOU ARE HERE"}</span>
+                        <span style={{color:D.txtD,fontSize:"13px"}}>{t.min}+ trades</span>
                       </div>
                       {active&&next&&(
                         <div style={{height:"4px",background:D.bg3,borderRadius:"2px",overflow:"hidden"}}>
@@ -2137,12 +2137,12 @@ function ProfileSettings({D,dark,user,profile,tradeHistory=[],holdings=[],balanc
         {section==="reviews"&&(
           <div>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"16px"}}>
-              <div style={{color:D.txtD,fontSize:"10px",letterSpacing:"0.1em"}}>▸ REVIEWS FROM TRADERS</div>
+              <div style={{color:D.txtD,fontSize:"14px",letterSpacing:"0.1em"}}>▸ REVIEWS FROM TRADERS</div>
               {reviews.length>0&&(
                 <div style={{display:"flex",alignItems:"center",gap:"6px"}}>
-                  <span style={{color:"#f59e0b",fontSize:"16px"}}>{"★".repeat(Math.round(reviews.reduce((s,r)=>s+r.rating,0)/reviews.length))}</span>
-                  <span style={{color:D.txtM,fontSize:"11px"}}>{(reviews.reduce((s,r)=>s+r.rating,0)/reviews.length).toFixed(1)} avg</span>
-                  <span style={{color:D.txtD,fontSize:"10px"}}>({reviews.length} reviews)</span>
+                  <span style={{color:"#f59e0b",fontSize:"23px"}}>{"★".repeat(Math.round(reviews.reduce((s,r)=>s+r.rating,0)/reviews.length))}</span>
+                  <span style={{color:D.txtM,fontSize:"16px"}}>{(reviews.reduce((s,r)=>s+r.rating,0)/reviews.length).toFixed(1)} avg</span>
+                  <span style={{color:D.txtD,fontSize:"14px"}}>({reviews.length} reviews)</span>
                 </div>
               )}
             </div>
@@ -2150,17 +2150,17 @@ function ProfileSettings({D,dark,user,profile,tradeHistory=[],holdings=[],balanc
               <div style={{padding:"48px",textAlign:"center",color:D.txtD}}>Loading...</div>
             ):reviews.length===0?(
               <div style={{padding:"48px",textAlign:"center",background:D.bg2,border:`1px solid ${D.bdr}`,borderRadius:"8px"}}>
-                <div style={{fontSize:"32px",marginBottom:"12px"}}>⭐</div>
-                <div style={{color:D.txtD,fontSize:"11px"}}>No reviews yet.</div>
-                <div style={{color:D.txtD,fontSize:"10px",marginTop:"6px"}}>Reviews appear after peer-to-peer trades.</div>
+                <div style={{fontSize:"46px",marginBottom:"12px"}}>⭐</div>
+                <div style={{color:D.txtD,fontSize:"16px"}}>No reviews yet.</div>
+                <div style={{color:D.txtD,fontSize:"14px",marginTop:"6px"}}>Reviews appear after peer-to-peer trades.</div>
               </div>
             ):reviews.map(r=>(
               <div key={r.id} style={{background:D.bg2,border:`1px solid ${D.bdr}`,borderRadius:"8px",padding:"14px 16px",marginBottom:"10px"}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"8px"}}>
-                  <span style={{color:"#f59e0b",fontSize:"14px"}}>{"★".repeat(r.rating)}{"☆".repeat(5-r.rating)}</span>
-                  <span style={{color:D.txtD,fontSize:"9px"}}>{r.created_at?.split("T")[0]}</span>
+                  <span style={{color:"#f59e0b",fontSize:"17px"}}>{"★".repeat(r.rating)}{"☆".repeat(5-r.rating)}</span>
+                  <span style={{color:D.txtD,fontSize:"13px"}}>{r.created_at?.split("T")[0]}</span>
                 </div>
-                {r.comment&&<div style={{color:D.txtM,fontSize:"11px",lineHeight:"1.5"}}>{r.comment}</div>}
+                {r.comment&&<div style={{color:D.txtM,fontSize:"16px",lineHeight:"1.5"}}>{r.comment}</div>}
               </div>
             ))}
           </div>
@@ -2172,49 +2172,49 @@ function ProfileSettings({D,dark,user,profile,tradeHistory=[],holdings=[],balanc
 
             {/* Appearance */}
             <div style={{background:D.bg2,border:`1px solid ${D.bdr}`,borderRadius:"8px",padding:"16px 18px"}}>
-              <div style={{color:D.txtD,fontSize:"9px",letterSpacing:"0.1em",marginBottom:"14px"}}>▸ APPEARANCE</div>
+              <div style={{color:D.txtD,fontSize:"13px",letterSpacing:"0.1em",marginBottom:"14px"}}>▸ APPEARANCE</div>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                 <div>
-                  <div style={{color:D.txtM,fontSize:"11px",marginBottom:"3px"}}>{dark?"Dark Mode":"Light Mode"}</div>
-                  <div style={{color:D.txtD,fontSize:"10px"}}>Switch between light and dark themes</div>
+                  <div style={{color:D.txtM,fontSize:"16px",marginBottom:"3px"}}>{dark?"Dark Mode":"Light Mode"}</div>
+                  <div style={{color:D.txtD,fontSize:"14px"}}>Switch between light and dark themes</div>
                 </div>
                 <div onClick={onDarkToggle} style={{width:"48px",height:"26px",background:dark?"#1a3a1a":"#d1ecd1",borderRadius:"13px",border:`1px solid ${D.bdr2}`,display:"flex",alignItems:"center",padding:"3px",transition:"background 0.3s",cursor:"pointer"}}>
-                  <div style={{width:"18px",height:"18px",borderRadius:"50%",background:dark?"#00cc40":"#f59e0b",transform:dark?"translateX(0)":"translateX(22px)",transition:"transform 0.3s",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"10px"}}>{dark?"🌙":"☀️"}</div>
+                  <div style={{width:"18px",height:"18px",borderRadius:"50%",background:dark?"#00cc40":"#f59e0b",transform:dark?"translateX(0)":"translateX(22px)",transition:"transform 0.3s",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"14px"}}>{dark?"🌙":"☀️"}</div>
                 </div>
               </div>
             </div>
 
             {/* Account info */}
             <div style={{background:D.bg2,border:`1px solid ${D.bdr}`,borderRadius:"8px",padding:"16px 18px"}}>
-              <div style={{color:D.txtD,fontSize:"9px",letterSpacing:"0.1em",marginBottom:"14px"}}>▸ ACCOUNT</div>
+              <div style={{color:D.txtD,fontSize:"13px",letterSpacing:"0.1em",marginBottom:"14px"}}>▸ ACCOUNT</div>
               <div style={{marginBottom:"10px"}}>
-                <div style={{color:D.txtD,fontSize:"9px",marginBottom:"4px"}}>EMAIL ADDRESS</div>
-                <div style={{color:D.txtM,fontSize:"11px",padding:"8px 12px",background:D.bg3,borderRadius:"4px",border:`1px solid ${D.bdr}`}}>{user?.email}</div>
+                <div style={{color:D.txtD,fontSize:"13px",marginBottom:"4px"}}>EMAIL ADDRESS</div>
+                <div style={{color:D.txtM,fontSize:"16px",padding:"8px 12px",background:D.bg3,borderRadius:"4px",border:`1px solid ${D.bdr}`}}>{user?.email}</div>
               </div>
               <div style={{marginBottom:"10px"}}>
-                <div style={{color:D.txtD,fontSize:"9px",marginBottom:"4px"}}>USER ID</div>
-                <div style={{color:D.txtD,fontSize:"9px",padding:"8px 12px",background:D.bg3,borderRadius:"4px",border:`1px solid ${D.bdr}`,fontFamily:"'Share Tech Mono',monospace",wordBreak:"break-all"}}>{user?.id}</div>
+                <div style={{color:D.txtD,fontSize:"13px",marginBottom:"4px"}}>USER ID</div>
+                <div style={{color:D.txtD,fontSize:"13px",padding:"8px 12px",background:D.bg3,borderRadius:"4px",border:`1px solid ${D.bdr}`,fontFamily:"'Share Tech Mono',monospace",wordBreak:"break-all"}}>{user?.id}</div>
               </div>
               <div>
-                <div style={{color:D.txtD,fontSize:"9px",marginBottom:"4px"}}>MEMBER SINCE</div>
-                <div style={{color:D.txtM,fontSize:"11px",padding:"8px 12px",background:D.bg3,borderRadius:"4px",border:`1px solid ${D.bdr}`}}>{profile?.joined_at||"—"}</div>
+                <div style={{color:D.txtD,fontSize:"13px",marginBottom:"4px"}}>MEMBER SINCE</div>
+                <div style={{color:D.txtM,fontSize:"16px",padding:"8px 12px",background:D.bg3,borderRadius:"4px",border:`1px solid ${D.bdr}`}}>{profile?.joined_at||"—"}</div>
               </div>
             </div>
 
             {/* Change password */}
             <div style={{background:D.bg2,border:`1px solid ${D.bdr}`,borderRadius:"8px",padding:"16px 18px"}}>
-              <div style={{color:D.txtD,fontSize:"9px",letterSpacing:"0.1em",marginBottom:"14px"}}>▸ CHANGE PASSWORD</div>
+              <div style={{color:D.txtD,fontSize:"13px",letterSpacing:"0.1em",marginBottom:"14px"}}>▸ CHANGE PASSWORD</div>
               <div style={{marginBottom:"10px"}}>
-                <div style={{color:D.txtD,fontSize:"9px",marginBottom:"4px"}}>NEW PASSWORD</div>
-                <input type="password" value={newPwd} onChange={e=>setNewPwd(e.target.value)} placeholder="••••••••" style={{width:"100%",background:D.inBg,border:`1px solid ${D.inBdr}`,borderRadius:"4px",padding:"8px 12px",color:D.txt,fontSize:"12px",fontFamily:"'Share Tech Mono',monospace"}}/>
+                <div style={{color:D.txtD,fontSize:"13px",marginBottom:"4px"}}>NEW PASSWORD</div>
+                <input type="password" value={newPwd} onChange={e=>setNewPwd(e.target.value)} placeholder="••••••••" style={{width:"100%",background:D.inBg,border:`1px solid ${D.inBdr}`,borderRadius:"4px",padding:"8px 12px",color:D.txt,fontSize:"17px",fontFamily:"'Share Tech Mono',monospace"}}/>
               </div>
-              <button onClick={changePassword} style={{padding:"8px 20px",background:"transparent",border:`1px solid ${D.bdr2}`,borderRadius:"4px",color:D.txtD,fontSize:"9px",fontFamily:"'Share Tech Mono',monospace",cursor:"pointer"}}>UPDATE PASSWORD</button>
-              {pwdMsg&&<div style={{marginTop:"8px",color:pwdMsg.startsWith("Error")?D.askT:D.accD,fontSize:"10px"}}>{pwdMsg}</div>}
+              <button onClick={changePassword} style={{padding:"8px 20px",background:"transparent",border:`1px solid ${D.bdr2}`,borderRadius:"4px",color:D.txtD,fontSize:"13px",fontFamily:"'Share Tech Mono',monospace",cursor:"pointer"}}>UPDATE PASSWORD</button>
+              {pwdMsg&&<div style={{marginTop:"8px",color:pwdMsg.startsWith("Error")?D.askT:D.accD,fontSize:"14px"}}>{pwdMsg}</div>}
             </div>
 
             {/* Notification settings */}
             <div style={{background:D.bg2,border:`1px solid ${D.bdr}`,borderRadius:"8px",padding:"16px 18px"}}>
-              <div style={{color:D.txtD,fontSize:"9px",letterSpacing:"0.1em",marginBottom:"14px"}}>▸ NOTIFICATIONS</div>
+              <div style={{color:D.txtD,fontSize:"13px",letterSpacing:"0.1em",marginBottom:"14px"}}>▸ NOTIFICATIONS</div>
               {[
                 {key:"filled_buy",  label:"Buy order filled",      desc:"When a buy order executes",           icon:"🟢"},
                 {key:"filled_sell", label:"Sell order filled",     desc:"When a sell order executes",          icon:"🔴"},
@@ -2223,10 +2223,10 @@ function ProfileSettings({D,dark,user,profile,tradeHistory=[],holdings=[],balanc
               ].map(({key,label,desc,icon})=>(
                 <div key={key} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0",borderBottom:`1px solid ${D.bdr}`}}>
                   <div style={{display:"flex",gap:"10px",alignItems:"center"}}>
-                    <span style={{fontSize:"16px"}}>{icon}</span>
+                    <span style={{fontSize:"23px"}}>{icon}</span>
                     <div>
-                      <div style={{color:D.txtM,fontSize:"11px"}}>{label}</div>
-                      <div style={{color:D.txtD,fontSize:"9px",marginTop:"2px"}}>{desc}</div>
+                      <div style={{color:D.txtM,fontSize:"16px"}}>{label}</div>
+                      <div style={{color:D.txtD,fontSize:"13px",marginTop:"2px"}}>{desc}</div>
                     </div>
                   </div>
                   <div onClick={()=>toggleNotif(key)} style={{width:"40px",height:"22px",background:notifOn(key)?(dark?"#1a3a1a":"#d1ecd1"):(dark?"#2a1a1a":"#f0d0d0"),borderRadius:"11px",border:`1px solid ${notifOn(key)?D.accD:D.bdr2}`,display:"flex",alignItems:"center",padding:"2px",transition:"all 0.2s",cursor:"pointer",flexShrink:0}}>
@@ -2237,41 +2237,41 @@ function ProfileSettings({D,dark,user,profile,tradeHistory=[],holdings=[],balanc
               {/* Browser push permission status */}
               <div style={{marginTop:"14px",padding:"10px 12px",background:D.bg3,border:`1px solid ${D.bdr}`,borderRadius:"6px",display:"flex",justifyContent:"space-between",alignItems:"center",gap:"10px"}}>
                 <div>
-                  <div style={{color:D.txtM,fontSize:"10px",marginBottom:"2px"}}>
+                  <div style={{color:D.txtM,fontSize:"14px",marginBottom:"2px"}}>
                     {typeof Notification==="undefined"?"Browser push: not supported":
                      Notification.permission==="granted"?"🟢 Browser push: enabled":
                      Notification.permission==="denied"?"🔴 Browser push: blocked in browser settings":
                      "⚪ Browser push: not yet enabled"}
                   </div>
-                  <div style={{color:D.txtD,fontSize:"9px"}}>
+                  <div style={{color:D.txtD,fontSize:"13px"}}>
                     {Notification?.permission==="denied"?"Change in your browser site settings to re-enable":"Notifies you even when you're on another tab"}
                   </div>
                 </div>
                 {typeof Notification!=="undefined"&&Notification.permission==="default"&&(
-                  <button onClick={async()=>{const r=await Notification.requestPermission();if(onNotifPrefsChange) onNotifPrefsChange({});}} style={{padding:"5px 12px",background:dark?"rgba(0,180,60,0.15)":"rgba(22,128,58,0.10)",border:`1px solid ${D.accD}`,borderRadius:"4px",color:D.accD,fontSize:"9px",fontFamily:"'Share Tech Mono',monospace",cursor:"pointer",whiteSpace:"nowrap"}}>ENABLE</button>
+                  <button onClick={async()=>{const r=await Notification.requestPermission();if(onNotifPrefsChange) onNotifPrefsChange({});}} style={{padding:"5px 12px",background:dark?"rgba(0,180,60,0.15)":"rgba(22,128,58,0.10)",border:`1px solid ${D.accD}`,borderRadius:"4px",color:D.accD,fontSize:"13px",fontFamily:"'Share Tech Mono',monospace",cursor:"pointer",whiteSpace:"nowrap"}}>ENABLE</button>
                 )}
               </div>
               <div style={{marginTop:"10px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                <span style={{color:D.txtD,fontSize:"9px"}}>Email notifications coming soon</span>
-                <button onClick={()=>{const all={filled_buy:true,filled_sell:true,price_alert:true,import:true};setNotifPrefs(all);try{localStorage.setItem("cx_notif_prefs",JSON.stringify(all));}catch{};if(onNotifPrefsChange)onNotifPrefsChange(all);}} style={{padding:"4px 10px",background:"transparent",border:`1px solid ${D.bdr}`,borderRadius:"3px",color:D.txtD,fontSize:"9px",fontFamily:"'Share Tech Mono',monospace",cursor:"pointer"}}>ENABLE ALL</button>
+                <span style={{color:D.txtD,fontSize:"13px"}}>Email notifications coming soon</span>
+                <button onClick={()=>{const all={filled_buy:true,filled_sell:true,price_alert:true,import:true};setNotifPrefs(all);try{localStorage.setItem("cx_notif_prefs",JSON.stringify(all));}catch{};if(onNotifPrefsChange)onNotifPrefsChange(all);}} style={{padding:"4px 10px",background:"transparent",border:`1px solid ${D.bdr}`,borderRadius:"3px",color:D.txtD,fontSize:"13px",fontFamily:"'Share Tech Mono',monospace",cursor:"pointer"}}>ENABLE ALL</button>
               </div>
             </div>
 
             {/* Danger zone */}
             <div style={{background:dark?"rgba(180,30,30,0.05)":"rgba(220,50,50,0.03)",border:`1px solid ${dark?"#3a1010":"#e8c5c5"}`,borderRadius:"8px",padding:"16px 18px"}}>
-              <div style={{color:"#dc2626",fontSize:"9px",letterSpacing:"0.1em",marginBottom:"10px"}}>▸ DANGER ZONE</div>
-              <div style={{color:D.txtD,fontSize:"10px",marginBottom:"12px"}}>Deleting your account is permanent and cannot be undone.</div>
+              <div style={{color:"#dc2626",fontSize:"13px",letterSpacing:"0.1em",marginBottom:"10px"}}>▸ DANGER ZONE</div>
+              <div style={{color:D.txtD,fontSize:"14px",marginBottom:"12px"}}>Deleting your account is permanent and cannot be undone.</div>
               {deleteConfirm?(
                 <div style={{background:dark?"rgba(180,30,30,0.1)":"rgba(220,50,50,0.06)",border:"1px solid #dc2626",borderRadius:"6px",padding:"14px"}}>
-                  <div style={{color:"#dc2626",fontSize:"11px",fontWeight:"bold",marginBottom:"6px"}}>⚠ Are you sure?</div>
-                  <div style={{color:D.txtD,fontSize:"10px",marginBottom:"12px",lineHeight:"1.5"}}>This will permanently delete your account, balance, orders, holdings and trade history. This cannot be undone.</div>
+                  <div style={{color:"#dc2626",fontSize:"16px",fontWeight:"bold",marginBottom:"6px"}}>⚠ Are you sure?</div>
+                  <div style={{color:D.txtD,fontSize:"14px",marginBottom:"12px",lineHeight:"1.5"}}>This will permanently delete your account, balance, orders, holdings and trade history. This cannot be undone.</div>
                   <div style={{display:"flex",gap:"8px"}}>
-                    <button onClick={()=>setDeleteConfirm(false)} style={{flex:1,padding:"8px",background:"transparent",border:`1px solid ${D.bdr}`,borderRadius:"4px",color:D.txtD,fontSize:"9px",fontFamily:"'Share Tech Mono',monospace",cursor:"pointer"}}>← CANCEL</button>
-                    <button onClick={()=>alert("Please contact support at support@collectorsexchange.com to delete your account.")} style={{flex:1,padding:"8px",background:"#dc2626",border:"1px solid #dc2626",borderRadius:"4px",color:"#fff",fontSize:"9px",fontFamily:"'Share Tech Mono',monospace",cursor:"pointer",fontWeight:"bold"}}>YES, DELETE →</button>
+                    <button onClick={()=>setDeleteConfirm(false)} style={{flex:1,padding:"8px",background:"transparent",border:`1px solid ${D.bdr}`,borderRadius:"4px",color:D.txtD,fontSize:"13px",fontFamily:"'Share Tech Mono',monospace",cursor:"pointer"}}>← CANCEL</button>
+                    <button onClick={()=>alert("Please contact support at support@collectorsexchange.com to delete your account.")} style={{flex:1,padding:"8px",background:"#dc2626",border:"1px solid #dc2626",borderRadius:"4px",color:"#fff",fontSize:"13px",fontFamily:"'Share Tech Mono',monospace",cursor:"pointer",fontWeight:"bold"}}>YES, DELETE →</button>
                   </div>
                 </div>
               ):(
-                <button style={{padding:"8px 16px",background:"transparent",border:"1px solid #dc2626",borderRadius:"4px",color:"#dc2626",fontSize:"9px",fontFamily:"'Share Tech Mono',monospace",cursor:"pointer"}} onClick={()=>setDeleteConfirm(true)}>DELETE ACCOUNT</button>
+                <button style={{padding:"8px 16px",background:"transparent",border:"1px solid #dc2626",borderRadius:"4px",color:"#dc2626",fontSize:"13px",fontFamily:"'Share Tech Mono',monospace",cursor:"pointer"}} onClick={()=>setDeleteConfirm(true)}>DELETE ACCOUNT</button>
               )}
             </div>
 
@@ -2612,7 +2612,7 @@ export default function App(){
   const isDemo = screen==="app" && !user;
 
   return(
-    <div style={{fontFamily:MONO,fontSize:"14px"}}>
+    <div style={{fontFamily:MONO,fontSize:"17px"}}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@600;800&display=swap');
         *{box-sizing:border-box;margin:0;padding:0;}
@@ -2643,22 +2643,22 @@ export default function App(){
         <div style={{position:"fixed",bottom:"80px",right:"20px",zIndex:600,width:"300px",background:dark?"#1a2a1a":"#f0faf0",border:`1px solid ${dark?"#2a5a2a":"#86efac"}`,borderRadius:"12px",padding:"16px 18px",boxShadow:"0 8px 32px rgba(0,0,0,0.25)",animation:"notifPop 0.25s ease"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"10px"}}>
             <div style={{display:"flex",gap:"10px",alignItems:"center"}}>
-              <span style={{fontSize:"22px"}}>🔔</span>
+              <span style={{fontSize:"31px"}}>🔔</span>
               <div>
-                <div style={{fontFamily:"'Orbitron',sans-serif",fontSize:"11px",fontWeight:700,color:dark?"#00cc40":"#15803d",letterSpacing:"0.08em"}}>ENABLE NOTIFICATIONS</div>
-                <div style={{color:dark?"#6aaa6a":"#4a7a4a",fontSize:"9px",marginTop:"2px"}}>Get alerts for order fills & price targets</div>
+                <div style={{fontFamily:"'Orbitron',sans-serif",fontSize:"16px",fontWeight:700,color:dark?"#00cc40":"#15803d",letterSpacing:"0.08em"}}>ENABLE NOTIFICATIONS</div>
+                <div style={{color:dark?"#6aaa6a":"#4a7a4a",fontSize:"13px",marginTop:"2px"}}>Get alerts for order fills & price targets</div>
               </div>
             </div>
-            <button onClick={()=>setShowPushPrompt(false)} style={{background:"none",border:"none",color:dark?"#6aaa6a":"#888",fontSize:"16px",cursor:"pointer",lineHeight:1,padding:"0"}}>×</button>
+            <button onClick={()=>setShowPushPrompt(false)} style={{background:"none",border:"none",color:dark?"#6aaa6a":"#888",fontSize:"23px",cursor:"pointer",lineHeight:1,padding:"0"}}>×</button>
           </div>
-          <div style={{color:dark?"#8aaa8a":"#555",fontSize:"10px",marginBottom:"14px",lineHeight:"1.5"}}>
+          <div style={{color:dark?"#8aaa8a":"#555",fontSize:"14px",marginBottom:"14px",lineHeight:"1.5"}}>
             Allow browser notifications so you hear about fills even when you're on another tab.
           </div>
           <div style={{display:"flex",gap:"8px"}}>
-            <button onClick={requestPushPermission} style={{flex:1,padding:"8px",background:dark?"linear-gradient(135deg,#0a3a1a,#0f5a28)":"linear-gradient(135deg,#cceacc,#a8d8a8)",border:`1px solid ${dark?"#1a5a2a":"#7ab07a"}`,borderRadius:"6px",color:dark?"#00ff55":"#1a5a2a",fontSize:"10px",fontFamily:"'Share Tech Mono',monospace",cursor:"pointer",fontWeight:"bold",letterSpacing:"0.08em"}}>
+            <button onClick={requestPushPermission} style={{flex:1,padding:"8px",background:dark?"linear-gradient(135deg,#0a3a1a,#0f5a28)":"linear-gradient(135deg,#cceacc,#a8d8a8)",border:`1px solid ${dark?"#1a5a2a":"#7ab07a"}`,borderRadius:"6px",color:dark?"#00ff55":"#1a5a2a",fontSize:"14px",fontFamily:"'Share Tech Mono',monospace",cursor:"pointer",fontWeight:"bold",letterSpacing:"0.08em"}}>
               → ALLOW
             </button>
-            <button onClick={()=>setShowPushPrompt(false)} style={{padding:"8px 14px",background:"transparent",border:`1px solid ${dark?"#2a4a2a":"#ccc"}`,borderRadius:"6px",color:dark?"#6aaa6a":"#888",fontSize:"10px",fontFamily:"'Share Tech Mono',monospace",cursor:"pointer"}}>
+            <button onClick={()=>setShowPushPrompt(false)} style={{padding:"8px 14px",background:"transparent",border:`1px solid ${dark?"#2a4a2a":"#ccc"}`,borderRadius:"6px",color:dark?"#6aaa6a":"#888",fontSize:"14px",fontFamily:"'Share Tech Mono',monospace",cursor:"pointer"}}>
               NOT NOW
             </button>
           </div>
@@ -2676,8 +2676,8 @@ export default function App(){
           {/* Demo banner */}
           {isDemo&&(
             <div style={{background:dark?"rgba(0,120,40,0.12)":"rgba(22,128,58,0.08)",borderBottom:`1px solid ${dark?"#1a4a1a":"#a8d4a8"}`,padding:"7px 16px",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
-              <span style={{color:dark?"#4a8a4a":"#3a7a3a",fontSize:"10px",letterSpacing:"0.1em"}}>▸ DEMO MODE — Orders reset on refresh. <span style={{color:D.accD,cursor:"pointer",textDecoration:"underline"}} onClick={()=>setAuthModal("signup")}>Create a free account</span> to save your trades.</span>
-              <button onClick={()=>setAuthModal("signup")} style={{padding:"4px 12px",background:dark?"rgba(0,180,60,0.15)":"rgba(22,128,58,0.10)",border:`1px solid ${dark?"#1a4a1a":"#8acc8a"}`,borderRadius:"4px",color:D.accD,fontSize:"9px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.08em"}}>SIGN UP →</button>
+              <span style={{color:dark?"#4a8a4a":"#3a7a3a",fontSize:"14px",letterSpacing:"0.1em"}}>▸ DEMO MODE — Orders reset on refresh. <span style={{color:D.accD,cursor:"pointer",textDecoration:"underline"}} onClick={()=>setAuthModal("signup")}>Create a free account</span> to save your trades.</span>
+              <button onClick={()=>setAuthModal("signup")} style={{padding:"4px 12px",background:dark?"rgba(0,180,60,0.15)":"rgba(22,128,58,0.10)",border:`1px solid ${dark?"#1a4a1a":"#8acc8a"}`,borderRadius:"4px",color:D.accD,fontSize:"13px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.08em"}}>SIGN UP →</button>
             </div>
           )}
 
@@ -2694,21 +2694,21 @@ export default function App(){
           {isMobile&&drawerOpen&&(
             <div className="drawer" style={{position:"fixed",top:0,left:0,bottom:0,width:"75vw",maxWidth:"280px",background:D.hdrBg,borderRight:`1px solid ${D.bdr2}`,zIndex:201,display:"flex",flexDirection:"column",padding:"0"}}>
               <div style={{padding:"16px",borderBottom:`1px solid ${D.bdr}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                <span style={{fontFamily:ORB,fontSize:"15px",fontWeight:800,color:D.acc,letterSpacing:"0.18em"}}>◈ CX</span>
-                <button onClick={()=>setDrawerOpen(false)} style={{background:"none",border:"none",color:D.txtD,fontSize:"20px",padding:"4px 8px"}}>✕</button>
+                <span style={{fontFamily:ORB,fontSize:"22px",fontWeight:800,color:D.acc,letterSpacing:"0.18em"}}>◈ CX</span>
+                <button onClick={()=>setDrawerOpen(false)} style={{background:"none",border:"none",color:D.txtD,fontSize:"29px",padding:"4px 8px"}}>✕</button>
               </div>
               {user&&(
                 <div style={{padding:"12px 16px",borderBottom:`1px solid ${D.bdr}`}}>
-                  <div onClick={()=>{setTab("PROFILE");setDrawerOpen(false);}} style={{color:D.txtM,fontSize:"11px",marginBottom:"4px",display:"flex",alignItems:"center",gap:"6px",cursor:"pointer"}}>
+                  <div onClick={()=>{setTab("PROFILE");setDrawerOpen(false);}} style={{color:D.txtM,fontSize:"16px",marginBottom:"4px",display:"flex",alignItems:"center",gap:"6px",cursor:"pointer"}}>
                     👤 {profile?.display_name||user.user_metadata?.display_name||user.email?.split("@")[0]}
                   </div>
                   <div style={{marginBottom:"4px"}}><RepBadge tradeCount={profile?.trade_count||tradeHistory.length}/></div>
-                  <div style={{color:D.acc,fontSize:"13px",fontWeight:"bold"}}>💵 ${balance.toLocaleString("en-US",{minimumFractionDigits:2})}</div>
+                  <div style={{color:D.acc,fontSize:"19px",fontWeight:"bold"}}>💵 ${balance.toLocaleString("en-US",{minimumFractionDigits:2})}</div>
                 </div>
               )}
               <div style={{flex:1,padding:"8px 0"}}>
                 {["MARKET","BROWSE","PORTFOLIO","ORDERS","HISTORY"].map(t=>(
-                  <button key={t} onClick={()=>{setTab(t);setDrawerOpen(false);}} style={{display:"block",width:"100%",padding:"14px 20px",border:"none",background:tab===t?(dark?"rgba(0,255,80,0.08)":"rgba(22,128,58,0.07)"):"transparent",color:tab===t?D.accD:D.txtM,fontSize:"11px",fontFamily:MONO,letterSpacing:"0.12em",textAlign:"left",borderLeft:`3px solid ${tab===t?D.accD:"transparent"}`,cursor:"pointer"}}>{t}</button>
+                  <button key={t} onClick={()=>{setTab(t);setDrawerOpen(false);}} style={{display:"block",width:"100%",padding:"14px 20px",border:"none",background:tab===t?(dark?"rgba(0,255,80,0.08)":"rgba(22,128,58,0.07)"):"transparent",color:tab===t?D.accD:D.txtM,fontSize:"16px",fontFamily:MONO,letterSpacing:"0.12em",textAlign:"left",borderLeft:`3px solid ${tab===t?D.accD:"transparent"}`,cursor:"pointer"}}>{t}</button>
                 ))}
               </div>
               <div style={{padding:"16px",borderTop:`1px solid ${D.bdr}`,display:"flex",flexDirection:"column",gap:"8px"}}>
@@ -2716,18 +2716,18 @@ export default function App(){
                   <div style={{width:"36px",height:"20px",background:dark?"#1a3a1a":"#d1ecd1",borderRadius:"10px",border:`1px solid ${D.bdr2}`,display:"flex",alignItems:"center",padding:"2px",transition:"background 0.3s"}}>
                     <div style={{width:"14px",height:"14px",borderRadius:"50%",background:dark?"#00cc40":"#f59e0b",transform:dark?"translateX(0)":"translateX(16px)",transition:"transform 0.3s"}}/>
                   </div>
-                  <span style={{color:D.txtM,fontSize:"10px"}}>{dark?"DARK MODE":"LIGHT MODE"}</span>
+                  <span style={{color:D.txtM,fontSize:"14px"}}>{dark?"DARK MODE":"LIGHT MODE"}</span>
                 </div>
                 {user?(
                   <>
-                  {profile?.is_admin&&<button onClick={()=>{setAdminOpen(true);setDrawerOpen(false);}} style={{padding:"10px",background:"transparent",border:"1px solid #f59e0b",borderRadius:"4px",color:"#f59e0b",fontSize:"10px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.08em"}}>⚙ ADMIN PANEL</button>}
-                  <button onClick={()=>{setCsvModal(true);setDrawerOpen(false);}} style={{padding:"10px",background:"transparent",border:`1px solid ${D.bdr}`,borderRadius:"4px",color:D.txtD,fontSize:"10px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.08em"}}>📂 IMPORT CSV</button>
-                  <button onClick={()=>{handleLogout();setDrawerOpen(false);}} style={{padding:"10px",background:"transparent",border:`1px solid ${D.bdr}`,borderRadius:"4px",color:D.txtD,fontSize:"10px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.08em"}}>LOG OUT</button>
+                  {profile?.is_admin&&<button onClick={()=>{setAdminOpen(true);setDrawerOpen(false);}} style={{padding:"10px",background:"transparent",border:"1px solid #f59e0b",borderRadius:"4px",color:"#f59e0b",fontSize:"14px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.08em"}}>⚙ ADMIN PANEL</button>}
+                  <button onClick={()=>{setCsvModal(true);setDrawerOpen(false);}} style={{padding:"10px",background:"transparent",border:`1px solid ${D.bdr}`,borderRadius:"4px",color:D.txtD,fontSize:"14px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.08em"}}>📂 IMPORT CSV</button>
+                  <button onClick={()=>{handleLogout();setDrawerOpen(false);}} style={{padding:"10px",background:"transparent",border:`1px solid ${D.bdr}`,borderRadius:"4px",color:D.txtD,fontSize:"14px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.08em"}}>LOG OUT</button>
                   </>
                 ):(
                   <div style={{display:"flex",gap:"8px"}}>
-                    <button onClick={()=>{setAuthModal("login");setDrawerOpen(false);}} style={{flex:1,padding:"10px",background:"transparent",border:`1px solid ${D.bdr}`,borderRadius:"4px",color:D.txtD,fontSize:"10px",fontFamily:MONO,cursor:"pointer"}}>LOG IN</button>
-                    <button onClick={()=>{setAuthModal("signup");setDrawerOpen(false);}} style={{flex:1,padding:"10px",background:dark?"rgba(0,120,40,0.15)":"rgba(22,128,58,0.08)",border:`1px solid ${D.accD}`,borderRadius:"4px",color:D.accD,fontSize:"10px",fontFamily:MONO,cursor:"pointer"}}>SIGN UP</button>
+                    <button onClick={()=>{setAuthModal("login");setDrawerOpen(false);}} style={{flex:1,padding:"10px",background:"transparent",border:`1px solid ${D.bdr}`,borderRadius:"4px",color:D.txtD,fontSize:"14px",fontFamily:MONO,cursor:"pointer"}}>LOG IN</button>
+                    <button onClick={()=>{setAuthModal("signup");setDrawerOpen(false);}} style={{flex:1,padding:"10px",background:dark?"rgba(0,120,40,0.15)":"rgba(22,128,58,0.08)",border:`1px solid ${D.accD}`,borderRadius:"4px",color:D.accD,fontSize:"14px",fontFamily:MONO,cursor:"pointer"}}>SIGN UP</button>
                   </div>
                 )}
               </div>
@@ -2738,12 +2738,12 @@ export default function App(){
           <div style={{background:D.hdrBg,borderBottom:`1px solid ${D.bdr2}`,padding:isMobile?"0 12px":"0 16px",display:"flex",alignItems:"center",justifyContent:"space-between",height:"44px",position:"sticky",top:0,zIndex:100,boxShadow:D.shad,flexShrink:0}}>
             {isMobile?(
               <>
-                <button onClick={()=>setDrawerOpen(true)} style={{background:"none",border:`1px solid ${D.bdr}`,borderRadius:"4px",color:D.txtM,fontSize:"18px",padding:"4px 8px",lineHeight:1,cursor:"pointer"}}>☰</button>
+                <button onClick={()=>setDrawerOpen(true)} style={{background:"none",border:`1px solid ${D.bdr}`,borderRadius:"4px",color:D.txtM,fontSize:"26px",padding:"4px 8px",lineHeight:1,cursor:"pointer"}}>☰</button>
                 <div style={{display:"flex",alignItems:"baseline",gap:"6px",cursor:"pointer"}} onClick={()=>user?setTab("MARKET"):setScreen("landing")}>
-                  <span style={{fontFamily:ORB,fontSize:"15px",fontWeight:800,color:D.acc,letterSpacing:"0.18em",textShadow:dark?"0 0 22px rgba(0,255,80,0.45)":"none"}}>◈ CX</span>
+                  <span style={{fontFamily:ORB,fontSize:"22px",fontWeight:800,color:D.acc,letterSpacing:"0.18em",textShadow:dark?"0 0 22px rgba(0,255,80,0.45)":"none"}}>◈ CX</span>
                 </div>
                 <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
-                  <span style={{color:D.txtM,fontSize:"11px"}}>💵 ${balance.toLocaleString("en-US",{maximumFractionDigits:0})}</span>
+                  <span style={{color:D.txtM,fontSize:"16px"}}>💵 ${balance.toLocaleString("en-US",{maximumFractionDigits:0})}</span>
                   <div onClick={()=>setDark(d=>!d)} style={{width:"36px",height:"20px",background:dark?"#1a3a1a":"#d1ecd1",borderRadius:"10px",border:`1px solid ${D.bdr2}`,display:"flex",alignItems:"center",padding:"2px",cursor:"pointer"}}>
                     <div style={{width:"14px",height:"14px",borderRadius:"50%",background:dark?"#00cc40":"#f59e0b",transform:dark?"translateX(0)":"translateX(16px)",transition:"transform 0.3s"}}/>
                   </div>
@@ -2753,39 +2753,39 @@ export default function App(){
               <>
                 <div style={{display:"flex",alignItems:"center",gap:"12px"}}>
                   <div style={{display:"flex",alignItems:"baseline",gap:"8px",cursor:"pointer"}} onClick={()=>user?setTab("MARKET"):setScreen("landing")}>
-                    <span style={{fontFamily:ORB,fontSize:"16px",fontWeight:800,color:D.acc,letterSpacing:"0.18em",textShadow:dark?"0 0 22px rgba(0,255,80,0.45)":"none"}}>◈ CX</span>
-                    <span style={{fontFamily:ORB,fontSize:"11px",fontWeight:600,color:D.txtM,letterSpacing:"0.08em"}}>COLLECTOR'S EXCHANGE</span>
+                    <span style={{fontFamily:ORB,fontSize:"23px",fontWeight:800,color:D.acc,letterSpacing:"0.18em",textShadow:dark?"0 0 22px rgba(0,255,80,0.45)":"none"}}>◈ CX</span>
+                    <span style={{fontFamily:ORB,fontSize:"16px",fontWeight:600,color:D.txtM,letterSpacing:"0.08em"}}>COLLECTOR'S EXCHANGE</span>
                   </div>
                   <span style={{color:D.bdr2}}>|</span>
-                  <span style={{color:D.txtD,fontSize:"9px",letterSpacing:"0.14em",fontStyle:"italic"}}>Buy. Sell. Collect.</span>
+                  <span style={{color:D.txtD,fontSize:"13px",letterSpacing:"0.14em",fontStyle:"italic"}}>Buy. Sell. Collect.</span>
                 </div>
                 <div style={{display:"flex",gap:"2px",alignItems:"center"}}>
                   {["MARKET","BROWSE","PORTFOLIO","ORDERS","HISTORY"].map(t=>(
-                    <button key={t} onClick={()=>setTab(t)} style={{padding:"0 16px",height:"44px",border:"none",background:"transparent",color:tab===t?D.accD:D.txtD,fontSize:"10px",fontFamily:MONO,letterSpacing:"0.12em",borderBottom:`2px solid ${tab===t?D.accD:"transparent"}`,transition:"all 0.12s",cursor:"pointer"}}>{t}</button>
+                    <button key={t} onClick={()=>setTab(t)} style={{padding:"0 16px",height:"44px",border:"none",background:"transparent",color:tab===t?D.accD:D.txtD,fontSize:"14px",fontFamily:MONO,letterSpacing:"0.12em",borderBottom:`2px solid ${tab===t?D.accD:"transparent"}`,transition:"all 0.12s",cursor:"pointer"}}>{t}</button>
                   ))}
                 </div>
                 <div style={{display:"flex",gap:"10px",alignItems:"center"}}>
                   {user?(
                     <>
-                      <span onClick={()=>setTab("PROFILE")} style={{color:D.txtD,fontSize:"10px",display:"flex",alignItems:"center",gap:"6px",cursor:"pointer",padding:"3px 8px",borderRadius:"4px",border:`1px solid transparent`}} onMouseEnter={e=>{e.currentTarget.style.borderColor=D.bdr;e.currentTarget.style.background=D.bg3;}} onMouseLeave={e=>{e.currentTarget.style.borderColor="transparent";e.currentTarget.style.background="transparent";}}>
+                      <span onClick={()=>setTab("PROFILE")} style={{color:D.txtD,fontSize:"14px",display:"flex",alignItems:"center",gap:"6px",cursor:"pointer",padding:"3px 8px",borderRadius:"4px",border:`1px solid transparent`}} onMouseEnter={e=>{e.currentTarget.style.borderColor=D.bdr;e.currentTarget.style.background=D.bg3;}} onMouseLeave={e=>{e.currentTarget.style.borderColor="transparent";e.currentTarget.style.background="transparent";}}>
                         👤 {profile?.display_name||user.user_metadata?.display_name||user.email?.split("@")[0]}
                         <RepBadge tradeCount={profile?.trade_count||tradeHistory.length}/>
                       </span>
-                      {profile?.is_admin&&<button onClick={()=>setAdminOpen(true)} title="Admin Panel" style={{padding:"3px 8px",background:"transparent",border:"1px solid #f59e0b",borderRadius:"3px",color:"#f59e0b",fontSize:"9px",fontFamily:"'Share Tech Mono',monospace",cursor:"pointer",letterSpacing:"0.06em"}}>⚙ ADMIN</button>}
-                      <div style={{background:D.stBg,border:`1px solid ${D.bdr}`,borderRadius:"3px",padding:"3px 10px",fontSize:"11px",color:D.txtM}}>💵 ${balance.toLocaleString("en-US",{minimumFractionDigits:2})}</div>
+                      {profile?.is_admin&&<button onClick={()=>setAdminOpen(true)} title="Admin Panel" style={{padding:"3px 8px",background:"transparent",border:"1px solid #f59e0b",borderRadius:"3px",color:"#f59e0b",fontSize:"13px",fontFamily:"'Share Tech Mono',monospace",cursor:"pointer",letterSpacing:"0.06em"}}>⚙ ADMIN</button>}
+                      <div style={{background:D.stBg,border:`1px solid ${D.bdr}`,borderRadius:"3px",padding:"3px 10px",fontSize:"16px",color:D.txtM}}>💵 ${balance.toLocaleString("en-US",{minimumFractionDigits:2})}</div>
                       <NotificationBell D={D} dark={dark} notifications={notifications} onClear={id=>setNotifications(p=>p.filter(n=>n.id!==id))} onClearAll={()=>setNotifications([])}/>
-                      <button onClick={()=>setCsvModal(true)} title="Import CSV" style={{padding:"3px 8px",background:"transparent",border:`1px solid ${D.bdr}`,borderRadius:"3px",color:D.txtD,fontSize:"13px",cursor:"pointer"}}>📂</button>
-                      <button onClick={handleLogout} style={{padding:"3px 10px",background:"transparent",border:`1px solid ${D.bdr}`,borderRadius:"3px",color:D.txtD,fontSize:"9px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.08em"}}>LOG OUT</button>
+                      <button onClick={()=>setCsvModal(true)} title="Import CSV" style={{padding:"3px 8px",background:"transparent",border:`1px solid ${D.bdr}`,borderRadius:"3px",color:D.txtD,fontSize:"19px",cursor:"pointer"}}>📂</button>
+                      <button onClick={handleLogout} style={{padding:"3px 10px",background:"transparent",border:`1px solid ${D.bdr}`,borderRadius:"3px",color:D.txtD,fontSize:"13px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.08em"}}>LOG OUT</button>
                     </>
                   ):(
                     <>
-                      <div style={{background:D.stBg,border:`1px solid ${D.bdr}`,borderRadius:"3px",padding:"3px 10px",fontSize:"11px",color:D.txtM}}>💵 ${balance.toLocaleString("en-US",{minimumFractionDigits:2})}</div>
-                      <button onClick={()=>setAuthModal("login")} style={{padding:"3px 10px",background:"transparent",border:`1px solid ${D.bdr}`,borderRadius:"3px",color:D.txtD,fontSize:"9px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.08em"}}>LOG IN</button>
-                      <button onClick={()=>setAuthModal("signup")} style={{padding:"3px 10px",background:dark?"rgba(0,120,40,0.15)":"rgba(22,128,58,0.08)",border:`1px solid ${D.accD}`,borderRadius:"3px",color:D.accD,fontSize:"9px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.08em"}}>SIGN UP</button>
+                      <div style={{background:D.stBg,border:`1px solid ${D.bdr}`,borderRadius:"3px",padding:"3px 10px",fontSize:"16px",color:D.txtM}}>💵 ${balance.toLocaleString("en-US",{minimumFractionDigits:2})}</div>
+                      <button onClick={()=>setAuthModal("login")} style={{padding:"3px 10px",background:"transparent",border:`1px solid ${D.bdr}`,borderRadius:"3px",color:D.txtD,fontSize:"13px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.08em"}}>LOG IN</button>
+                      <button onClick={()=>setAuthModal("signup")} style={{padding:"3px 10px",background:dark?"rgba(0,120,40,0.15)":"rgba(22,128,58,0.08)",border:`1px solid ${D.accD}`,borderRadius:"3px",color:D.accD,fontSize:"13px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.08em"}}>SIGN UP</button>
                     </>
                   )}
                   <div onClick={()=>setDark(d=>!d)} style={{width:"44px",height:"24px",background:dark?"#1a3a1a":"#d1ecd1",borderRadius:"12px",border:`1px solid ${D.bdr2}`,display:"flex",alignItems:"center",padding:"3px",transition:"background 0.3s",cursor:"pointer"}}>
-                    <div style={{width:"16px",height:"16px",borderRadius:"50%",background:dark?"#00cc40":"#f59e0b",transform:dark?"translateX(0)":"translateX(20px)",transition:"transform 0.3s,background 0.3s",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"9px"}}>{dark?"🌙":"☀️"}</div>
+                    <div style={{width:"16px",height:"16px",borderRadius:"50%",background:dark?"#00cc40":"#f59e0b",transform:dark?"translateX(0)":"translateX(20px)",transition:"transform 0.3s,background 0.3s",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"13px"}}>{dark?"🌙":"☀️"}</div>
                   </div>
                 </div>
               </>
@@ -2796,8 +2796,8 @@ export default function App(){
           {isMobile&&(
             <div style={{position:"fixed",bottom:0,left:0,right:0,background:D.hdrBg,borderTop:`1px solid ${D.bdr2}`,display:"flex",zIndex:100,height:"54px",boxShadow:"0 -2px 12px rgba(0,0,0,0.15)"}}>
               {[{t:"MARKET",i:"📈"},{t:"BROWSE",i:"🔍"},{t:"PORTFOLIO",i:"💼"},{t:"ORDERS",i:"📋"},{t:"HISTORY",i:"📜"}].map(({t,i})=>(
-                <button key={t} onClick={()=>setTab(t)} style={{flex:1,border:"none",background:"transparent",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:"2px",color:tab===t?D.accD:D.txtD,fontSize:"8px",fontFamily:MONO,letterSpacing:"0.06em",borderTop:`2px solid ${tab===t?D.accD:"transparent"}`,cursor:"pointer",padding:"6px 0"}}>
-                  <span style={{fontSize:"16px"}}>{i}</span>
+                <button key={t} onClick={()=>setTab(t)} style={{flex:1,border:"none",background:"transparent",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:"2px",color:tab===t?D.accD:D.txtD,fontSize:"12px",fontFamily:MONO,letterSpacing:"0.06em",borderTop:`2px solid ${tab===t?D.accD:"transparent"}`,cursor:"pointer",padding:"6px 0"}}>
+                  <span style={{fontSize:"23px"}}>{i}</span>
                   <span>{t}</span>
                 </button>
               ))}
