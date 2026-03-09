@@ -1096,6 +1096,8 @@ function Landing({D,dark,dbCards,onEnterDemo,onOpenAuth}){
     {icon:"⬡",title:"Real-Time Order Book",desc:"See live bids and asks, place limit or market orders, and watch trades execute instantly."},
     {icon:"◇",title:"Portfolio Tracker",desc:"Track your holdings, average cost, unrealised P&L and trade history across all games."},
     {icon:"▣",title:"Price History",desc:"Every trade you make is recorded and plotted on the chart — real history, not guesswork."},
+    {icon:"📂",title:"TCGPlayer Import",desc:"Import your existing inventory from TCGPlayer in seconds. We auto-detect columns, map conditions, and show you where CX prices beat your current listings."},
+    {icon:"🔔",title:"Smart Notifications",desc:"Get browser push alerts when your orders fill or a card hits your price target — even when you're on another tab."},
   ];
 
   return(
@@ -1137,48 +1139,47 @@ function Landing({D,dark,dbCards,onEnterDemo,onOpenAuth}){
         <div style={{position:"absolute",inset:0,background:dark?"linear-gradient(135deg,rgba(7,10,14,0.92) 50%,rgba(7,10,14,0.6))":"linear-gradient(135deg,rgba(240,244,240,0.94) 50%,rgba(240,244,240,0.5))",pointerEvents:"none"}}/>
 
         {/* Nav */}
-        <div style={{position:"relative",zIndex:10,display:"flex",justifyContent:"space-between",alignItems:"center",padding:isMobile?"14px 16px":"20px 40px",borderBottom:`1px solid ${dark?"rgba(255,255,255,0.05)":"rgba(0,0,0,0.06)"}`}}>
-          <div style={{maxWidth:"1100px",margin:"0 auto",width:"100%",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <div style={{display:"flex",alignItems:"baseline",gap:"8px"}}>
-            <span style={{fontFamily:ORB,fontSize:"18px",fontWeight:800,color:dark?"#00cc40":"#15803d",letterSpacing:"0.18em"}}>◈ CX</span>
-            {!isMobile&&<span style={{fontFamily:ORB,fontSize:"12px",fontWeight:600,color:dark?"#4a8a4a":"#3a7a3a",letterSpacing:"0.08em"}}>COLLECTOR'S EXCHANGE</span>}
-          </div>
-          <div style={{display:"flex",gap:"8px",alignItems:"center"}}>
-            {!isMobile&&<button onClick={onEnterDemo} style={{padding:"8px 18px",background:"transparent",border:`1px solid ${dark?"#2a5a2a":"#b8d4b8"}`,borderRadius:"5px",color:dark?"#4a8a4a":"#3a7a3a",fontSize:"10px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.1em"}}>DEMO</button>}
-            {!isMobile&&<button onClick={()=>onOpenAuth("login")} style={{padding:"8px 18px",background:"transparent",border:`1px solid ${dark?"#4a8a4a":"#7a9a7a"}`,borderRadius:"5px",color:dark?"#a8b8a0":"#2a3a2a",fontSize:"10px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.1em"}}>LOG IN</button>}
-            <button onClick={()=>onOpenAuth("signup")} style={{padding:"8px 16px",background:dark?"linear-gradient(135deg,#0a3a1a,#0f5a28)":"linear-gradient(135deg,#cceacc,#a8d8a8)",border:`1px solid ${dark?"#1a5a2a":"#7ab07a"}`,borderRadius:"5px",color:dark?"#00ff55":"#1a5a2a",fontSize:"10px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.1em",fontWeight:"bold"}}>GET STARTED →</button>
+        <div style={{position:"relative",zIndex:10,borderBottom:`1px solid ${dark?"rgba(255,255,255,0.05)":"rgba(0,0,0,0.06)"}`}}>
+          <div style={{maxWidth:"1100px",margin:"0 auto",width:"100%",display:"flex",justifyContent:"space-between",alignItems:"center",padding:isMobile?"14px 16px":"20px 40px"}}>
+            <div style={{display:"flex",alignItems:"baseline",gap:"8px"}}>
+              <span style={{fontFamily:ORB,fontSize:"18px",fontWeight:800,color:dark?"#00cc40":"#15803d",letterSpacing:"0.18em"}}>◈ CX</span>
+              {!isMobile&&<span style={{fontFamily:ORB,fontSize:"12px",fontWeight:600,color:dark?"#4a8a4a":"#3a7a3a",letterSpacing:"0.08em"}}>COLLECTOR'S EXCHANGE</span>}
+            </div>
+            <div style={{display:"flex",gap:"8px",alignItems:"center"}}>
+              {!isMobile&&<button onClick={onEnterDemo} style={{padding:"8px 18px",background:"transparent",border:`1px solid ${dark?"#2a5a2a":"#b8d4b8"}`,borderRadius:"5px",color:dark?"#4a8a4a":"#3a7a3a",fontSize:"10px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.1em"}}>DEMO</button>}
+              {!isMobile&&<button onClick={()=>onOpenAuth("login")} style={{padding:"8px 18px",background:"transparent",border:`1px solid ${dark?"#4a8a4a":"#7a9a7a"}`,borderRadius:"5px",color:dark?"#a8b8a0":"#2a3a2a",fontSize:"10px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.1em"}}>LOG IN</button>}
+              <button onClick={()=>onOpenAuth("signup")} style={{padding:"8px 16px",background:dark?"linear-gradient(135deg,#0a3a1a,#0f5a28)":"linear-gradient(135deg,#cceacc,#a8d8a8)",border:`1px solid ${dark?"#1a5a2a":"#7ab07a"}`,borderRadius:"5px",color:dark?"#00ff55":"#1a5a2a",fontSize:"10px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.1em",fontWeight:"bold"}}>GET STARTED →</button>
+            </div>
           </div>
         </div>
 
-          </div>
         {/* Hero content */}
         <div style={{position:"relative",zIndex:10,flex:1,display:"flex",flexDirection:"column",justifyContent:"center",alignItems:"center",padding:isMobile?"40px 20px":"60px 40px",textAlign:"center"}}>
-          <div style={{maxWidth:"700px",width:"100%"}}>
-          <div style={{display:"inline-flex",alignItems:"center",gap:"8px",background:dark?"rgba(0,180,60,0.08)":"rgba(22,128,58,0.06)",border:`1px solid ${dark?"#1a4a1a":"#a8d4a8"}`,borderRadius:"20px",padding:"5px 14px",marginBottom:"28px",width:"fit-content"}}>
-            <span style={{color:dark?"#00cc40":"#15803d",fontSize:"9px"}}>●</span>
-            <span style={{color:dark?"#4a8a4a":"#3a7a3a",fontSize:"10px",letterSpacing:"0.12em"}}>LIVE MARKET · DEMO AVAILABLE</span>
-          </div>
-          <h1 style={{fontFamily:ORB,fontSize:"clamp(32px,5vw,58px)",fontWeight:800,lineHeight:1.1,letterSpacing:"0.04em",color:dark?"#a8b8a0":"#1a2a1a",marginBottom:"20px"}}>
-            The Trading<br/>Platform for<br/><span style={{color:dark?"#00cc40":"#15803d"}}>Collectors.</span>
-          </h1>
-          <p style={{fontSize:"14px",lineHeight:1.8,color:dark?"#4a8a4a":"#5a7a5a",marginBottom:"36px",maxWidth:"480px"}}>
-            Buy, sell and trade rare TCG cards with a real order book, live pricing, and portfolio tracking. Pokémon, MTG, Yu-Gi-Oh! and more.
-          </p>
-          <div style={{display:"flex",gap:"12px",flexWrap:"wrap",justifyContent:"center",flexDirection:isMobile?"column":"row",alignItems:"center"}}>
-            <button onClick={()=>onOpenAuth("signup")} style={{padding:"14px 32px",background:dark?"linear-gradient(135deg,#0a3a1a,#0f5a28)":"linear-gradient(135deg,#b8e8b8,#8acc8a)",border:`1px solid ${dark?"#1a5a2a":"#5a9a5a"}`,borderRadius:"7px",color:dark?"#00ff55":"#1a4a1a",fontSize:"12px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.1em",fontWeight:"bold"}}>CREATE FREE ACCOUNT</button>
-            <button onClick={onEnterDemo} style={{padding:"14px 28px",background:"transparent",border:`1px solid ${dark?"#2a5a2a":"#c5d8c5"}`,borderRadius:"7px",color:dark?"#4a8a4a":"#3a7a3a",fontSize:"12px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.1em"}}>EXPLORE DEMO ▸</button>
-          </div>
-          <div style={{display:"flex",gap:"28px",marginTop:"44px",justifyContent:"center"}}>
-            {[["20+","Cards Listed"],["$0","To Get Started"],["Live","Order Matching"]].map(([val,label])=>(
-              <div key={label}>
-                <div style={{fontFamily:ORB,fontSize:"22px",fontWeight:800,color:dark?"#00cc40":"#15803d"}}>{val}</div>
-                <div style={{color:dark?"#2a5a2a":"#7a9a7a",fontSize:"9px",marginTop:"3px",letterSpacing:"0.1em"}}>{label}</div>
-              </div>
-            ))}
+          <div style={{maxWidth:"700px",width:"100%",display:"flex",flexDirection:"column",alignItems:"center"}}>
+            <div style={{display:"inline-flex",alignItems:"center",gap:"8px",background:dark?"rgba(0,180,60,0.08)":"rgba(22,128,58,0.06)",border:`1px solid ${dark?"#1a4a1a":"#a8d4a8"}`,borderRadius:"20px",padding:"5px 14px",marginBottom:"28px"}}>
+              <span style={{color:dark?"#00cc40":"#15803d",fontSize:"9px"}}>●</span>
+              <span style={{color:dark?"#4a8a4a":"#3a7a3a",fontSize:"10px",letterSpacing:"0.12em"}}>LIVE MARKET · DEMO AVAILABLE</span>
+            </div>
+            <h1 style={{fontFamily:ORB,fontSize:"clamp(32px,5vw,58px)",fontWeight:800,lineHeight:1.1,letterSpacing:"0.04em",color:dark?"#a8b8a0":"#1a2a1a",marginBottom:"20px"}}>
+              The Trading<br/>Platform for<br/><span style={{color:dark?"#00cc40":"#15803d"}}>Collectors.</span>
+            </h1>
+            <p style={{fontSize:"14px",lineHeight:1.8,color:dark?"#4a8a4a":"#5a7a5a",marginBottom:"36px",maxWidth:"480px"}}>
+              Buy, sell and trade rare TCG cards with a real order book, live pricing, and portfolio tracking. Pokémon, MTG, Yu-Gi-Oh! and more.
+            </p>
+            <div style={{display:"flex",gap:"12px",flexWrap:"wrap",justifyContent:"center",flexDirection:isMobile?"column":"row",alignItems:"center"}}>
+              <button onClick={()=>onOpenAuth("signup")} style={{padding:"14px 32px",background:dark?"linear-gradient(135deg,#0a3a1a,#0f5a28)":"linear-gradient(135deg,#b8e8b8,#8acc8a)",border:`1px solid ${dark?"#1a5a2a":"#5a9a5a"}`,borderRadius:"7px",color:dark?"#00ff55":"#1a4a1a",fontSize:"12px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.1em",fontWeight:"bold"}}>CREATE FREE ACCOUNT</button>
+              <button onClick={onEnterDemo} style={{padding:"14px 28px",background:"transparent",border:`1px solid ${dark?"#2a5a2a":"#c5d8c5"}`,borderRadius:"7px",color:dark?"#4a8a4a":"#3a7a3a",fontSize:"12px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.1em"}}>EXPLORE DEMO ▸</button>
+            </div>
+            <div style={{display:"flex",gap:"28px",marginTop:"44px",justifyContent:"center"}}>
+              {[[allCards.length>=100000?"100k+":allCards.length>0?`${allCards.length}`:"20+","Cards Listed"],["$0","To Get Started"],["Live","Order Matching"]].map(([val,label])=>(
+                <div key={label}>
+                  <div style={{fontFamily:ORB,fontSize:"22px",fontWeight:800,color:dark?"#00cc40":"#15803d"}}>{val}</div>
+                  <div style={{color:dark?"#2a5a2a":"#7a9a7a",fontSize:"9px",marginTop:"3px",letterSpacing:"0.1em"}}>{label}</div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
-
-          </div>
         {/* Scroll indicator */}
         <div style={{position:"relative",zIndex:10,textAlign:"center",padding:"20px",color:dark?"#2a5a2a":"#b8d4b8",fontSize:"18px",animation:"bounce 2s infinite"}}>▾</div>
       </div>
