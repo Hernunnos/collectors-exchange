@@ -2429,13 +2429,14 @@ export default function App(){
         const now=new Date();
         const expiredIds=new Set(prev.filter(o=>(o.status==="open"||o.status==="partial")&&o.expiresAt&&new Date(o.expiresAt)<now).map(o=>o.id));
         if(expiredIds.size>0){
-          setOrders(p=>p.map(o=>expiredIds.has(o.id)?{...o,status:"expired"}:o));
-          // Unlock any locked qty from expired sell orders
+          // Unlock locked qty from expired sell orders
           setHoldings(h=>h.map(holding=>{
-            const expiredSells=prev.filter(o=>expiredIds.has(o.id)&&o.side==="sell"&&o.cardId===holding.cardId);
+            const expiredSells=prev.filter(o=>expiredIds.has(o.id)&&o.side==="sell"&&+o.cardId===+holding.cardId);
             const unlockQty=expiredSells.reduce((s,o)=>s+(o.qty-o.filled),0);
             return unlockQty>0?{...holding,lockedQty:Math.max(0,(holding.lockedQty||0)-unlockQty)}:holding;
           }));
+          // Mark expired — return early so we don't also try to match them
+          return prev.map(o=>expiredIds.has(o.id)?{...o,status:"expired"}:o);
         }
         const openOrders=prev.filter(o=>(o.status==="open"||o.status==="partial")&&!expiredIds.has(o.id));
         if(!openOrders.length) return prev;
@@ -2611,7 +2612,7 @@ export default function App(){
   const isDemo = screen==="app" && !user;
 
   return(
-    <div style={{fontFamily:MONO,fontSize:"12px"}}>
+    <div style={{fontFamily:MONO,fontSize:"14px"}}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@600;800&display=swap');
         *{box-sizing:border-box;margin:0;padding:0;}
