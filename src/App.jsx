@@ -636,6 +636,8 @@ function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[],onPlac
   useEffect(()=>{ if(isDemo) setDemoHist(genHist(base)); },[card,isDemo]);
 
   const [chartRange,setChartRange]=useState("1D");
+  const [chartType,setChartType]=useState("line"); // "line" | "candle"
+  const [crosshair,setCrosshair]=useState(null); // {x,y,price,time,idx}
 
   const cardTrades=tradeHistory.filter(t=>t.cardId===card.id);
   const realHist=cardTrades.map(t=>({p:t.price,time:t.time,date:t.date})).reverse();
@@ -665,6 +667,28 @@ function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[],onPlac
   const fullHist=isDemo?demoHist:realHist;
   const hist=filterHist(fullHist,chartRange);
   const hasHistory=isDemo?true:realHist.length>=2;
+
+  // Build OHLC candles from hist (group into N buckets)
+  const buildCandles=(h,n=20)=>{
+    if(h.length<2) return [];
+    const size=Math.max(1,Math.floor(h.length/n));
+    const candles=[];
+    for(let i=0;i<h.length;i+=size){
+      const slice=h.slice(i,i+size);
+      const prices=slice.map(p=>p.p);
+      candles.push({
+        open:prices[0],
+        close:prices[prices.length-1],
+        high:Math.max(...prices),
+        low:Math.min(...prices),
+        time:slice[0].time||"",
+        date:slice[0].date||"",
+        i:candles.length,
+      });
+    }
+    return candles;
+  };
+  const candles=buildCandles(hist,Math.min(30,Math.max(10,Math.floor(hist.length/3))));
 
   const spread=asks.length&&bids.length?+(asks[0].price-bids[0].price).toFixed(2):0;
   const pct=(((price-base)/base)*100).toFixed(2);
@@ -727,17 +751,69 @@ function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[],onPlac
         </div>
 
         {/* Chart */}
-        <div style={{background:D.bg3,borderBottom:`1px solid ${D.bdr}`,padding:"10px 14px 6px",flexShrink:0}}>
+        <div style={{background:D.bg3,borderBottom:`1px solid ${D.bdr}`,padding:"8px 12px 6px",flexShrink:0}}>
+          {/* Mobile chart toolbar */}
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"6px"}}>
+            <div style={{display:"flex",border:`1px solid ${D.bdr}`,borderRadius:"4px",overflow:"hidden"}}>
+              {[["line","▲"],["candle","▮"]].map(([t,icon])=>(
+                <button key={t} onClick={()=>setChartType(t)} style={{padding:"2px 7px",border:"none",background:chartType===t?(dark?"rgba(0,180,60,0.18)":"rgba(22,128,58,0.10)"):"transparent",color:chartType===t?D.accD:D.txtD,fontSize:"12px",cursor:"pointer",borderRight:t==="line"?`1px solid ${D.bdr}`:"none"}}>{icon}</button>
+              ))}
+            </div>
+            <div style={{display:"flex",gap:"3px"}}>
+              {["1H","6H","1D","1W","1M"].map(r=>(
+                <button key={r} onClick={()=>setChartRange(r)} style={{padding:"2px 6px",border:`1px solid ${r===chartRange?D.accD:D.bdr}`,borderRadius:"3px",background:r===chartRange?(dark?"rgba(0,180,60,0.14)":"rgba(22,128,58,0.08)"):"transparent",color:r===chartRange?D.accD:D.txtD,fontSize:"11px",fontFamily:MONO,cursor:"pointer"}}>{r}</button>
+              ))}
+            </div>
+          </div>
           {!hasHistory?(
             <div style={{height:"100px",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",opacity:0.4,gap:"6px"}}>
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={D.txtD} strokeWidth="1.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
               <span style={{color:D.txtD,fontSize:"13px"}}>NO TRADE HISTORY YET</span>
             </div>
           ):(
-            <svg width="100%" height="100" viewBox={`0 0 ${CW} ${CH}`} preserveAspectRatio="none" style={{display:"block"}}>
+            <svg width="100%" height="110" viewBox={`0 0 ${CW} ${CH}`} preserveAspectRatio="none" style={{display:"block",cursor:"crosshair"}}
+              onMouseMove={e=>{
+                const rect=e.currentTarget.getBoundingClientRect();
+                const xRatio=(e.clientX-rect.left)/rect.width;
+                if(chartType==="line"&&hist.length>=2){
+                  const idx=Math.round(xRatio*(hist.length-1));
+                  const h=hist[Math.max(0,Math.min(idx,hist.length-1))];
+                  setCrosshair({x:(idx/(hist.length-1))*CW,y:(CH-8)-((h.p-minP)/rng)*(CH-16),price:h.p,time:h.time||"",idx});
+                } else if(chartType==="candle"&&candles.length>=2){
+                  const idx=Math.round(xRatio*(candles.length-1));
+                  const c=candles[Math.max(0,Math.min(idx,candles.length-1))];
+                  setCrosshair({x:((idx+0.5)/candles.length)*CW,y:(CH-8)-((c.close-minP)/rng)*(CH-16),price:c.close,open:c.open,high:c.high,low:c.low,time:c.time||""});
+                }
+              }}
+              onMouseLeave={()=>setCrosshair(null)}
+            >
               <defs><linearGradient id="cg2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={D.accD} stopOpacity="0.14"/><stop offset="100%" stopColor={D.accD} stopOpacity="0"/></linearGradient></defs>
-              {lp()&&<path d={lp()+` L${CW},${CH} L0,${CH} Z`} fill="url(#cg2)"/>}
-              {lp()&&<path d={lp()} fill="none" stroke={D.accD} strokeWidth="2"/>}
+              {[0.25,0.5,0.75].map(f=><line key={f} x1="0" y1={CH*f} x2={CW} y2={CH*f} stroke={dark?"rgba(255,255,255,0.04)":"rgba(0,0,0,0.05)"} strokeWidth="1"/>)}
+              {chartType==="line"&&lp()&&<>
+                <path d={lp()+` L${CW},${CH} L0,${CH} Z`} fill="url(#cg2)"/>
+                <path d={lp()} fill="none" stroke={D.accD} strokeWidth="2"/>
+                <circle cx={CW} cy={(CH-8)-((price-minP)/rng)*(CH-16)} r="4" fill={D.accD} opacity="0.9"/>
+              </>}
+              {chartType==="candle"&&candles.map((c,i)=>{
+                const cw=Math.max(2,(CW/candles.length)*0.6);
+                const cx=((i+0.5)/candles.length)*CW;
+                const openY=(CH-8)-((c.open-minP)/rng)*(CH-16);
+                const closeY=(CH-8)-((c.close-minP)/rng)*(CH-16);
+                const highY=(CH-8)-((c.high-minP)/rng)*(CH-16);
+                const lowY=(CH-8)-((c.low-minP)/rng)*(CH-16);
+                const bull=c.close>=c.open;
+                const col=bull?(dark?"#00cc40":"#15803d"):(dark?"#cc3535":"#dc2626");
+                return <g key={i}>
+                  <line x1={cx} y1={highY} x2={cx} y2={lowY} stroke={col} strokeWidth="1" opacity="0.7"/>
+                  <rect x={cx-cw/2} y={Math.min(openY,closeY)} width={cw} height={Math.max(1,Math.abs(closeY-openY))} fill={bull?"transparent":col} stroke={col} strokeWidth="1" opacity={bull?1:0.9}/>
+                  {bull&&<rect x={cx-cw/2} y={Math.min(openY,closeY)} width={cw} height={Math.max(1,Math.abs(closeY-openY))} fill={col} opacity="0.15"/>}
+                </g>;
+              })}
+              {crosshair&&<>
+                <line x1={crosshair.x} y1="0" x2={crosshair.x} y2={CH} stroke={dark?"rgba(255,255,255,0.15)":"rgba(0,0,0,0.12)"} strokeWidth="1" strokeDasharray="3,3"/>
+                <line x1="0" y1={crosshair.y} x2={CW} y2={crosshair.y} stroke={dark?"rgba(255,255,255,0.15)":"rgba(0,0,0,0.12)"} strokeWidth="1" strokeDasharray="3,3"/>
+                <circle cx={crosshair.x} cy={crosshair.y} r="4" fill={D.accD} opacity="0.9"/>
+              </>}
             </svg>
           )}
         </div>
@@ -888,10 +964,25 @@ function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[],onPlac
           </div>
 
           <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
-            <div style={{background:D.bg3,borderBottom:`1px solid ${D.bdr}`,padding:"10px 16px 8px",flexShrink:0}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"6px"}}>
-                <span style={{color:D.txtD,fontSize:"14px",letterSpacing:"0.12em"}}>▸ PRICE CHART</span>
-                <div style={{display:"flex",gap:"4px"}}>{["1H","6H","1D","1W","1M"].map(r=><button key={r} onClick={()=>setChartRange(r)} style={{padding:"2px 7px",border:`1px solid ${r===chartRange?D.accD:D.bdr}`,borderRadius:"3px",background:r===chartRange?(dark?"rgba(0,180,60,0.14)":"rgba(22,128,58,0.08)"):"transparent",color:r===chartRange?D.accD:D.txtD,fontSize:"13px",fontFamily:MONO,cursor:"pointer"}}>{r}</button>)}</div>
+            <div style={{background:D.bg3,borderBottom:`1px solid ${D.bdr}`,padding:"10px 16px 0",flexShrink:0}}>
+              {/* Chart toolbar */}
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"8px"}}>
+                <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
+                  <span style={{color:D.txtD,fontSize:"13px",letterSpacing:"0.12em"}}>▸ PRICE CHART</span>
+                  {crosshair&&<span style={{fontFamily:ORB,fontSize:"14px",color:D.txt}}>${crosshair.price.toLocaleString("en-US",{minimumFractionDigits:2})} <span style={{color:D.txtD,fontSize:"12px",fontFamily:MONO}}>{crosshair.time}</span></span>}
+                </div>
+                <div style={{display:"flex",gap:"6px",alignItems:"center"}}>
+                  {/* Chart type toggle */}
+                  <div style={{display:"flex",border:`1px solid ${D.bdr}`,borderRadius:"4px",overflow:"hidden",marginRight:"4px"}}>
+                    {[["line","▲"],["candle","▮"]].map(([t,icon])=>(
+                      <button key={t} onClick={()=>setChartType(t)} title={t==="line"?"Line chart":"Candlestick"} style={{padding:"2px 8px",border:"none",background:chartType===t?(dark?"rgba(0,180,60,0.18)":"rgba(22,128,58,0.10)"):"transparent",color:chartType===t?D.accD:D.txtD,fontSize:"13px",cursor:"pointer",borderRight:t==="line"?`1px solid ${D.bdr}`:"none"}}>{icon}</button>
+                    ))}
+                  </div>
+                  {/* Time range */}
+                  {["1H","6H","1D","1W","1M"].map(r=>(
+                    <button key={r} onClick={()=>setChartRange(r)} style={{padding:"2px 8px",border:`1px solid ${r===chartRange?D.accD:D.bdr}`,borderRadius:"3px",background:r===chartRange?(dark?"rgba(0,180,60,0.14)":"rgba(22,128,58,0.08)"):"transparent",color:r===chartRange?D.accD:D.txtD,fontSize:"12px",fontFamily:MONO,cursor:"pointer"}}>{r}</button>
+                  ))}
+                </div>
               </div>
               {!hasHistory?(
                 <div style={{height:CH,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:"8px",opacity:0.4}}>
@@ -900,19 +991,94 @@ function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[],onPlac
                   <span style={{color:D.txtD,fontSize:"13px"}}>Place a trade to start recording price history</span>
                 </div>
               ):(
-                <svg width="100%" height={CH} viewBox={`0 0 ${CW} ${CH}`} preserveAspectRatio="none" style={{display:"block"}}>
-                  <defs><linearGradient id="cg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={D.accD} stopOpacity={dark?"0.16":"0.10"}/><stop offset="100%" stopColor={D.accD} stopOpacity="0"/></linearGradient></defs>
-                  {[0.25,0.5,0.75].map(f=><line key={f} x1="0" y1={CH*f} x2={CW} y2={CH*f} stroke={D.bdr} strokeWidth="0.5"/>)}
-                  {lp()&&<path d={lp()+` L${CW},${CH} L0,${CH} Z`} fill="url(#cg)"/>}
-                  {lp()&&<path d={lp()} fill="none" stroke={D.accD} strokeWidth="1.8" style={{filter:dark?`drop-shadow(0 0 4px ${D.accD}70)`:"none"}}/>}
-                  <circle cx={CW} cy={(CH-8)-((price-minP)/rng)*(CH-16)} r="3" fill={D.accD}/>
-                  {hist.length>=2&&hist.map((h,i)=>{
-                    if(i===0) return null;
-                    const x=((i/(hist.length-1))*CW).toFixed(1);
-                    const y=((CH-8)-((h.p-minP)/rng)*(CH-16)).toFixed(1);
-                    return <circle key={i} cx={x} cy={y} r="2" fill={D.accD} opacity="0.5"/>;
-                  })}
-                </svg>
+                <div style={{position:"relative",paddingBottom:"6px"}}>
+                  <svg
+                    width="100%" height={CH}
+                    viewBox={`0 0 ${CW} ${CH}`}
+                    preserveAspectRatio="none"
+                    style={{display:"block",cursor:"crosshair"}}
+                    onMouseMove={e=>{
+                      const rect=e.currentTarget.getBoundingClientRect();
+                      const xRatio=(e.clientX-rect.left)/rect.width;
+                      if(chartType==="line"&&hist.length>=2){
+                        const idx=Math.round(xRatio*(hist.length-1));
+                        const h=hist[Math.max(0,Math.min(idx,hist.length-1))];
+                        const x=(idx/(hist.length-1))*CW;
+                        const y=(CH-8)-((h.p-minP)/rng)*(CH-16);
+                        setCrosshair({x,y,price:h.p,time:h.time||"",idx});
+                      } else if(chartType==="candle"&&candles.length>=2){
+                        const idx=Math.round(xRatio*(candles.length-1));
+                        const c=candles[Math.max(0,Math.min(idx,candles.length-1))];
+                        const x=((idx+0.5)/candles.length)*CW;
+                        const y=(CH-8)-((c.close-minP)/rng)*(CH-16);
+                        setCrosshair({x,y,price:c.close,open:c.open,high:c.high,low:c.low,time:c.time||"",idx});
+                      }
+                    }}
+                    onMouseLeave={()=>setCrosshair(null)}
+                  >
+                    <defs>
+                      <linearGradient id="cg" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor={D.accD} stopOpacity={dark?"0.18":"0.12"}/>
+                        <stop offset="100%" stopColor={D.accD} stopOpacity="0"/>
+                      </linearGradient>
+                    </defs>
+                    {/* Grid lines + price labels */}
+                    {[0,0.25,0.5,0.75,1].map(f=>{
+                      const p=(minP+rng*(1-f)).toFixed(0);
+                      const y=((CH-8)-((minP+rng*(1-f)-minP)/rng)*(CH-16)).toFixed(1);
+                      return <g key={f}>
+                        <line x1="0" y1={y} x2={CW} y2={y} stroke={dark?"rgba(255,255,255,0.04)":"rgba(0,0,0,0.05)"} strokeWidth="1"/>
+                        <text x="4" y={+y-3} fontSize="9" fill={dark?"#2a5a2a":"#9aaa9a"} fontFamily="monospace">${(+p).toLocaleString()}</text>
+                      </g>;
+                    })}
+
+                    {chartType==="line"&&lp()&&<>
+                      <path d={lp()+` L${CW},${CH} L0,${CH} Z`} fill="url(#cg)"/>
+                      <path d={lp()} fill="none" stroke={D.accD} strokeWidth="2" style={{filter:dark?`drop-shadow(0 0 4px ${D.accD}60)`:"none"}}/>
+                      {/* Live dot */}
+                      <circle cx={CW} cy={(CH-8)-((price-minP)/rng)*(CH-16)} r="4" fill={D.accD} opacity="0.9"/>
+                      <circle cx={CW} cy={(CH-8)-((price-minP)/rng)*(CH-16)} r="7" fill={D.accD} opacity="0.15"/>
+                    </>}
+
+                    {chartType==="candle"&&candles.map((c,i)=>{
+                      const cw=Math.max(2,(CW/candles.length)*0.6);
+                      const cx=((i+0.5)/candles.length)*CW;
+                      const openY=(CH-8)-((c.open-minP)/rng)*(CH-16);
+                      const closeY=(CH-8)-((c.close-minP)/rng)*(CH-16);
+                      const highY=(CH-8)-((c.high-minP)/rng)*(CH-16);
+                      const lowY=(CH-8)-((c.low-minP)/rng)*(CH-16);
+                      const bull=c.close>=c.open;
+                      const col=bull?(dark?"#00cc40":"#15803d"):(dark?"#cc3535":"#dc2626");
+                      const bodyTop=Math.min(openY,closeY);
+                      const bodyH=Math.max(1,Math.abs(closeY-openY));
+                      return <g key={i}>
+                        {/* Wick */}
+                        <line x1={cx} y1={highY} x2={cx} y2={lowY} stroke={col} strokeWidth="1" opacity="0.7"/>
+                        {/* Body */}
+                        <rect x={cx-cw/2} y={bodyTop} width={cw} height={bodyH} fill={bull?"transparent":col} stroke={col} strokeWidth="1" opacity={bull?1:0.9}/>
+                        {bull&&<rect x={cx-cw/2} y={bodyTop} width={cw} height={bodyH} fill={col} opacity="0.15"/>}
+                      </g>;
+                    })}
+
+                    {/* Crosshair */}
+                    {crosshair&&<>
+                      <line x1={crosshair.x} y1="0" x2={crosshair.x} y2={CH} stroke={dark?"rgba(255,255,255,0.15)":"rgba(0,0,0,0.12)"} strokeWidth="1" strokeDasharray="3,3"/>
+                      <line x1="0" y1={crosshair.y} x2={CW} y2={crosshair.y} stroke={dark?"rgba(255,255,255,0.15)":"rgba(0,0,0,0.12)"} strokeWidth="1" strokeDasharray="3,3"/>
+                      <circle cx={crosshair.x} cy={crosshair.y} r="4" fill={D.accD} opacity="0.9"/>
+                    </>}
+                  </svg>
+                  {/* Crosshair OHLC tooltip for candles */}
+                  {crosshair&&chartType==="candle"&&crosshair.open!==undefined&&(
+                    <div style={{position:"absolute",top:"6px",left:"50%",transform:"translateX(-50%)",display:"flex",gap:"14px",background:dark?"rgba(7,10,14,0.92)":"rgba(255,255,255,0.92)",border:`1px solid ${D.bdr}`,borderRadius:"5px",padding:"4px 12px",pointerEvents:"none",backdropFilter:"blur(4px)"}}>
+                      {[["O",crosshair.open],["H",crosshair.high],["L",crosshair.low],["C",crosshair.price]].map(([label,val])=>(
+                        <div key={label} style={{textAlign:"center"}}>
+                          <div style={{color:D.txtD,fontSize:"9px",letterSpacing:"0.08em"}}>{label}</div>
+                          <div style={{fontFamily:ORB,fontSize:"12px",color:label==="C"?(crosshair.price>=crosshair.open?D.buyT:D.askT):D.txtM}}>${val?.toLocaleString("en-US",{minimumFractionDigits:2})}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               )}
             </div>
 
