@@ -34,6 +34,13 @@ const newTradeId  = () => `TRD-${++_tradeId}`;
 const nowDate = () => new Date().toISOString().slice(0,10);
 const nowTime = () => new Date().toLocaleTimeString("en-US",{hour12:false});
 
+// Proxy scryfall images through wsrv.nl to avoid CORB blocking
+const proxyImg = (url) => {
+  if(!url) return url;
+  if(url.includes("scryfall.io")) return `https://wsrv.nl/?url=${encodeURIComponent(url)}&w=400&output=jpg`;
+  return url;
+};
+
 // Match engine: given user orders + live market asks/bids, fill what can be filled
 function matchOrders(orders, marketPrices, holdings, balance){
   let newOrders = orders.map(o=>({...o}));
@@ -178,7 +185,7 @@ function Portfolio({D,dark,holdings=[],tradeHistory=[],dbCards=[],isMobile=false
           {enrichedHoldings.length===0?(<div style={{padding:"40px",textAlign:"center",color:D.txtD,fontSize:"12px"}}>No holdings yet — place your first trade in the Market tab</div>):enrichedHoldings.map(h=>(
             <div key={h.cardId} onClick={()=>setSelected(selected?.cardId===h.cardId?null:h)} style={{display:"grid",gridTemplateColumns:"1fr 50px 70px 70px 70px",padding:"9px 14px",borderBottom:`1px solid ${D.bdr}`,cursor:"pointer",background:selected?.cardId===h.cardId?(dark?"rgba(0,255,80,0.05)":"rgba(22,128,58,0.05)"):"transparent",transition:"background 0.1s",alignItems:"center"}}>
               <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
-                <img src={h.card.img} alt={h.card.name} style={{width:"22px",height:"30px",objectFit:"cover",borderRadius:"2px"}} onError={e=>e.target.style.display="none"}/>
+                <img src={proxyImg(h.card.img)} alt={h.card.name} style={{width:"22px",height:"30px",objectFit:"cover",borderRadius:"2px"}} onError={e=>e.target.style.display="none"}/>
                 <div><div style={{color:D.txt,fontSize:"11px"}}>{h.card.name}</div><div style={{color:D.txtD,fontSize:"9px"}}>{h.card.condition}</div></div>
               </div>
               <span style={{textAlign:"right",color:D.txtM,fontSize:"11px"}}>
@@ -217,7 +224,7 @@ function Portfolio({D,dark,holdings=[],tradeHistory=[],dbCards=[],isMobile=false
             return(
               <div key={c.id} style={{display:"grid",gridTemplateColumns:"1fr 70px 70px 28px",padding:"9px 14px",borderBottom:`1px solid ${D.bdr}`,alignItems:"center"}}>
                 <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
-                  <img src={c.img} alt={c.name} style={{width:"22px",height:"30px",objectFit:"cover",borderRadius:"2px"}} onError={e=>e.target.style.display="none"}/>
+                  <img src={proxyImg(c.img)} alt={c.name} style={{width:"22px",height:"30px",objectFit:"cover",borderRadius:"2px"}} onError={e=>e.target.style.display="none"}/>
                   <div><div style={{color:D.txt,fontSize:"11px"}}>{c.name}</div><div style={{color:D.txtD,fontSize:"9px"}}>{c.set}</div></div>
                 </div>
                 <span style={{textAlign:"right",color:D.txt,fontSize:"11px"}}>${(c.basePrice||BASE[c.id]||0).toLocaleString()}</span>
@@ -229,7 +236,7 @@ function Portfolio({D,dark,holdings=[],tradeHistory=[],dbCards=[],isMobile=false
           {CARDS.filter(c=>!watchlist.find(w=>w.id===c.id)&&!holdings.find(h=>h.cardId===c.id)).slice(0,2).map(c=>(
             <div key={c.id} onClick={()=>setWatchlist(w=>[...w,c])} style={{display:"flex",alignItems:"center",gap:"10px",padding:"8px 14px",borderBottom:`1px solid ${D.bdr}`,cursor:"pointer",opacity:0.5}}>
               <span style={{color:D.accD,fontSize:"11px"}}>+</span>
-              <img src={c.img} alt={c.name} style={{width:"18px",height:"25px",objectFit:"cover",borderRadius:"2px"}} onError={e=>e.target.style.display="none"}/>
+              <img src={proxyImg(c.img)} alt={c.name} style={{width:"18px",height:"25px",objectFit:"cover",borderRadius:"2px"}} onError={e=>e.target.style.display="none"}/>
               <span style={{color:D.txtM,fontSize:"11px"}}>{c.name}</span>
             </div>
           ))}
@@ -275,7 +282,7 @@ function Orders({D,dark,orders=[],onCancel,dbCards=[],isMobile=false}){
               const card=allCards.find(c=>c.id===o.cardId)||{name:"Unknown",img:"",img_url:""};
               return(
                 <div key={o.id} style={{padding:"12px 14px",borderBottom:`1px solid ${D.bdr}`,display:"flex",alignItems:"center",gap:"12px"}}>
-                  <img src={card.img||card.img_url} alt={card.name} style={{width:"28px",height:"38px",objectFit:"cover",borderRadius:"3px",flexShrink:0}} onError={e=>e.target.style.display="none"}/>
+                  <img src={proxyImg(card.img||card.img_url)} alt={card.name} style={{width:"28px",height:"38px",objectFit:"cover",borderRadius:"3px",flexShrink:0}} onError={e=>e.target.style.display="none"}/>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"3px"}}>
                       <span style={{color:D.txt,fontSize:"12px",fontWeight:600}}>{card.name}</span>
@@ -308,7 +315,7 @@ function Orders({D,dark,orders=[],onCancel,dbCards=[],isMobile=false}){
                 <div key={o.id} style={{display:"grid",gridTemplateColumns:"90px 1fr 50px 60px 80px 60px 80px 70px",padding:"10px 14px",borderBottom:`1px solid ${D.bdr}`,alignItems:"center"}}>
                   <span style={{color:D.txtM,fontSize:"10px"}}>{o.id}</span>
                   <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
-                    <img src={card.img} alt={card.name} style={{width:"20px",height:"28px",objectFit:"cover",borderRadius:"2px"}} onError={e=>e.target.style.display="none"}/>
+                    <img src={proxyImg(card.img)} alt={card.name} style={{width:"20px",height:"28px",objectFit:"cover",borderRadius:"2px"}} onError={e=>e.target.style.display="none"}/>
                     <div><div style={{color:D.txt,fontSize:"11px"}}>{card.name}</div><div style={{color:D.txtD,fontSize:"9px"}}>{o.date} {o.time}</div></div>
                   </div>
                   <span style={{color:o.side==="buy"?D.buyT:D.askT,fontSize:"10px"}}>{o.side.toUpperCase()}</span>
@@ -365,7 +372,7 @@ function History({D,dark,tradeHistory=[],ledger=[],dbCards=[],isMobile=false}){
               <div key={t.id} style={{display:"grid",gridTemplateColumns:"90px 1fr 50px 80px 50px 90px 110px",padding:"10px 14px",borderBottom:`1px solid ${D.bdr}`,alignItems:"center"}}>
                 <span style={{color:D.txtM,fontSize:"10px"}}>{t.id}</span>
                 <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
-                  <img src={card.img} alt={card.name} style={{width:"20px",height:"28px",objectFit:"cover",borderRadius:"2px"}} onError={e=>e.target.style.display="none"}/>
+                  <img src={proxyImg(card.img)} alt={card.name} style={{width:"20px",height:"28px",objectFit:"cover",borderRadius:"2px"}} onError={e=>e.target.style.display="none"}/>
                   <span style={{color:D.txt,fontSize:"11px"}}>{card.name}</span>
                 </div>
                 <span style={{color:t.side==="buy"?D.buyT:D.askT,fontSize:"10px"}}>{t.side.toUpperCase()}</span>
@@ -408,7 +415,7 @@ function History({D,dark,tradeHistory=[],ledger=[],dbCards=[],isMobile=false}){
               <div key={a.id} style={{display:"grid",gridTemplateColumns:"90px 1fr 90px 80px 90px 130px",padding:"10px 14px",borderBottom:`1px solid ${D.bdr}`,alignItems:"center"}}>
                 <span style={{color:D.txtM,fontSize:"10px"}}>{a.id}</span>
                 <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
-                  <img src={card.img} alt={card.name} style={{width:"20px",height:"28px",objectFit:"cover",borderRadius:"2px"}} onError={e=>e.target.style.display="none"}/>
+                  <img src={proxyImg(card.img)} alt={card.name} style={{width:"20px",height:"28px",objectFit:"cover",borderRadius:"2px"}} onError={e=>e.target.style.display="none"}/>
                   <span style={{color:D.txt,fontSize:"11px"}}>{card.name}</span>
                 </div>
                 <span style={{color:D.txtM,fontSize:"10px"}}>{a.condition.toUpperCase()} </span>
@@ -533,7 +540,7 @@ function Browser({D,dark,dbCards,onSelectCard,isMobile=false}){
               onMouseEnter={e=>{e.currentTarget.style.borderColor=D.accD;e.currentTarget.style.boxShadow=dark?`0 0 16px ${D.accD}30`:"0 4px 16px rgba(0,0,0,0.1)";}}
               onMouseLeave={e=>{e.currentTarget.style.borderColor=D.bdr;e.currentTarget.style.boxShadow="none";}}>
               <div style={{background:D.stBg,display:"flex",justifyContent:"center",alignItems:"center",padding:"16px",aspectRatio:"1"}}>
-                <img src={c.img||c.img_url} alt={c.name} style={{maxWidth:"100%",maxHeight:"100%",objectFit:"contain",borderRadius:"4px",boxShadow:dark?"0 4px 16px rgba(0,0,0,0.6)":"0 4px 12px rgba(0,0,0,0.15)"}} onError={e=>e.target.style.display="none"}/>
+                <img src={proxyImg(c.img||c.img_url)} alt={c.name} style={{maxWidth:"100%",maxHeight:"100%",objectFit:"contain",borderRadius:"4px",boxShadow:dark?"0 4px 16px rgba(0,0,0,0.6)":"0 4px 12px rgba(0,0,0,0.15)"}} onError={e=>e.target.style.display="none"}/>
               </div>
               <div style={{padding:"10px 12px"}}>
                 <div style={{fontFamily:ORB,fontSize:"11px",fontWeight:700,color:D.txt,marginBottom:"3px",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{c.name}</div>
@@ -657,7 +664,7 @@ function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[],onPlac
             const active=card.id===c.id;
             return(
               <div key={c.id} onClick={()=>setCard(c)} style={{flexShrink:0,padding:"8px 10px",borderRight:`1px solid ${D.bdr}`,background:active?(dark?"rgba(0,255,80,0.06)":"rgba(22,128,58,0.06)"):"transparent",borderBottom:`2px solid ${active?D.accD:"transparent"}`,cursor:"pointer",minWidth:"80px",textAlign:"center"}}>
-                <img src={c.img||c.img_url} alt={c.name} style={{width:"32px",height:"44px",objectFit:"cover",borderRadius:"3px",display:"block",margin:"0 auto 4px"}} onError={e=>e.target.style.display="none"}/>
+                <img src={proxyImg(c.img||c.img_url)} alt={c.name} style={{width:"32px",height:"44px",objectFit:"cover",borderRadius:"3px",display:"block",margin:"0 auto 4px"}} onError={e=>e.target.style.display="none"}/>
                 <div style={{color:active?D.acc:D.txtM,fontSize:"9px",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:"72px"}}>{c.name.split(" ")[0]}</div>
               </div>
             );
@@ -781,7 +788,7 @@ function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[],onPlac
         {sidebarCards.map(c=>{const bp=c.basePrice||BASE[c.id]||0;const chg=(((c.id*7+13)%17-8)*0.6).toFixed(2);const up=+chg>=0;const active=card.id===c.id;return(
           <div key={c.id} onClick={()=>setCard(c)} style={{padding:"12px 14px",borderBottom:`1px solid ${D.bdr}`,cursor:"pointer",background:active?(dark?"rgba(0,255,80,0.05)":"rgba(22,128,58,0.05)"):"transparent",borderLeft:active?`3px solid ${D.accD}`:"3px solid transparent",transition:"all 0.1s"}}>
             <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
-              <img src={c.img||c.img_url} alt={c.name} style={{width:"38px",height:"52px",objectFit:"cover",borderRadius:"4px",border:`1px solid ${D.bdr}`,flexShrink:0}} onError={e=>e.target.style.display="none"}/>
+              <img src={proxyImg(c.img||c.img_url)} alt={c.name} style={{width:"38px",height:"52px",objectFit:"cover",borderRadius:"4px",border:`1px solid ${D.bdr}`,flexShrink:0}} onError={e=>e.target.style.display="none"}/>
               <div style={{minWidth:0}}>
                 <div style={{color:active?D.acc:D.txt,fontSize:"12px",fontWeight:600,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{c.name}</div>
                 <div style={{color:D.txtD,fontSize:"10px",marginTop:"2px",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{c.set||c.set_name}</div>
@@ -811,7 +818,7 @@ function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[],onPlac
         <div style={{flex:1,display:"flex",overflow:"hidden"}}>
           <div style={{width:"200px",flexShrink:0,borderRight:`1px solid ${D.bdr}`,background:D.bg2,display:"flex",flexDirection:"column",alignItems:"center",padding:"18px 14px",gap:"14px",overflowY:"auto"}}>
             <div style={{width:"168px",borderRadius:"10px",overflow:"hidden",border:`1px solid ${D.bdr}`,boxShadow:dark?`0 0 24px ${D.accD}25,0 6px 20px rgba(0,0,0,0.5)`:"0 6px 20px rgba(0,0,0,0.12)",background:D.stBg,aspectRatio:"0.714",display:"flex",alignItems:"center",justifyContent:"center"}}>
-              <img src={card.img||card.img_url} alt={card.name} style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}} onError={e=>e.target.style.display="none"}/>
+              <img src={proxyImg(card.img||card.img_url)} alt={card.name} style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}} onError={e=>e.target.style.display="none"}/>
             </div>
             <div style={{width:"100%",background:D.stBg,border:`1px solid ${D.bdr}`,borderRadius:"6px",padding:"10px 12px"}}>
               {[["GAME",card.game],["SET",card.set||card.set_name],["COND.",card.condition],["RARITY",card.rarity]].map(([k,v])=>(
@@ -1084,7 +1091,7 @@ function Landing({D,dark,dbCards,onEnterDemo,onOpenAuth}){
         <div style={{position:"absolute",inset:0,opacity:0.18,pointerEvents:"none",overflow:"hidden"}}>
           <div style={{position:"absolute",right:"-60px",top:"60px",width:"620px",background:dark?"#080c08":"#ffffff",border:`1px solid ${dark?"#0f1f0f":"#dde8dd"}`,borderRadius:"12px",padding:"16px",boxShadow:dark?"0 0 60px rgba(0,255,80,0.08)":"0 8px 40px rgba(0,0,0,0.08)"}}>
             <div style={{display:"flex",gap:"12px",alignItems:"center",marginBottom:"12px"}}>
-              <img src={featuredCard.img||featuredCard.img_url} style={{width:"50px",height:"70px",objectFit:"cover",borderRadius:"4px"}} onError={e=>e.target.style.display="none"}/>
+              <img src={proxyImg(featuredCard.img||featuredCard.img_url)} style={{width:"50px",height:"70px",objectFit:"cover",borderRadius:"4px"}} onError={e=>e.target.style.display="none"}/>
               <div>
                 <div style={{fontFamily:ORB,fontSize:"14px",fontWeight:700,color:dark?"#a8b8a0":"#2a3a2a"}}>{featuredCard.name}</div>
                 <div style={{fontSize:"11px",color:dark?"#4a8a4a":"#7a9a7a",marginTop:"2px"}}>{featuredCard.set||featuredCard.set_name}</div>
