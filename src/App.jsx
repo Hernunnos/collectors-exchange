@@ -982,34 +982,34 @@ function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[],onPlac
           </div>
 
           <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
-            {/* Chart toolbar - fixed height */}
-            <div style={{background:D.bg3,borderBottom:`1px solid ${D.bdr}`,padding:"8px 16px",flexShrink:0,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
-                <span style={{color:D.txtD,fontSize:"13px",letterSpacing:"0.12em"}}>▸ PRICE CHART</span>
-                {crosshair&&<span style={{fontFamily:ORB,fontSize:"14px",color:D.txt}}>${crosshair.price.toLocaleString("en-US",{minimumFractionDigits:2})} <span style={{color:D.txtD,fontSize:"12px",fontFamily:MONO}}>{crosshair.time}</span></span>}
-              </div>
-              <div style={{display:"flex",gap:"6px",alignItems:"center"}}>
-                <div style={{display:"flex",border:`1px solid ${D.bdr}`,borderRadius:"4px",overflow:"hidden",marginRight:"4px"}}>
-                  {[["line","▲"],["candle","▮"]].map(([t,icon])=>(
-                    <button key={t} onClick={()=>setChartType(t)} style={{padding:"2px 8px",border:"none",background:chartType===t?(dark?"rgba(0,180,60,0.18)":"rgba(22,128,58,0.10)"):"transparent",color:chartType===t?D.accD:D.txtD,fontSize:"13px",cursor:"pointer",borderRight:t==="line"?`1px solid ${D.bdr}`:"none"}}>{icon}</button>
+            <div style={{background:D.bg3,borderBottom:`1px solid ${D.bdr}`,padding:"10px 16px 0",flexShrink:0}}>
+              {/* Chart toolbar */}
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"8px"}}>
+                <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
+                  <span style={{color:D.txtD,fontSize:"13px",letterSpacing:"0.12em"}}>▸ PRICE CHART</span>
+                  {crosshair&&<span style={{fontFamily:ORB,fontSize:"14px",color:D.txt}}>${crosshair.price.toLocaleString("en-US",{minimumFractionDigits:2})} <span style={{color:D.txtD,fontSize:"12px",fontFamily:MONO}}>{crosshair.time}</span></span>}
+                </div>
+                <div style={{display:"flex",gap:"6px",alignItems:"center"}}>
+                  {/* Chart type toggle */}
+                  <div style={{display:"flex",border:`1px solid ${D.bdr}`,borderRadius:"4px",overflow:"hidden",marginRight:"4px"}}>
+                    {[["line","▲"],["candle","▮"]].map(([t,icon])=>(
+                      <button key={t} onClick={()=>setChartType(t)} title={t==="line"?"Line chart":"Candlestick"} style={{padding:"2px 8px",border:"none",background:chartType===t?(dark?"rgba(0,180,60,0.18)":"rgba(22,128,58,0.10)"):"transparent",color:chartType===t?D.accD:D.txtD,fontSize:"13px",cursor:"pointer",borderRight:t==="line"?`1px solid ${D.bdr}`:"none"}}>{icon}</button>
+                    ))}
+                  </div>
+                  {/* Time range */}
+                  {["1H","6H","1D","1W","1M"].map(r=>(
+                    <button key={r} onClick={()=>setChartRange(r)} style={{padding:"2px 8px",border:`1px solid ${r===chartRange?D.accD:D.bdr}`,borderRadius:"3px",background:r===chartRange?(dark?"rgba(0,180,60,0.14)":"rgba(22,128,58,0.08)"):"transparent",color:r===chartRange?D.accD:D.txtD,fontSize:"12px",fontFamily:MONO,cursor:"pointer"}}>{r}</button>
                   ))}
                 </div>
-                {["1H","6H","1D","1W","1M"].map(r=>(
-                  <button key={r} onClick={()=>setChartRange(r)} style={{padding:"2px 8px",border:`1px solid ${r===chartRange?D.accD:D.bdr}`,borderRadius:"3px",background:r===chartRange?(dark?"rgba(0,180,60,0.14)":"rgba(22,128,58,0.08)"):"transparent",color:r===chartRange?D.accD:D.txtD,fontSize:"12px",fontFamily:MONO,cursor:"pointer"}}>{r}</button>
-                ))}
               </div>
-            </div>
-
-            {/* Chart area - flex:1 to fill all remaining space */}
-            <div style={{flex:1,position:"relative",background:D.bg3,borderBottom:`1px solid ${D.bdr}`,minHeight:0}}>
               {!hasHistory?(
-                <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:"8px",opacity:0.4}}>
+                <div style={{height:CH,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:"8px",opacity:0.4}}>
                   <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke={D.txtD} strokeWidth="1.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
                   <span style={{color:D.txtD,fontSize:"14px",letterSpacing:"0.12em"}}>NO TRADE HISTORY YET</span>
                   <span style={{color:D.txtD,fontSize:"13px"}}>Place a trade to start recording price history</span>
                 </div>
               ):(
-                <div style={{position:"absolute",inset:0}}>
+                <div style={{position:"relative"}}>
                   {(()=>{
                     const MARGIN={top:8,right:72,bottom:DATE_H,left:4};
                     const IW=CW-MARGIN.left-MARGIN.right;
@@ -1018,7 +1018,7 @@ function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[],onPlac
                     const iy=(p)=>MARGIN.top+(IH-((p-minP)/rng)*IH);
                     const linePath=hist.length<2?"":hist.map((h,i)=>`${i===0?"M":"L"}${ix(i,hist.length).toFixed(1)},${iy(h.p).toFixed(1)}`).join(" ");
                     return(
-                      <svg width="100%" height="100%" viewBox={`0 0 ${CW} ${CH}`} preserveAspectRatio="none" style={{display:"block",cursor:"crosshair"}}
+                      <svg width="100%" height={CH} viewBox={`0 0 ${CW} ${CH}`} preserveAspectRatio="none" style={{display:"block",cursor:"crosshair"}}
                         onMouseMove={e=>{
                           const rect=e.currentTarget.getBoundingClientRect();
                           const xRatio=Math.max(0,Math.min(1,(e.clientX-rect.left)/(rect.width)));
@@ -1100,8 +1100,7 @@ function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[],onPlac
               )}
             </div>
 
-            {/* Order book - fixed 200px height */}
-            <div style={{height:"200px",flexShrink:0,display:"flex",overflow:"hidden"}}>
+            <div style={{flex:1,display:"flex",overflow:"hidden"}}>
               {[["BUY PRICE",bids,maxB,D.bidT,"bid"],["SELL PRICE",asks,maxA,D.askT,"ask"]].map(([label,rows,mx,tc,side])=>(
                 <div key={label} style={{flex:1,display:"flex",flexDirection:"column",borderRight:`1px solid ${D.bdr}`,overflow:"hidden"}}>
                   <div style={{padding:"5px 12px",borderBottom:`1px solid ${D.bdr}`,background:D.bg3,color:tc,fontSize:"14px",letterSpacing:"0.1em",flexShrink:0}}>▸ {label}</div>
