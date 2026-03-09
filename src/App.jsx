@@ -1558,6 +1558,254 @@ function AdminPanel({D,dark,onClose,currentUserId}){
     </div>
   );
 }
+
+// ── Profile & Settings Tab ────────────────────────────────────────────────────
+function ProfileSettings({D,dark,user,profile,tradeHistory=[],holdings=[],balance=0,onProfileUpdate,onDarkToggle,isMobile=false}){
+  const [section,setSection]=useState("profile"); // "profile" | "settings" | "reviews"
+  const [editing,setEditing]=useState(false);
+  const [dName,setDName]=useState(profile?.display_name||user?.user_metadata?.display_name||"");
+  const [bio,setBio]=useState(profile?.bio||"");
+  const [saving,setSaving]=useState(false);
+  const [saveMsg,setSaveMsg]=useState("");
+  // Settings state
+  const [newEmail,setNewEmail]=useState("");
+  const [curPwd,setCurPwd]=useState("");
+  const [newPwd,setNewPwd]=useState("");
+  const [pwdMsg,setPwdMsg]=useState("");
+  const [reviews,setReviews]=useState([]);
+  const [loadingReviews,setLoadingReviews]=useState(false);
+
+  const tier=getRepTier(profile?.trade_count||tradeHistory.length);
+  const tradeCount=profile?.trade_count||tradeHistory.length;
+  const winRate=tradeHistory.length>0?Math.round((tradeHistory.filter(t=>t.side==="sell").length/tradeHistory.length)*100):0;
+  const totalVolume=tradeHistory.reduce((s,t)=>s+(t.total||0),0);
+  const joinDate=profile?.joined_at||"—";
+
+  useEffect(()=>{
+    setDName(profile?.display_name||user?.user_metadata?.display_name||"");
+    setBio(profile?.bio||"");
+  },[profile]);
+
+  useEffect(()=>{
+    if(section==="reviews"){
+      setLoadingReviews(true);
+      import('./supabase').then(async({supabase})=>{
+        const {data}=await supabase.from('user_reviews').select('*').eq('reviewed_id',user?.id).order('created_at',{ascending:false});
+        setReviews(data||[]);
+        setLoadingReviews(false);
+      });
+    }
+  },[section]);
+
+  const saveProfile=async()=>{
+    setSaving(true);
+    const {supabase}=await import('./supabase');
+    await supabase.from('user_profiles').update({display_name:dName,bio}).eq('user_id',user.id);
+    if(onProfileUpdate) onProfileUpdate({...profile,display_name:dName,bio});
+    setSaveMsg("Profile saved!"); setTimeout(()=>setSaveMsg(""),2500);
+    setSaving(false); setEditing(false);
+  };
+
+  const changePassword=async()=>{
+    if(!newPwd||newPwd.length<6){setPwdMsg("Password must be at least 6 characters");return;}
+    const {supabase}=await import('./supabase');
+    const {error}=await supabase.auth.updateUser({password:newPwd});
+    if(error) setPwdMsg("Error: "+error.message);
+    else{setPwdMsg("Password updated!");setCurPwd("");setNewPwd("");}
+    setTimeout(()=>setPwdMsg(""),3000);
+  };
+
+  const SECTIONS=[["profile","👤 PROFILE"],["reviews","⭐ REVIEWS"],["settings","⚙ SETTINGS"]];
+
+  return(
+    <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
+      {/* Section tabs */}
+      <div style={{display:"flex",borderBottom:`1px solid ${D.bdr}`,background:D.bg2,flexShrink:0}}>
+        {SECTIONS.map(([s,label])=>(
+          <button key={s} onClick={()=>setSection(s)} style={{padding:"10px 20px",border:"none",background:"transparent",color:section===s?D.accD:D.txtD,fontSize:"10px",fontFamily:"'Share Tech Mono',monospace",letterSpacing:"0.1em",cursor:"pointer",borderBottom:`2px solid ${section===s?D.accD:"transparent"}`,transition:"all 0.12s"}}>{label}</button>
+        ))}
+      </div>
+
+      <div style={{flex:1,overflowY:"auto",padding:isMobile?"16px":"24px",maxWidth:"680px",margin:"0 auto",width:"100%"}}>
+
+        {/* ── PROFILE section ── */}
+        {section==="profile"&&(
+          <div>
+            {/* Avatar + name header */}
+            <div style={{display:"flex",alignItems:"center",gap:"20px",marginBottom:"24px",padding:"20px",background:D.bg2,border:`1px solid ${D.bdr}`,borderRadius:"10px"}}>
+              <div style={{width:isMobile?"56px":"72px",height:isMobile?"56px":"72px",borderRadius:"50%",background:dark?"linear-gradient(135deg,#0a3a1a,#0f5a28)":"linear-gradient(135deg,#cceacc,#a8d8a8)",border:`2px solid ${D.accD}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:isMobile?"22px":"28px",flexShrink:0}}>
+                {(dName||"?")[0].toUpperCase()}
+              </div>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontFamily:"'Orbitron',sans-serif",fontSize:isMobile?"15px":"18px",fontWeight:800,color:D.txt,marginBottom:"4px"}}>{profile?.display_name||user?.user_metadata?.display_name||user?.email?.split("@")[0]}</div>
+                <RepBadge tradeCount={tradeCount} size="lg"/>
+                {profile?.verified&&<span style={{marginLeft:"10px",color:"#2563eb",fontSize:"10px"}}>✓ VERIFIED</span>}
+                <div style={{color:D.txtD,fontSize:"10px",marginTop:"4px"}}>Member since {joinDate}</div>
+              </div>
+              <button onClick={()=>setEditing(e=>!e)} style={{padding:"6px 14px",background:"transparent",border:`1px solid ${D.bdr2}`,borderRadius:"4px",color:D.txtD,fontSize:"9px",fontFamily:"'Share Tech Mono',monospace",cursor:"pointer",flexShrink:0}}>{editing?"CANCEL":"EDIT"}</button>
+            </div>
+
+            {/* Edit form */}
+            {editing&&(
+              <div style={{background:D.bg2,border:`1px solid ${D.bdr2}`,borderRadius:"8px",padding:"18px",marginBottom:"20px"}}>
+                <div style={{color:D.txtD,fontSize:"10px",letterSpacing:"0.1em",marginBottom:"14px"}}>▸ EDIT PROFILE</div>
+                <div style={{marginBottom:"12px"}}>
+                  <div style={{color:D.txtD,fontSize:"9px",marginBottom:"5px"}}>DISPLAY NAME</div>
+                  <input value={dName} onChange={e=>setDName(e.target.value)} style={{width:"100%",background:D.inBg,border:`1px solid ${D.inBdr}`,borderRadius:"4px",padding:"8px 12px",color:D.txt,fontSize:"12px",fontFamily:"'Share Tech Mono',monospace"}}/>
+                </div>
+                <div style={{marginBottom:"14px"}}>
+                  <div style={{color:D.txtD,fontSize:"9px",marginBottom:"5px"}}>BIO</div>
+                  <textarea value={bio} onChange={e=>setBio(e.target.value)} rows={3} placeholder="Tell the community about yourself..." style={{width:"100%",background:D.inBg,border:`1px solid ${D.inBdr}`,borderRadius:"4px",padding:"8px 12px",color:D.txt,fontSize:"12px",fontFamily:"'Share Tech Mono',monospace",resize:"vertical"}}/>
+                </div>
+                <button onClick={saveProfile} disabled={saving} style={{padding:"8px 24px",background:dark?"linear-gradient(135deg,#0a3a1a,#0f5a28)":"linear-gradient(135deg,#cceacc,#a8d8a8)",border:`1px solid ${D.accD}`,borderRadius:"5px",color:dark?"#00ff55":"#1a5a2a",fontSize:"10px",fontFamily:"'Share Tech Mono',monospace",cursor:"pointer",fontWeight:"bold"}}>{saving?"SAVING...":"SAVE PROFILE"}</button>
+                {saveMsg&&<span style={{marginLeft:"12px",color:D.accD,fontSize:"10px"}}>{saveMsg}</span>}
+              </div>
+            )}
+
+            {/* Bio display */}
+            {!editing&&profile?.bio&&(
+              <div style={{background:D.bg2,border:`1px solid ${D.bdr}`,borderRadius:"8px",padding:"14px 18px",marginBottom:"20px"}}>
+                <div style={{color:D.txtD,fontSize:"9px",letterSpacing:"0.1em",marginBottom:"8px"}}>▸ BIO</div>
+                <div style={{color:D.txtM,fontSize:"11px",lineHeight:"1.6"}}>{profile.bio}</div>
+              </div>
+            )}
+
+            {/* Stats grid */}
+            <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr 1fr":"repeat(4,1fr)",gap:"12px",marginBottom:"20px"}}>
+              {[
+                ["TRADES",tradeCount.toLocaleString(),"total fills"],
+                ["VOLUME","$"+totalVolume.toLocaleString("en-US",{maximumFractionDigits:0}),"lifetime"],
+                ["HOLDINGS",holdings.length.toLocaleString(),"cards owned"],
+                ["BALANCE","$"+balance.toLocaleString("en-US",{maximumFractionDigits:0}),"available"],
+              ].map(([label,val,sub])=>(
+                <div key={label} style={{background:D.bg2,border:`1px solid ${D.bdr}`,borderRadius:"8px",padding:"14px"}}>
+                  <div style={{color:D.txtD,fontSize:"9px",letterSpacing:"0.1em",marginBottom:"6px"}}>{label}</div>
+                  <div style={{fontFamily:"'Orbitron',sans-serif",fontSize:"16px",fontWeight:700,color:D.acc,marginBottom:"3px"}}>{val}</div>
+                  <div style={{color:D.txtD,fontSize:"9px"}}>{sub}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Reputation tiers */}
+            <div style={{background:D.bg2,border:`1px solid ${D.bdr}`,borderRadius:"8px",padding:"16px 18px"}}>
+              <div style={{color:D.txtD,fontSize:"9px",letterSpacing:"0.1em",marginBottom:"14px"}}>▸ REPUTATION TIERS</div>
+              <div style={{display:"flex",flexDirection:"column",gap:"10px"}}>
+                {REP_TIERS.map((t,i)=>{
+                  const next=REP_TIERS[i+1];
+                  const active=tradeCount>=t.min&&(!next||tradeCount<next.min);
+                  const done=next&&tradeCount>=next.min;
+                  const pct=next?Math.min(100,((tradeCount-t.min)/(next.min-t.min))*100):100;
+                  return(
+                    <div key={t.label} style={{opacity:done||active?1:0.45}}>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"4px"}}>
+                        <span style={{color:active?t.color:(done?t.color:D.txtD),fontSize:"11px",fontWeight:active?"bold":"normal"}}>{t.icon} {t.label} {active&&"← YOU ARE HERE"}</span>
+                        <span style={{color:D.txtD,fontSize:"9px"}}>{t.min}+ trades</span>
+                      </div>
+                      {active&&next&&(
+                        <div style={{height:"4px",background:D.bg3,borderRadius:"2px",overflow:"hidden"}}>
+                          <div style={{height:"100%",width:`${pct}%`,background:t.color,borderRadius:"2px",transition:"width 0.5s"}}/>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── REVIEWS section ── */}
+        {section==="reviews"&&(
+          <div>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"16px"}}>
+              <div style={{color:D.txtD,fontSize:"10px",letterSpacing:"0.1em"}}>▸ REVIEWS FROM TRADERS</div>
+              {reviews.length>0&&(
+                <div style={{display:"flex",alignItems:"center",gap:"6px"}}>
+                  <span style={{color:"#f59e0b",fontSize:"16px"}}>{"★".repeat(Math.round(reviews.reduce((s,r)=>s+r.rating,0)/reviews.length))}</span>
+                  <span style={{color:D.txtM,fontSize:"11px"}}>{(reviews.reduce((s,r)=>s+r.rating,0)/reviews.length).toFixed(1)} avg</span>
+                  <span style={{color:D.txtD,fontSize:"10px"}}>({reviews.length} reviews)</span>
+                </div>
+              )}
+            </div>
+            {loadingReviews?(
+              <div style={{padding:"48px",textAlign:"center",color:D.txtD}}>Loading...</div>
+            ):reviews.length===0?(
+              <div style={{padding:"48px",textAlign:"center",background:D.bg2,border:`1px solid ${D.bdr}`,borderRadius:"8px"}}>
+                <div style={{fontSize:"32px",marginBottom:"12px"}}>⭐</div>
+                <div style={{color:D.txtD,fontSize:"11px"}}>No reviews yet.</div>
+                <div style={{color:D.txtD,fontSize:"10px",marginTop:"6px"}}>Reviews appear after peer-to-peer trades.</div>
+              </div>
+            ):reviews.map(r=>(
+              <div key={r.id} style={{background:D.bg2,border:`1px solid ${D.bdr}`,borderRadius:"8px",padding:"14px 16px",marginBottom:"10px"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"8px"}}>
+                  <span style={{color:"#f59e0b",fontSize:"14px"}}>{"★".repeat(r.rating)}{"☆".repeat(5-r.rating)}</span>
+                  <span style={{color:D.txtD,fontSize:"9px"}}>{r.created_at?.split("T")[0]}</span>
+                </div>
+                {r.comment&&<div style={{color:D.txtM,fontSize:"11px",lineHeight:"1.5"}}>{r.comment}</div>}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* ── SETTINGS section ── */}
+        {section==="settings"&&(
+          <div style={{display:"flex",flexDirection:"column",gap:"16px"}}>
+
+            {/* Appearance */}
+            <div style={{background:D.bg2,border:`1px solid ${D.bdr}`,borderRadius:"8px",padding:"16px 18px"}}>
+              <div style={{color:D.txtD,fontSize:"9px",letterSpacing:"0.1em",marginBottom:"14px"}}>▸ APPEARANCE</div>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <div>
+                  <div style={{color:D.txtM,fontSize:"11px",marginBottom:"3px"}}>{dark?"Dark Mode":"Light Mode"}</div>
+                  <div style={{color:D.txtD,fontSize:"10px"}}>Switch between light and dark themes</div>
+                </div>
+                <div onClick={onDarkToggle} style={{width:"48px",height:"26px",background:dark?"#1a3a1a":"#d1ecd1",borderRadius:"13px",border:`1px solid ${D.bdr2}`,display:"flex",alignItems:"center",padding:"3px",transition:"background 0.3s",cursor:"pointer"}}>
+                  <div style={{width:"18px",height:"18px",borderRadius:"50%",background:dark?"#00cc40":"#f59e0b",transform:dark?"translateX(0)":"translateX(22px)",transition:"transform 0.3s",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"10px"}}>{dark?"🌙":"☀️"}</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Account info */}
+            <div style={{background:D.bg2,border:`1px solid ${D.bdr}`,borderRadius:"8px",padding:"16px 18px"}}>
+              <div style={{color:D.txtD,fontSize:"9px",letterSpacing:"0.1em",marginBottom:"14px"}}>▸ ACCOUNT</div>
+              <div style={{marginBottom:"10px"}}>
+                <div style={{color:D.txtD,fontSize:"9px",marginBottom:"4px"}}>EMAIL ADDRESS</div>
+                <div style={{color:D.txtM,fontSize:"11px",padding:"8px 12px",background:D.bg3,borderRadius:"4px",border:`1px solid ${D.bdr}`}}>{user?.email}</div>
+              </div>
+              <div style={{marginBottom:"10px"}}>
+                <div style={{color:D.txtD,fontSize:"9px",marginBottom:"4px"}}>USER ID</div>
+                <div style={{color:D.txtD,fontSize:"9px",padding:"8px 12px",background:D.bg3,borderRadius:"4px",border:`1px solid ${D.bdr}`,fontFamily:"'Share Tech Mono',monospace",wordBreak:"break-all"}}>{user?.id}</div>
+              </div>
+              <div>
+                <div style={{color:D.txtD,fontSize:"9px",marginBottom:"4px"}}>MEMBER SINCE</div>
+                <div style={{color:D.txtM,fontSize:"11px",padding:"8px 12px",background:D.bg3,borderRadius:"4px",border:`1px solid ${D.bdr}`}}>{profile?.joined_at||"—"}</div>
+              </div>
+            </div>
+
+            {/* Change password */}
+            <div style={{background:D.bg2,border:`1px solid ${D.bdr}`,borderRadius:"8px",padding:"16px 18px"}}>
+              <div style={{color:D.txtD,fontSize:"9px",letterSpacing:"0.1em",marginBottom:"14px"}}>▸ CHANGE PASSWORD</div>
+              <div style={{marginBottom:"10px"}}>
+                <div style={{color:D.txtD,fontSize:"9px",marginBottom:"4px"}}>NEW PASSWORD</div>
+                <input type="password" value={newPwd} onChange={e=>setNewPwd(e.target.value)} placeholder="••••••••" style={{width:"100%",background:D.inBg,border:`1px solid ${D.inBdr}`,borderRadius:"4px",padding:"8px 12px",color:D.txt,fontSize:"12px",fontFamily:"'Share Tech Mono',monospace"}}/>
+              </div>
+              <button onClick={changePassword} style={{padding:"8px 20px",background:"transparent",border:`1px solid ${D.bdr2}`,borderRadius:"4px",color:D.txtD,fontSize:"9px",fontFamily:"'Share Tech Mono',monospace",cursor:"pointer"}}>UPDATE PASSWORD</button>
+              {pwdMsg&&<div style={{marginTop:"8px",color:pwdMsg.startsWith("Error")?D.askT:D.accD,fontSize:"10px"}}>{pwdMsg}</div>}
+            </div>
+
+            {/* Danger zone */}
+            <div style={{background:dark?"rgba(180,30,30,0.05)":"rgba(220,50,50,0.03)",border:`1px solid ${dark?"#3a1010":"#e8c5c5"}`,borderRadius:"8px",padding:"16px 18px"}}>
+              <div style={{color:"#dc2626",fontSize:"9px",letterSpacing:"0.1em",marginBottom:"10px"}}>▸ DANGER ZONE</div>
+              <div style={{color:D.txtD,fontSize:"10px",marginBottom:"12px"}}>Deleting your account is permanent and cannot be undone.</div>
+              <button style={{padding:"8px 16px",background:"transparent",border:"1px solid #dc2626",borderRadius:"4px",color:"#dc2626",fontSize:"9px",fontFamily:"'Share Tech Mono',monospace",cursor:"pointer"}} onClick={()=>alert("Please contact support to delete your account.")}>DELETE ACCOUNT</button>
+            </div>
+
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 export default function App(){
   const [dark,setDark]=useState(false);
   const [screen,setScreen]=useState("landing"); // "landing" | "app"
@@ -1756,6 +2004,7 @@ export default function App(){
   };
 
   const handleBrowseSelect=(card)=>{ setSelectedCard(card); setTab("MARKET"); };
+  const handleProfileUpdate=(updatedProfile)=>setProfile(updatedProfile);
 
   const handleCSVImport=(importedRows)=>{
     const toAdd=importedRows.filter(r=>r.matchedCard);
@@ -1867,7 +2116,7 @@ export default function App(){
                 </div>
               )}
               <div style={{flex:1,padding:"8px 0"}}>
-                {["MARKET","BROWSE","PORTFOLIO","ORDERS","HISTORY"].map(t=>(
+                {(user?["MARKET","BROWSE","PORTFOLIO","ORDERS","HISTORY","PROFILE"]:["MARKET","BROWSE","PORTFOLIO","ORDERS","HISTORY"]).map(t=>(
                   <button key={t} onClick={()=>{setTab(t);setDrawerOpen(false);}} style={{display:"block",width:"100%",padding:"14px 20px",border:"none",background:tab===t?(dark?"rgba(0,255,80,0.08)":"rgba(22,128,58,0.07)"):"transparent",color:tab===t?D.accD:D.txtM,fontSize:"11px",fontFamily:MONO,letterSpacing:"0.12em",textAlign:"left",borderLeft:`3px solid ${tab===t?D.accD:"transparent"}`,cursor:"pointer"}}>{t}</button>
                 ))}
               </div>
@@ -1920,7 +2169,7 @@ export default function App(){
                   <span style={{color:D.txtD,fontSize:"9px",letterSpacing:"0.14em",fontStyle:"italic"}}>Buy. Sell. Collect.</span>
                 </div>
                 <div style={{display:"flex",gap:"2px",alignItems:"center"}}>
-                  {["MARKET","BROWSE","PORTFOLIO","ORDERS","HISTORY"].map(t=>(
+                  {(user?["MARKET","BROWSE","PORTFOLIO","ORDERS","HISTORY","PROFILE"]:["MARKET","BROWSE","PORTFOLIO","ORDERS","HISTORY"]).map(t=>(
                     <button key={t} onClick={()=>setTab(t)} style={{padding:"0 16px",height:"44px",border:"none",background:"transparent",color:tab===t?D.accD:D.txtD,fontSize:"10px",fontFamily:MONO,letterSpacing:"0.12em",borderBottom:`2px solid ${tab===t?D.accD:"transparent"}`,transition:"all 0.12s",cursor:"pointer"}}>{t}</button>
                   ))}
                 </div>
@@ -1955,7 +2204,7 @@ export default function App(){
           {/* ── Mobile bottom tab bar ── */}
           {isMobile&&(
             <div style={{position:"fixed",bottom:0,left:0,right:0,background:D.hdrBg,borderTop:`1px solid ${D.bdr2}`,display:"flex",zIndex:100,height:"54px",boxShadow:"0 -2px 12px rgba(0,0,0,0.15)"}}>
-              {[{t:"MARKET",i:"📈"},{t:"BROWSE",i:"🔍"},{t:"PORTFOLIO",i:"💼"},{t:"ORDERS",i:"📋"},{t:"HISTORY",i:"📜"}].map(({t,i})=>(
+              {[{t:"MARKET",i:"📈"},{t:"BROWSE",i:"🔍"},{t:"PORTFOLIO",i:"💼"},{t:"ORDERS",i:"📋"},{t:"HISTORY",i:"📜"},...(user?[{t:"PROFILE",i:"👤"}]:[])].map(({t,i})=>(
                 <button key={t} onClick={()=>setTab(t)} style={{flex:1,border:"none",background:"transparent",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:"2px",color:tab===t?D.accD:D.txtD,fontSize:"8px",fontFamily:MONO,letterSpacing:"0.06em",borderTop:`2px solid ${tab===t?D.accD:"transparent"}`,cursor:"pointer",padding:"6px 0"}}>
                   <span style={{fontSize:"16px"}}>{i}</span>
                   <span>{t}</span>
@@ -1970,6 +2219,7 @@ export default function App(){
             {tab==="PORTFOLIO" && <Portfolio D={D} dark={dark} holdings={holdings} tradeHistory={tradeHistory} dbCards={dbCards} isMobile={isMobile}/>}
             {tab==="ORDERS"    && <Orders    D={D} dark={dark} orders={orders} onCancel={cancelOrder} dbCards={dbCards} isMobile={isMobile}/>}
             {tab==="HISTORY"   && <History   D={D} dark={dark} tradeHistory={tradeHistory} ledger={ledger} dbCards={dbCards} isMobile={isMobile}/>}
+            {tab==="PROFILE"   && user && <ProfileSettings D={D} dark={dark} user={user} profile={profile} tradeHistory={tradeHistory} holdings={holdings} balance={balance} onProfileUpdate={handleProfileUpdate} onDarkToggle={()=>setDark(d=>!d)} isMobile={isMobile}/>}
           </div>
         </div>
       )}
