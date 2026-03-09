@@ -296,7 +296,17 @@ function Orders({D,dark,orders=[],onCancel,dbCards=[],isMobile=false}){
                     </div>
                     <div style={{display:"flex",justifyContent:"space-between",marginTop:"4px",alignItems:"center"}}>
                       <span style={{color:D.txtD,fontSize:"9px"}}>{o.id} · {o.date}</span>
-                      {(o.status==="open"||o.status==="partial")&&<button onClick={()=>cancel(o.id)} style={{padding:"3px 10px",background:dark?"rgba(220,50,50,0.12)":"rgba(220,50,50,0.08)",border:`1px solid ${dark?"#5a1a1a":"#e07070"}`,borderRadius:"3px",color:D.askT,fontSize:"9px",fontFamily:MONO,cursor:"pointer"}}>CANCEL</button>}
+                      {(o.status==="open"||o.status==="partial")&&(
+                        <div style={{display:"flex",gap:"6px",alignItems:"center"}}>
+                          {o.expiry&&o.expiry!=="gtc"&&(
+                            <span style={{color:D.txtD,fontSize:"8px",padding:"2px 6px",border:`1px solid ${D.bdr}`,borderRadius:"3px",fontFamily:MONO}}>
+                              {o.expiry==="day"?"DAY":o.expiry==="week"?"WEEK":o.expiry==="month"?"MONTH":"GTC"}
+                            </span>
+                          )}
+                          <button onClick={()=>cancel(o.id)} style={{padding:"3px 10px",background:dark?"rgba(220,50,50,0.12)":"rgba(220,50,50,0.08)",border:`1px solid ${dark?"#5a1a1a":"#e07070"}`,borderRadius:"3px",color:D.askT,fontSize:"9px",fontFamily:MONO,cursor:"pointer"}}>CANCEL</button>
+                        </div>
+                      )}
+                      {o.status==="expired"&&<span style={{color:"#f59e0b",fontSize:"9px",fontFamily:MONO}}>EXPIRED</span>}
                     </div>
                   </div>
                 </div>
@@ -582,6 +592,13 @@ function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[],onPlac
   const [price,setPrice]=useState(BASE[1]);
   const [flash,setFlash]=useState(null);
   const [oSide,setOSide]=useState("buy");
+  const [oExpiry,setOExpiry]=useState("gtc"); // gtc | day | week | month
+  const EXPIRY_OPTS=[
+    {val:"day",  label:"Good for today",  short:"DAY"},
+    {val:"week", label:"Good for a week", short:"WEEK"},
+    {val:"month",label:"Good for a month",short:"MONTH"},
+    {val:"gtc",  label:"Until cancelled", short:"GTC"},
+  ];
   const oType="limit"; // market orders handled by ⚡ instant buttons
   const [oPrice,setOPrice]=useState("");
   const [oQty,setOQty]=useState("");
@@ -647,7 +664,7 @@ function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[],onPlac
         setOStatus({error:msg}); setTimeout(()=>setOStatus(null),4000); return;
       }
     }
-    if(onPlaceOrder) onPlaceOrder({cardId:card.id,side:oSide,type:oType,price:orderPrice,qty:orderQty});
+    if(onPlaceOrder) onPlaceOrder({cardId:card.id,side:oSide,type:oType,price:orderPrice,qty:orderQty,expiry:oExpiry});
     setOStatus({side:oSide,price:orderPrice,qty:orderQty});
     setTimeout(()=>setOStatus(null),3000);
     setOPrice(""); setOQty("");
@@ -755,6 +772,17 @@ function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[],onPlac
                 </div>
                 <div><div style={{color:D.txtD,fontSize:"9px",marginBottom:"6px"}}>PRICE (USD)</div><input type="number" value={oPrice} onChange={e=>setOPrice(e.target.value)} placeholder={price.toFixed(2)} style={{width:"100%",background:D.inBg,border:`1px solid ${D.inBdr}`,borderRadius:"5px",padding:"10px 12px",color:D.txt,fontSize:"16px",fontFamily:MONO}}/></div>
                 <div><div style={{color:D.txtD,fontSize:"9px",marginBottom:"6px"}}>QUANTITY</div><input type="number" value={oQty} onChange={e=>setOQty(e.target.value)} placeholder="0" style={{width:"100%",background:D.inBg,border:`1px solid ${D.inBdr}`,borderRadius:"5px",padding:"10px 12px",color:D.txt,fontSize:"16px",fontFamily:MONO}}/></div>
+                <div>
+                  <div style={{color:D.txtD,fontSize:"9px",marginBottom:"6px"}}>TIME IN FORCE</div>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"4px"}}>
+                    {EXPIRY_OPTS.map(o=>(
+                      <button key={o.val} onClick={()=>setOExpiry(o.val)} style={{padding:"7px 4px",border:`1px solid ${oExpiry===o.val?D.accD:D.bdr}`,borderRadius:"4px",background:oExpiry===o.val?(dark?"rgba(0,100,30,0.15)":"rgba(22,128,58,0.08)"):"transparent",color:oExpiry===o.val?D.accD:D.txtD,fontSize:"9px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.06em",textAlign:"center"}}>
+                        <div>{o.short}</div>
+                        <div style={{fontSize:"8px",opacity:0.7,marginTop:"2px"}}>{o.label}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 <div style={{background:D.stBg,border:`1px solid ${D.bdr}`,borderRadius:"5px",padding:"10px 12px",display:"flex",justifyContent:"space-between"}}>
                   <span style={{color:D.txtD,fontSize:"10px"}}>TOTAL</span>
                   <span style={{color:D.txtM,fontSize:"14px"}}>${((+oPrice||price)*(+oQty||0)).toLocaleString("en-US",{minimumFractionDigits:2})}</span>
@@ -933,6 +961,16 @@ function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[],onPlac
                   })()}
                 </div>
                 <input type="number" value={oQty} onChange={e=>setOQty(e.target.value)} placeholder="0" style={{width:"100%",background:D.inBg,border:`1px solid ${D.inBdr}`,borderRadius:"4px",padding:"7px 10px",color:D.txt,fontSize:"12px"}}/>
+              <div style={{marginBottom:"10px"}}>
+                <div style={{color:D.txtD,fontSize:"9px",marginBottom:"6px"}}>TIME IN FORCE</div>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:"4px"}}>
+                  {EXPIRY_OPTS.map(o=>(
+                    <button key={o.val} onClick={()=>setOExpiry(o.val)} style={{padding:"6px 2px",border:`1px solid ${oExpiry===o.val?D.accD:D.bdr}`,borderRadius:"4px",background:oExpiry===o.val?(dark?"rgba(0,100,30,0.15)":"rgba(22,128,58,0.08)"):"transparent",color:oExpiry===o.val?D.accD:D.txtD,fontSize:"8px",fontFamily:MONO,cursor:"pointer",textAlign:"center"}}>
+                      <div style={{fontWeight:"bold"}}>{o.short}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
               </div>
               <div style={{background:D.stBg,border:`1px solid ${D.bdr}`,borderRadius:"4px",padding:"8px 10px",marginBottom:"14px",display:"flex",justifyContent:"space-between"}}><span style={{color:D.txtD,fontSize:"9px"}}>TOTAL</span><span style={{color:D.txtM,fontSize:"13px"}}>${((+oPrice||price)*(+oQty||0)).toLocaleString("en-US",{minimumFractionDigits:2})}</span></div>
               {/* Instant buy/sell */}
@@ -2195,7 +2233,7 @@ export default function App(){
     // orders
     if(newOrders?.length){
       const unique=[...new Map(newOrders.map(o=>[o.id,o])).values()];
-      await sb.from('user_orders').upsert(unique.map(o=>({id:o.id,user_id:uid,card_id:o.cardId,side:o.side,type:o.type,price:o.price,qty:o.qty,filled:o.filled,status:o.status,time:o.time,date:o.date})),{onConflict:'id'});
+      await sb.from('user_orders').upsert(unique.map(o=>({id:o.id,user_id:uid,card_id:o.cardId,side:o.side,type:o.type,price:o.price,qty:o.qty,filled:o.filled,status:o.status,time:o.time,date:o.date,expiry:o.expiry||'gtc',expires_at:o.expiresAt||null})),{onConflict:'id'});
     }
     // holdings replace
     if(newHoldings!==undefined){
@@ -2220,7 +2258,7 @@ export default function App(){
     ]);
     if(balRes.data?.length) setBalance(+balRes.data[0].balance);
     else await sb.from('user_balance').insert({user_id:uid,balance:STARTING_BALANCE});
-    setOrders(ordRes.data?.length ? ordRes.data.map(o=>({id:o.id,cardId:+o.card_id,side:o.side,type:o.type,price:+o.price,qty:+o.qty,filled:+o.filled,status:o.status,time:o.time,date:o.date})) : []);
+    setOrders(ordRes.data?.length ? ordRes.data.map(o=>({id:o.id,cardId:+o.card_id,side:o.side,type:o.type,price:+o.price,qty:+o.qty,filled:+o.filled,status:o.status,time:o.time,date:o.date,expiry:o.expiry||'gtc',expiresAt:o.expires_at||null})) : []);
     setHoldings(holdRes.data?.length ? holdRes.data.map(h=>({cardId:+h.card_id,qty:+h.qty,avgCost:+h.avg_cost,acquired:h.acquired,lockedQty:+(h.locked_qty||0)})) : []);
     setTradeHistory(trdRes.data?.length ? trdRes.data.map(t=>({id:t.id,cardId:+t.card_id,side:t.side,price:+t.price,qty:+t.qty,total:+t.total,date:t.date,time:t.time})) : []);
     if(profRes.data?.length) setProfile(profRes.data[0]);
@@ -2253,7 +2291,19 @@ export default function App(){
   useEffect(()=>{
     const iv=setInterval(()=>{
       setOrders(prev=>{
-        const openOrders=prev.filter(o=>o.status==="open"||o.status==="partial");
+        // Expire orders past their time limit before matching
+        const now=new Date();
+        const expiredIds=new Set(prev.filter(o=>(o.status==="open"||o.status==="partial")&&o.expiresAt&&new Date(o.expiresAt)<now).map(o=>o.id));
+        if(expiredIds.size>0){
+          setOrders(p=>p.map(o=>expiredIds.has(o.id)?{...o,status:"expired"}:o));
+          // Unlock any locked qty from expired sell orders
+          setHoldings(h=>h.map(holding=>{
+            const expiredSells=prev.filter(o=>expiredIds.has(o.id)&&o.side==="sell"&&o.cardId===holding.cardId);
+            const unlockQty=expiredSells.reduce((s,o)=>s+(o.qty-o.filled),0);
+            return unlockQty>0?{...holding,lockedQty:Math.max(0,(holding.lockedQty||0)-unlockQty)}:holding;
+          }));
+        }
+        const openOrders=prev.filter(o=>(o.status==="open"||o.status==="partial")&&!expiredIds.has(o.id));
         if(!openOrders.length) return prev;
         const result=matchOrders(prev,marketPricesRef.current,holdingsRef.current,balanceRef.current);
         if(result.newTrades.length){
@@ -2284,8 +2334,17 @@ export default function App(){
     return ()=>clearInterval(iv);
   },[]);
 
+  const calcExpiresAt=(expiry)=>{
+    if(!expiry||expiry==="gtc") return null;
+    const d=new Date();
+    if(expiry==="day")  d.setHours(23,59,59,999);
+    if(expiry==="week") d.setDate(d.getDate()+7);
+    if(expiry==="month") d.setMonth(d.getMonth()+1);
+    return d.toISOString();
+  };
   const placeOrder=async(orderData)=>{
-    const o={id:newOrderId(),...orderData,cardId:+orderData.cardId,filled:0,status:"open",time:nowTime(),date:nowDate()};
+    const expiresAt=calcExpiresAt(orderData.expiry||"gtc");
+    const o={id:newOrderId(),...orderData,cardId:+orderData.cardId,filled:0,status:"open",time:nowTime(),date:nowDate(),expiry:orderData.expiry||"gtc",expiresAt};
     if(o.type==="market"){
       const result=matchOrders([o],marketPrices,holdings,balance);
       // result.orders contains the single filled order; merge with existing
