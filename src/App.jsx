@@ -688,15 +688,22 @@ function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[],onPlac
         {/* Order book — scrollable */}
         <div style={{flex:1,overflowY:"auto",background:D.bg2}}>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr"}}>
-            {[["BIDS",bids,maxB,D.bidT,"bid"],["ASKS",asks,maxA,D.askT,"ask"]].map(([label,rows,mx,tc])=>(
+            {[["BUY PRICE",bids,maxB,D.bidT,"bid"],["SELL PRICE",asks,maxA,D.askT,"ask"]].map(([label,rows,mx,tc,side])=>(
               <div key={label} style={{borderRight:`1px solid ${D.bdr}`}}>
                 <div style={{padding:"6px 10px",borderBottom:`1px solid ${D.bdr}`,background:D.bg3,color:tc,fontSize:"9px",letterSpacing:"0.1em"}}>▸ {label}</div>
-                {rows.slice(0,6).map((r,i)=>(
-                  <div key={i} onClick={()=>{setOPrice(r.price.toString());setSheetOpen(true);}} style={{padding:"5px 10px",borderBottom:`1px solid ${D.bdr}`,cursor:"pointer"}}>
-                    <div style={{color:tc,fontSize:"11px"}}>${r.price.toLocaleString("en-US",{minimumFractionDigits:2})}</div>
-                    <div style={{color:D.txtD,fontSize:"9px"}}>qty {r.qty}</div>
-                  </div>
-                ))}
+                {rows.slice(0,6).map((r,i)=>{
+                  const rowTotal=+(r.price*r.qty).toFixed(2);
+                  return(
+                    <div key={i} onClick={()=>{setOPrice(r.price.toString());setSheetOpen(true);}} style={{padding:"6px 10px",borderBottom:`1px solid ${D.bdr}`,cursor:"pointer",position:"relative"}}>
+                      <div style={{position:"absolute",[side==="bid"?"left":"right"]:0,top:0,bottom:0,width:`${(r.qty/mx)*100}%`,background:side==="bid"?(dark?"rgba(0,180,60,0.07)":"rgba(22,128,58,0.06)"):(dark?"rgba(180,40,40,0.08)":"rgba(180,30,30,0.06)")}}/>
+                      <div style={{color:tc,fontSize:"11px",zIndex:1,position:"relative"}}>${r.price.toLocaleString("en-US",{minimumFractionDigits:2})} <span style={{color:D.txtD,fontSize:"9px"}}>/ card</span></div>
+                      <div style={{display:"flex",justifyContent:"space-between",zIndex:1,position:"relative"}}>
+                        <span style={{color:D.txtD,fontSize:"9px"}}>qty {r.qty}</span>
+                        <span style={{color:D.txtM,fontSize:"9px",fontWeight:"bold"}}>${rowTotal.toLocaleString("en-US",{maximumFractionDigits:0})} total</span>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             ))}
           </div>
@@ -842,19 +849,28 @@ function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[],onPlac
             </div>
 
             <div style={{flex:1,display:"flex",overflow:"hidden"}}>
-              {[["BIDS",bids,maxB,D.bidT,"bid"],["ASKS",asks,maxA,D.askT,"ask"]].map(([label,rows,mx,tc,side])=>(
+              {[["BUY PRICE",bids,maxB,D.bidT,"bid"],["SELL PRICE",asks,maxA,D.askT,"ask"]].map(([label,rows,mx,tc,side])=>(
                 <div key={label} style={{flex:1,display:"flex",flexDirection:"column",borderRight:`1px solid ${D.bdr}`,overflow:"hidden"}}>
                   <div style={{padding:"5px 12px",borderBottom:`1px solid ${D.bdr}`,background:D.bg3,color:tc,fontSize:"10px",letterSpacing:"0.1em",flexShrink:0}}>▸ {label}</div>
-                  <div style={{display:"grid",gridTemplateColumns:"1fr 46px 68px",padding:"3px 12px",color:D.txtD,fontSize:"9px",borderBottom:`1px solid ${D.bdr}`,background:D.bg3,flexShrink:0}}><span>PRICE</span><span style={{textAlign:"right"}}>QTY</span><span style={{textAlign:"right"}}>TOTAL</span></div>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 36px 70px 70px",padding:"3px 12px",color:D.txtD,fontSize:"9px",borderBottom:`1px solid ${D.bdr}`,background:D.bg3,flexShrink:0}}>
+                    <span>PER UNIT</span><span style={{textAlign:"right"}}>QTY</span><span style={{textAlign:"right"}}>TOTAL</span><span style={{textAlign:"right",opacity:0}}> </span>
+                  </div>
                   <div style={{flex:1,overflowY:"auto",background:D.bg2}}>
-                    {rows.map((r,i)=>(
-                      <div key={i} onClick={()=>setOPrice(r.price.toString())} style={{display:"grid",gridTemplateColumns:"1fr 46px 68px",padding:"4px 12px",borderBottom:`1px solid ${D.bdr}`,position:"relative",cursor:"pointer"}}>
-                        <div style={{position:"absolute",[side==="bid"?"left":"right"]:0,top:0,bottom:0,width:`${(r.qty/mx)*100}%`,background:side==="bid"?(dark?"rgba(0,180,60,0.07)":"rgba(22,128,58,0.06)"):(dark?"rgba(180,40,40,0.08)":"rgba(180,30,30,0.06)")}}/>
-                        <span style={{color:tc,fontSize:"12px",zIndex:1}}>${r.price.toLocaleString("en-US",{minimumFractionDigits:2})}</span>
-                        <span style={{textAlign:"right",color:D.txtM,fontSize:"12px",zIndex:1}}>{r.qty}</span>
-                        <span style={{textAlign:"right",color:D.txtD,fontSize:"11px",zIndex:1}}>${r.total.toLocaleString()}</span>
-                      </div>
-                    ))}
+                    {rows.map((r,i)=>{
+                      const rowTotal=+(r.price*r.qty).toFixed(2);
+                      return(
+                        <div key={i} onClick={()=>setOPrice(r.price.toString())} style={{display:"grid",gridTemplateColumns:"1fr 36px 70px 70px",padding:"4px 12px",borderBottom:`1px solid ${D.bdr}`,position:"relative",cursor:"pointer",alignItems:"center"}}>
+                          <div style={{position:"absolute",[side==="bid"?"left":"right"]:0,top:0,bottom:0,width:`${(r.qty/mx)*100}%`,background:side==="bid"?(dark?"rgba(0,180,60,0.07)":"rgba(22,128,58,0.06)"):(dark?"rgba(180,40,40,0.08)":"rgba(180,30,30,0.06)")}}/>
+                          <div style={{zIndex:1}}>
+                            <div style={{color:tc,fontSize:"12px"}}>${r.price.toLocaleString("en-US",{minimumFractionDigits:2})}</div>
+                            <div style={{color:D.txtD,fontSize:"9px"}}>per card</div>
+                          </div>
+                          <span style={{textAlign:"right",color:D.txtM,fontSize:"12px",zIndex:1}}>{r.qty}</span>
+                          <span style={{textAlign:"right",color:D.txtM,fontSize:"11px",zIndex:1,fontWeight:"bold"}}>${rowTotal.toLocaleString("en-US",{minimumFractionDigits:2})}</span>
+                          <span style={{textAlign:"right",color:D.txtD,fontSize:"9px",zIndex:1}}>total</span>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               ))}
@@ -930,7 +946,7 @@ function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[],onPlac
               </button>
               {oStatus&&<div style={{marginTop:"10px",padding:"8px 10px",background:oStatus.error?(dark?"rgba(180,30,30,0.08)":"rgba(220,50,50,0.06)"):(dark?"rgba(0,180,60,0.08)":"rgba(22,128,58,0.08)"),border:`1px solid ${oStatus.error?(dark?"#5a1a1a":"#e07070"):(dark?"#1a4a1a":"#8acc8a")}`,borderRadius:"4px",fontSize:"10px",color:oStatus.error?D.askT:D.accD,lineHeight:"1.8"}}>{oStatus.error?`⚠ ${oStatus.error}`:<>✓ ORDER PLACED<br/><span style={{color:D.txtM}}>{oStatus.side?.toUpperCase()} {oStatus.qty}x @ ${oStatus.price?.toFixed(2)}</span></>}</div>}
               <div style={{marginTop:"16px",paddingTop:"12px",borderTop:`1px solid ${D.bdr}`}}>
-                {[["BEST ASK",`$${asks[0]?.price.toFixed(2)}`],["BEST BID",`$${bids[0]?.price.toFixed(2)}`],["LAST TRADE",`$${price.toFixed(2)}`],["SPREAD",`$${spread.toFixed(2)}`]].map(([k,v])=>(
+                {[["BEST SELL PRICE",`$${asks[0]?.price.toFixed(2)}`],["BEST BUY PRICE",`$${bids[0]?.price.toFixed(2)}`],["LAST TRADE",`$${price.toFixed(2)}`],["SPREAD",`$${spread.toFixed(2)}`]].map(([k,v])=>(
                   <div key={k} style={{display:"flex",justifyContent:"space-between",marginBottom:"5px"}}><span style={{color:D.txtD,fontSize:"9px"}}>{k}</span><span style={{color:D.txtM,fontSize:"10px"}}>{v}</span></div>
                 ))}
               </div>
