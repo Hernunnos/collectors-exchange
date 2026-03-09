@@ -695,7 +695,7 @@ function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[],onPlac
   const minP=hasHistory?Math.min(...hist.map(h=>h.p)):0;
   const maxP=hasHistory?Math.max(...hist.map(h=>h.p)):0;
   const rng=maxP-minP||1;
-  const CW=560,CH=200,DATE_H=22;
+  const CW=900,CH=240,DATE_H=22;
   const yPos=(p)=>((CH-20)-((p-minP)/rng)*(CH-40))+10;
   const lp=()=>{
     if(hist.length<2) return "";
@@ -967,8 +967,8 @@ function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[],onPlac
         </div>
 
         <div style={{flex:1,display:"flex",overflow:"hidden"}}>
-          <div style={{width:"200px",flexShrink:0,borderRight:`1px solid ${D.bdr}`,background:D.bg2,display:"flex",flexDirection:"column",alignItems:"center",padding:"18px 14px",gap:"14px",overflowY:"auto"}}>
-            <div style={{width:"168px",borderRadius:"10px",overflow:"hidden",border:`1px solid ${D.bdr}`,boxShadow:dark?`0 0 24px ${D.accD}25,0 6px 20px rgba(0,0,0,0.5)`:"0 6px 20px rgba(0,0,0,0.12)",background:D.stBg,aspectRatio:"0.714",display:"flex",alignItems:"center",justifyContent:"center"}}>
+          <div style={{width:"250px",flexShrink:0,borderRight:`1px solid ${D.bdr}`,background:D.bg2,display:"flex",flexDirection:"column",alignItems:"center",padding:"18px 14px",gap:"14px",overflowY:"auto"}}>
+            <div style={{width:"218px",borderRadius:"10px",overflow:"hidden",border:`1px solid ${D.bdr}`,boxShadow:dark?`0 0 24px ${D.accD}25,0 6px 20px rgba(0,0,0,0.5)`:"0 6px 20px rgba(0,0,0,0.12)",background:D.stBg,aspectRatio:"0.714",display:"flex",alignItems:"center",justifyContent:"center"}}>
               <img src={proxyImg(card.img||card.img_url)} alt={card.name} style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}} onError={e=>e.target.style.display="none"}/>
             </div>
             <div style={{width:"100%",background:D.stBg,border:`1px solid ${D.bdr}`,borderRadius:"6px",padding:"10px 12px"}}>
