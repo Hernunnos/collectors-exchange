@@ -1010,85 +1010,96 @@ function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[],onPlac
                 </div>
               ):(
                 <div style={{position:"relative"}}>
-                  {/* Live price tag — floats to the right, outside the chart */}
-                  <div style={{position:"absolute",right:0,top:0,bottom:DATE_H,pointerEvents:"none",display:"flex",alignItems:"flex-start",paddingTop:`${yPos(price)-10}px`,zIndex:2}}>
-                    <div style={{background:D.accD,color:dark?"#000":"#fff",fontSize:"10px",fontFamily:MONO,padding:"2px 5px",borderRadius:"3px 0 0 3px",whiteSpace:"nowrap",lineHeight:"14px",marginRight:"0"}}>
-                      ${price.toLocaleString("en-US",{minimumFractionDigits:2})}
-                    </div>
-                  </div>
-                  {/* Main chart SVG */}
-                  <svg
-                    width="100%" height={CH}
-                    viewBox={`0 0 ${CW} ${CH}`}
-                    preserveAspectRatio="none"
-                    style={{display:"block",cursor:"crosshair"}}
-                    onMouseMove={e=>{
-                      const rect=e.currentTarget.getBoundingClientRect();
-                      const xRatio=(e.clientX-rect.left)/rect.width;
-                      if(chartType==="line"&&hist.length>=2){
-                        const idx=Math.round(xRatio*(hist.length-1));
-                        const h=hist[Math.max(0,Math.min(idx,hist.length-1))];
-                        setCrosshair({x:(idx/(hist.length-1))*CW,y:yPos(h.p),price:h.p,time:h.time||"",idx});
-                      } else if(chartType==="candle"&&candles.length>=2){
-                        const idx=Math.round(xRatio*(candles.length-1));
-                        const c=candles[Math.max(0,Math.min(idx,candles.length-1))];
-                        setCrosshair({x:((idx+0.5)/candles.length)*CW,y:yPos(c.close),price:c.close,open:c.open,high:c.high,low:c.low,time:c.time||"",idx});
-                      }
-                    }}
-                    onMouseLeave={()=>setCrosshair(null)}
-                  >
-                    <defs>
-                      <linearGradient id="cg" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor={D.accD} stopOpacity={dark?"0.18":"0.12"}/>
-                        <stop offset="100%" stopColor={D.accD} stopOpacity="0"/>
-                      </linearGradient>
-                    </defs>
-                    {/* Grid lines + price labels */}
-                    {[0,0.25,0.5,0.75,1].map(f=>{
-                      const p=minP+rng*(1-f);
-                      const y=yPos(p).toFixed(1);
-                      return <g key={f}>
-                        <line x1="0" y1={y} x2={CW} y2={y} stroke={dark?"rgba(255,255,255,0.05)":"rgba(0,0,0,0.06)"} strokeWidth="1"/>
-                        <text x="4" y={Math.max(10,+y-3)} fontSize="9" fill={dark?"#2a5a2a":"#9aaa9a"} fontFamily="monospace">${p.toLocaleString("en-US",{maximumFractionDigits:0})}</text>
-                      </g>;
-                    })}
-                    {/* Current price dashed line */}
-                    <line x1="0" y1={yPos(price)} x2={CW} y2={yPos(price)} stroke={D.accD} strokeWidth="0.8" strokeDasharray="4,4" opacity="0.5"/>
+                  {(() => {
+                    // Chart layout with explicit margins
+                    const MARGIN={top:8,right:64,bottom:DATE_H,left:4};
+                    const IW=CW-MARGIN.left-MARGIN.right; // inner width
+                    const IH=CH-MARGIN.top-MARGIN.bottom; // inner height
+                    const ix=(i,len)=>MARGIN.left+((i/(len-1))*IW);
+                    const iy=(p)=>MARGIN.top+(IH-((p-minP)/rng)*IH);
+                    const linePath=hist.length<2?"":hist.map((h,i)=>`${i===0?"M":"L"}${ix(i,hist.length).toFixed(1)},${iy(h.p).toFixed(1)}`).join(" ");
+                    return(
+                      <svg width="100%" height={CH} viewBox={`0 0 ${CW} ${CH}`} style={{display:"block",cursor:"crosshair",overflow:"visible"}}
+                        onMouseMove={e=>{
+                          const rect=e.currentTarget.getBoundingClientRect();
+                          const xRatio=Math.max(0,Math.min(1,(e.clientX-rect.left-MARGIN.left*rect.width/CW)/((rect.width*(IW/CW)))));
+                          if(chartType==="line"&&hist.length>=2){
+                            const idx=Math.round(xRatio*(hist.length-1));
+                            const h=hist[Math.max(0,Math.min(idx,hist.length-1))];
+                            setCrosshair({x:ix(idx,hist.length),y:iy(h.p),price:h.p,time:h.time||"",date:h.date||"",idx});
+                          } else if(chartType==="candle"&&candles.length>=2){
+                            const idx=Math.round(xRatio*(candles.length-1));
+                            const c=candles[Math.max(0,Math.min(idx,candles.length-1))];
+                            setCrosshair({x:MARGIN.left+((idx+0.5)/candles.length)*IW,y:iy(c.close),price:c.close,open:c.open,high:c.high,low:c.low,time:c.time||"",date:c.date||""});
+                          }
+                        }}
+                        onMouseLeave={()=>setCrosshair(null)}
+                      >
+                        <defs>
+                          <linearGradient id="cg" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor={D.accD} stopOpacity={dark?"0.18":"0.12"}/>
+                            <stop offset="100%" stopColor={D.accD} stopOpacity="0"/>
+                          </linearGradient>
+                          <clipPath id="chartClip">
+                            <rect x={MARGIN.left} y={MARGIN.top} width={IW} height={IH}/>
+                          </clipPath>
+                        </defs>
 
-                    {chartType==="line"&&lp()&&<>
-                      <path d={lp()+` L${CW},${CH} L0,${CH} Z`} fill="url(#cg)"/>
-                      <path d={lp()} fill="none" stroke={D.accD} strokeWidth="2" style={{filter:dark?`drop-shadow(0 0 4px ${D.accD}60)`:"none"}}/>
-                      <circle cx={CW} cy={yPos(price)} r="4" fill={D.accD} opacity="0.9"/>
-                      <circle cx={CW} cy={yPos(price)} r="8" fill={D.accD} opacity="0.12"/>
-                    </>}
+                        {/* Y grid lines + price labels on right */}
+                        {[0,0.25,0.5,0.75,1].map(f=>{
+                          const p=minP+rng*(1-f);
+                          const y=iy(p);
+                          return <g key={f}>
+                            <line x1={MARGIN.left} y1={y} x2={MARGIN.left+IW} y2={y} stroke={dark?"rgba(255,255,255,0.05)":"rgba(0,0,0,0.07)"} strokeWidth="1"/>
+                            <text x={MARGIN.left+IW+4} y={y+3} fontSize="9" fill={dark?"#4a7a4a":"#8a9a8a"} fontFamily="monospace">${p.toLocaleString("en-US",{maximumFractionDigits:0})}</text>
+                          </g>;
+                        })}
 
-                    {chartType==="candle"&&candles.map((c,i)=>{
-                      const cw=Math.max(2,(CW/candles.length)*0.6);
-                      const cx=((i+0.5)/candles.length)*CW;
-                      const bull=c.close>=c.open;
-                      const col=bull?(dark?"#00cc40":"#15803d"):(dark?"#cc3535":"#dc2626");
-                      const bodyTop=Math.min(yPos(c.open),yPos(c.close));
-                      const bodyH=Math.max(1,Math.abs(yPos(c.close)-yPos(c.open)));
-                      return <g key={i}>
-                        <line x1={cx} y1={yPos(c.high)} x2={cx} y2={yPos(c.low)} stroke={col} strokeWidth="1" opacity="0.7"/>
-                        <rect x={cx-cw/2} y={bodyTop} width={cw} height={bodyH} fill={bull?(dark?"rgba(0,204,64,0.15)":"rgba(22,128,58,0.12)"):col} stroke={col} strokeWidth="1"/>
-                      </g>;
-                    })}
+                        {/* Current price dashed line + live label */}
+                        <line x1={MARGIN.left} y1={iy(price)} x2={MARGIN.left+IW} y2={iy(price)} stroke={D.accD} strokeWidth="0.8" strokeDasharray="4,3" opacity="0.6"/>
+                        <rect x={MARGIN.left+IW+1} y={iy(price)-8} width={58} height={16} rx="3" fill={D.accD}/>
+                        <text x={MARGIN.left+IW+30} y={iy(price)+4} fontSize="9" fill={dark?"#000":"#fff"} fontFamily="monospace" textAnchor="middle" fontWeight="bold">${price.toLocaleString("en-US",{minimumFractionDigits:2})}</text>
 
-                    {/* Crosshair */}
-                    {crosshair&&<>
-                      <line x1={crosshair.x} y1="0" x2={crosshair.x} y2={CH} stroke={dark?"rgba(255,255,255,0.18)":"rgba(0,0,0,0.14)"} strokeWidth="1" strokeDasharray="3,3"/>
-                      <line x1="0" y1={crosshair.y} x2={CW} y2={crosshair.y} stroke={dark?"rgba(255,255,255,0.18)":"rgba(0,0,0,0.14)"} strokeWidth="1" strokeDasharray="3,3"/>
-                      <circle cx={crosshair.x} cy={crosshair.y} r="4" fill={D.accD} opacity="0.95"/>
-                    </>}
-                  </svg>
-                  {/* Date axis */}
-                  <svg width="100%" height={DATE_H} viewBox={`0 0 ${CW} ${DATE_H}`} preserveAspectRatio="none" style={{display:"block",borderTop:`1px solid ${dark?"rgba(255,255,255,0.04)":"rgba(0,0,0,0.06)"}`}}>
-                    {dateLabels.map((d,i)=>(
-                      <text key={i} x={Math.min(+d.x,CW-30)} y={DATE_H-5} fontSize="9" fill={dark?"#2a5a2a":"#9aaa9a"} fontFamily="monospace" textAnchor={i===dateLabels.length-1?"end":i===0?"start":"middle"}>{d.label}</text>
-                    ))}
-                  </svg>
-                  {/* OHLC tooltip for candles */}
+                        {/* Chart content clipped to inner area */}
+                        <g clipPath="url(#chartClip)">
+                          {chartType==="line"&&linePath&&<>
+                            <path d={linePath+` L${MARGIN.left+IW},${MARGIN.top+IH} L${MARGIN.left},${MARGIN.top+IH} Z`} fill="url(#cg)"/>
+                            <path d={linePath} fill="none" stroke={D.accD} strokeWidth="2" style={{filter:dark?`drop-shadow(0 0 4px ${D.accD}60)`:"none"}}/>
+                            <circle cx={MARGIN.left+IW} cy={iy(price)} r="4" fill={D.accD}/>
+                            <circle cx={MARGIN.left+IW} cy={iy(price)} r="8" fill={D.accD} opacity="0.15"/>
+                          </>}
+                          {chartType==="candle"&&candles.map((c,i)=>{
+                            const cw=Math.max(2,(IW/candles.length)*0.6);
+                            const cx=MARGIN.left+((i+0.5)/candles.length)*IW;
+                            const bull=c.close>=c.open;
+                            const col=bull?(dark?"#00cc40":"#15803d"):(dark?"#cc3535":"#dc2626");
+                            return <g key={i}>
+                              <line x1={cx} y1={iy(c.high)} x2={cx} y2={iy(c.low)} stroke={col} strokeWidth="1" opacity="0.7"/>
+                              <rect x={cx-cw/2} y={Math.min(iy(c.open),iy(c.close))} width={cw} height={Math.max(1,Math.abs(iy(c.close)-iy(c.open)))} fill={bull?(dark?"rgba(0,204,64,0.15)":"rgba(22,128,58,0.12)"):col} stroke={col} strokeWidth="1"/>
+                            </g>;
+                          })}
+                        </g>
+
+                        {/* X date axis */}
+                        <line x1={MARGIN.left} y1={MARGIN.top+IH} x2={MARGIN.left+IW} y2={MARGIN.top+IH} stroke={dark?"rgba(255,255,255,0.08)":"rgba(0,0,0,0.1)"} strokeWidth="1"/>
+                        {dateLabels.map((d,i)=>{
+                          const xd=MARGIN.left+(+d.x/CW)*IW;
+                          return <g key={i}>
+                            <line x1={xd} y1={MARGIN.top+IH} x2={xd} y2={MARGIN.top+IH+4} stroke={dark?"rgba(255,255,255,0.15)":"rgba(0,0,0,0.15)"} strokeWidth="1"/>
+                            <text x={xd} y={CH-4} fontSize="9" fill={dark?"#4a7a4a":"#8a9a8a"} fontFamily="monospace" textAnchor={i===0?"start":i===dateLabels.length-1?"end":"middle"}>{d.label}</text>
+                          </g>;
+                        })}
+
+                        {/* Crosshair */}
+                        {crosshair&&<g clipPath="url(#chartClip)">
+                          <line x1={crosshair.x} y1={MARGIN.top} x2={crosshair.x} y2={MARGIN.top+IH} stroke={dark?"rgba(255,255,255,0.2)":"rgba(0,0,0,0.15)"} strokeWidth="1" strokeDasharray="3,3"/>
+                          <line x1={MARGIN.left} y1={crosshair.y} x2={MARGIN.left+IW} y2={crosshair.y} stroke={dark?"rgba(255,255,255,0.2)":"rgba(0,0,0,0.15)"} strokeWidth="1" strokeDasharray="3,3"/>
+                          <circle cx={crosshair.x} cy={crosshair.y} r="4" fill={D.accD} opacity="0.95"/>
+                        </g>}
+                      </svg>
+                    );
+                  })()}
+                  {/* OHLC tooltip */}
                   {crosshair&&chartType==="candle"&&crosshair.open!==undefined&&(
                     <div style={{position:"absolute",top:"4px",left:"8px",display:"flex",gap:"14px",background:dark?"rgba(7,10,14,0.92)":"rgba(255,255,255,0.92)",border:`1px solid ${D.bdr}`,borderRadius:"5px",padding:"4px 12px",pointerEvents:"none",backdropFilter:"blur(4px)"}}>
                       {[["O",crosshair.open],["H",crosshair.high],["L",crosshair.low],["C",crosshair.price]].map(([label,val])=>(
