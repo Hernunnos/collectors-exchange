@@ -1420,6 +1420,144 @@ function CSVImportModal({D,dark,dbCards=[],onImport,onClose}){
   );
 }
 
+
+// ── Reputation helpers ────────────────────────────────────────────────────────
+const REP_TIERS=[
+  {min:0,   label:"Newcomer",  icon:"◈", color:"#7a9a7a"},
+  {min:5,   label:"Trader",    icon:"◈◈",color:"#15803d"},
+  {min:25,  label:"Veteran",   icon:"◈◈◈",color:"#2563eb"},
+  {min:100, label:"Elite",     icon:"◈◈◈◈",color:"#7c3aed"},
+  {min:500, label:"Legend",    icon:"◈◈◈◈◈",color:"#d97706"},
+];
+function getRepTier(tradeCount=0){
+  return [...REP_TIERS].reverse().find(t=>tradeCount>=t.min)||REP_TIERS[0];
+}
+function RepBadge({tradeCount=0,size="sm"}){
+  const tier=getRepTier(tradeCount);
+  const fs=size==="lg"?"13px":"10px";
+  return(
+    <span title={`${tier.label} — ${tradeCount} trades`} style={{color:tier.color,fontSize:fs,letterSpacing:"0.05em",fontFamily:"'Share Tech Mono',monospace"}}>
+      {tier.icon} {tier.label}
+    </span>
+  );
+}
+
+// ── Admin Panel ───────────────────────────────────────────────────────────────
+function AdminPanel({D,dark,onClose,currentUserId}){
+  const [users,setUsers]=useState([]);
+  const [reports,setReports]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [tab,setTab]=useState("users");
+
+  useEffect(()=>{
+    import('./supabase').then(async({supabase})=>{
+      const [profRes,repRes]=await Promise.all([
+        supabase.from('user_profiles').select('*').order('joined_at',{ascending:false}),
+        supabase.from('user_reports').select('*').order('created_at',{ascending:false}),
+      ]);
+      setUsers(profRes.data||[]);
+      setReports(repRes.data||[]);
+      setLoading(false);
+    });
+  },[]);
+
+  const suspendUser=async(uid)=>{
+    const {supabase}=await import('./supabase');
+    await supabase.from('user_profiles').update({suspended:true}).eq('user_id',uid);
+    setUsers(p=>p.map(u=>u.user_id===uid?{...u,suspended:true}:u));
+  };
+  const resolveReport=async(id)=>{
+    const {supabase}=await import('./supabase');
+    await supabase.from('user_reports').update({resolved:true}).eq('id',id);
+    setReports(p=>p.map(r=>r.id===id?{...r,resolved:true}:r));
+  };
+
+  return(
+    <div style={{position:"fixed",inset:0,zIndex:600,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.75)",backdropFilter:"blur(4px)"}} onClick={onClose}>
+      <div style={{background:D.bg2,border:`1px solid ${D.bdr2}`,borderRadius:"12px",width:"700px",maxWidth:"96vw",maxHeight:"88vh",display:"flex",flexDirection:"column",boxShadow:"0 24px 60px rgba(0,0,0,0.5)"}} onClick={e=>e.stopPropagation()}>
+        {/* Header */}
+        <div style={{padding:"16px 20px",borderBottom:`1px solid ${D.bdr}`,display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
+          <div>
+            <div style={{fontFamily:"'Orbitron',sans-serif",fontSize:"14px",fontWeight:800,color:"#f59e0b",letterSpacing:"0.14em"}}>⚙ ADMIN PANEL</div>
+            <div style={{color:D.txtD,fontSize:"9px",marginTop:"2px",letterSpacing:"0.1em"}}>COLLECTOR'S EXCHANGE — OWNER VIEW</div>
+          </div>
+          <button onClick={onClose} style={{background:"none",border:"none",color:D.txtD,fontSize:"20px",cursor:"pointer"}}>×</button>
+        </div>
+        {/* Tabs */}
+        <div style={{display:"flex",borderBottom:`1px solid ${D.bdr}`,flexShrink:0}}>
+          {[["users","👥 USERS"],["reports","🚩 REPORTS"]].map(([t,label])=>(
+            <button key={t} onClick={()=>setTab(t)} style={{padding:"10px 20px",border:"none",background:"transparent",color:tab===t?D.acc:D.txtD,fontSize:"10px",fontFamily:"'Share Tech Mono',monospace",letterSpacing:"0.1em",cursor:"pointer",borderBottom:`2px solid ${tab===t?D.acc:"transparent"}`}}>{label}{t==="reports"&&reports.filter(r=>!r.resolved).length>0&&<span style={{marginLeft:"6px",background:"#dc2626",color:"#fff",borderRadius:"50%",padding:"1px 5px",fontSize:"8px"}}>{reports.filter(r=>!r.resolved).length}</span>}</button>
+          ))}
+        </div>
+        {/* Body */}
+        <div style={{flex:1,overflowY:"auto"}}>
+          {loading?(
+            <div style={{padding:"48px",textAlign:"center",color:D.txtD}}>Loading...</div>
+          ):tab==="users"?(
+            <table style={{width:"100%",borderCollapse:"collapse"}}>
+              <thead>
+                <tr style={{background:D.bg3}}>
+                  {["USER","EMAIL","JOINED","TRADES","REP","STATUS","ACTION"].map(h=>(
+                    <th key={h} style={{padding:"8px 14px",textAlign:"left",color:D.txtD,fontSize:"9px",letterSpacing:"0.1em",fontWeight:"normal",borderBottom:`1px solid ${D.bdr}`}}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {users.map(u=>(
+                  <tr key={u.user_id} style={{borderBottom:`1px solid ${D.bdr}`}}>
+                    <td style={{padding:"10px 14px"}}>
+                      <div style={{color:D.txt,fontSize:"11px"}}>{u.display_name||"—"}</div>
+                      {u.verified&&<span style={{color:"#2563eb",fontSize:"9px"}}>✓ verified</span>}
+                    </td>
+                    <td style={{padding:"10px 14px",color:D.txtD,fontSize:"10px"}}>{u.email||"—"}</td>
+                    <td style={{padding:"10px 14px",color:D.txtD,fontSize:"10px"}}>{u.joined_at||"—"}</td>
+                    <td style={{padding:"10px 14px",color:D.txtM,fontSize:"11px",textAlign:"center"}}>{u.trade_count||0}</td>
+                    <td style={{padding:"10px 14px"}}><RepBadge tradeCount={u.trade_count||0}/></td>
+                    <td style={{padding:"10px 14px"}}>
+                      <span style={{color:u.suspended?"#dc2626":D.buyT,fontSize:"9px"}}>{u.suspended?"⊘ SUSPENDED":"● ACTIVE"}</span>
+                    </td>
+                    <td style={{padding:"10px 14px"}}>
+                      {u.user_id!==currentUserId&&!u.suspended&&(
+                        <button onClick={()=>suspendUser(u.user_id)} style={{padding:"3px 10px",background:"transparent",border:"1px solid #dc2626",borderRadius:"3px",color:"#dc2626",fontSize:"9px",fontFamily:"'Share Tech Mono',monospace",cursor:"pointer"}}>SUSPEND</button>
+                      )}
+                      {u.suspended&&<span style={{color:D.txtD,fontSize:"9px"}}>suspended</span>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ):(
+            <div>
+              {reports.length===0?(
+                <div style={{padding:"48px",textAlign:"center",color:D.txtD,fontSize:"11px"}}>No reports yet</div>
+              ):reports.map(r=>(
+                <div key={r.id} style={{padding:"14px 20px",borderBottom:`1px solid ${D.bdr}`,opacity:r.resolved?0.5:1}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                    <div>
+                      <div style={{color:D.txt,fontSize:"11px",marginBottom:"4px"}}>
+                        <span style={{color:"#dc2626"}}>🚩 {r.reason}</span>
+                        <span style={{color:D.txtD,marginLeft:"10px",fontSize:"9px"}}>{r.created_at?.split("T")[0]}</span>
+                      </div>
+                      <div style={{color:D.txtD,fontSize:"10px"}}>{r.details||"No additional details"}</div>
+                    </div>
+                    {!r.resolved&&(
+                      <button onClick={()=>resolveReport(r.id)} style={{padding:"4px 12px",background:"transparent",border:`1px solid ${D.accD}`,borderRadius:"3px",color:D.accD,fontSize:"9px",fontFamily:"'Share Tech Mono',monospace",cursor:"pointer",flexShrink:0,marginLeft:"12px"}}>RESOLVE</button>
+                    )}
+                    {r.resolved&&<span style={{color:D.txtD,fontSize:"9px",flexShrink:0}}>✓ resolved</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        <div style={{padding:"12px 20px",borderTop:`1px solid ${D.bdr}`,flexShrink:0,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <span style={{color:D.txtD,fontSize:"9px"}}>{users.length} accounts · {reports.filter(r=>!r.resolved).length} open reports</span>
+          <button onClick={onClose} style={{padding:"7px 20px",background:"transparent",border:`1px solid ${D.bdr}`,borderRadius:"4px",color:D.txtD,fontSize:"9px",fontFamily:"'Share Tech Mono',monospace",cursor:"pointer"}}>CLOSE</button>
+        </div>
+      </div>
+    </div>
+  );
+}
 export default function App(){
   const [dark,setDark]=useState(false);
   const [screen,setScreen]=useState("landing"); // "landing" | "app"
@@ -1432,6 +1570,8 @@ export default function App(){
   const [selectedCard,setSelectedCard]=useState(null);
   const [notifications,setNotifications]=useState([]);
   const [csvModal,setCsvModal]=useState(false);
+  const [profile,setProfile]=useState(null);       // user_profiles row
+  const [adminOpen,setAdminOpen]=useState(false);   // admin panel
 
   // ── Global trading state ──────────────────────────────────────────────────
   const [balance,setBalance]=useState(STARTING_BALANCE);
@@ -1484,17 +1624,19 @@ export default function App(){
   };
 
   const loadUserData=async(sb,uid)=>{
-    const [balRes,ordRes,holdRes,trdRes]=await Promise.all([
+    const [balRes,ordRes,holdRes,trdRes,profRes]=await Promise.all([
       sb.from('user_balance').select('balance').eq('user_id',uid),
       sb.from('user_orders').select('*').eq('user_id',uid).order('date',{ascending:false}),
       sb.from('user_holdings').select('*').eq('user_id',uid),
       sb.from('user_trades').select('*').eq('user_id',uid).order('date',{ascending:false}),
+      sb.from('user_profiles').select('*').eq('user_id',uid),
     ]);
     if(balRes.data?.length) setBalance(+balRes.data[0].balance);
     else await sb.from('user_balance').insert({user_id:uid,balance:STARTING_BALANCE});
     setOrders(ordRes.data?.length ? ordRes.data.map(o=>({id:o.id,cardId:+o.card_id,side:o.side,type:o.type,price:+o.price,qty:+o.qty,filled:+o.filled,status:o.status,time:o.time,date:o.date})) : []);
     setHoldings(holdRes.data?.length ? holdRes.data.map(h=>({cardId:+h.card_id,qty:+h.qty,avgCost:+h.avg_cost,acquired:h.acquired,lockedQty:+(h.locked_qty||0)})) : []);
     setTradeHistory(trdRes.data?.length ? trdRes.data.map(t=>({id:t.id,cardId:+t.card_id,side:t.side,price:+t.price,qty:+t.qty,total:+t.total,date:t.date,time:t.time})) : []);
+    if(profRes.data?.length) setProfile(profRes.data[0]);
   };
 
   useEffect(()=>{
@@ -1528,7 +1670,17 @@ export default function App(){
           setHoldings(result.holdings);
           setBalance(result.balance);
           setTradeHistory(h=>[...result.newTrades,...h]);
-          if(userRef.current) import('./supabase').then(({supabase})=>saveToDb(supabase,userRef.current.id,result.orders,result.holdings,result.newTrades,result.balance));
+          if(userRef.current) import('./supabase').then(({supabase})=>{
+            saveToDb(supabase,userRef.current.id,result.orders,result.holdings,result.newTrades,result.balance);
+            // Increment trade_count on profile
+            if(result.newTrades.length){
+              supabase.rpc('increment_trade_count',{uid:userRef.current.id,n:result.newTrades.length}).then(()=>{
+                supabase.from('user_profiles').select('trade_count').eq('user_id',userRef.current.id).then(({data})=>{
+                  if(data?.length) setProfile(p=>p?{...p,trade_count:data[0].trade_count}:p);
+                });
+              });
+            }
+          });
           result.newTrades.forEach(t=>{
             const allC=[...dbCardsRef.current,...CARDS];
             const card=allC.find(c=>c.id===t.cardId)||{name:"Card"};
@@ -1621,12 +1773,18 @@ export default function App(){
   const handleLogout=async()=>{
     const {supabase}=await import('./supabase');
     await supabase.auth.signOut();
-    setUser(null); setScreen("landing");
+    setUser(null); setProfile(null); setScreen("landing");
     setOrders([]); setHoldings([]); setTradeHistory([]); setBalance(STARTING_BALANCE);
   };
   const handleAuth=async(u)=>{
     setUser(u); setAuthModal(null); setScreen("app");
     const {supabase}=await import('./supabase');
+    // Upsert profile row (creates on first login, no-ops after)
+    const displayName=u.user_metadata?.display_name||u.email?.split("@")[0]||"Collector";
+    await supabase.from('user_profiles').upsert({
+      user_id:u.id, display_name:displayName, email:u.email,
+      joined_at: new Date().toISOString().split("T")[0],
+    },{onConflict:'user_id',ignoreDuplicates:true});
     await loadUserData(supabase,u.id);
   };
   const handleUpdatePrice=(cardId,price)=>setMarketPrices(p=>({...p,[cardId]:price}));
@@ -1665,6 +1823,7 @@ export default function App(){
       `}</style>
 
       {authModal&&<AuthModal D={D} dark={dark} onClose={()=>setAuthModal(null)} onAuth={handleAuth}/>}
+      {adminOpen&&<AdminPanel D={D} dark={dark} onClose={()=>setAdminOpen(false)} currentUserId={user?.id}/>}
 
       {screen==="landing"&&(
         <Landing D={D} dark={dark} dbCards={dbCards}
@@ -1700,7 +1859,10 @@ export default function App(){
               </div>
               {user&&(
                 <div style={{padding:"12px 16px",borderBottom:`1px solid ${D.bdr}`}}>
-                  <div style={{color:D.txtM,fontSize:"11px",marginBottom:"4px"}}>{user.user_metadata?.display_name||user.email?.split("@")[0]}</div>
+                  <div style={{color:D.txtM,fontSize:"11px",marginBottom:"4px",display:"flex",alignItems:"center",gap:"6px"}}>
+                    {profile?.display_name||user.user_metadata?.display_name||user.email?.split("@")[0]}
+                  </div>
+                  <div style={{marginBottom:"4px"}}><RepBadge tradeCount={profile?.trade_count||tradeHistory.length}/></div>
                   <div style={{color:D.acc,fontSize:"13px",fontWeight:"bold"}}>💵 ${balance.toLocaleString("en-US",{minimumFractionDigits:2})}</div>
                 </div>
               )}
@@ -1718,6 +1880,7 @@ export default function App(){
                 </div>
                 {user?(
                   <>
+                  {profile?.is_admin&&<button onClick={()=>{setAdminOpen(true);setDrawerOpen(false);}} style={{padding:"10px",background:"transparent",border:"1px solid #f59e0b",borderRadius:"4px",color:"#f59e0b",fontSize:"10px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.08em"}}>⚙ ADMIN PANEL</button>}
                   <button onClick={()=>{setCsvModal(true);setDrawerOpen(false);}} style={{padding:"10px",background:"transparent",border:`1px solid ${D.bdr}`,borderRadius:"4px",color:D.txtD,fontSize:"10px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.08em"}}>📂 IMPORT CSV</button>
                   <button onClick={()=>{handleLogout();setDrawerOpen(false);}} style={{padding:"10px",background:"transparent",border:`1px solid ${D.bdr}`,borderRadius:"4px",color:D.txtD,fontSize:"10px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.08em"}}>LOG OUT</button>
                   </>
@@ -1764,7 +1927,11 @@ export default function App(){
                 <div style={{display:"flex",gap:"10px",alignItems:"center"}}>
                   {user?(
                     <>
-                      <span style={{color:D.txtD,fontSize:"10px"}}>{user.user_metadata?.display_name||user.email?.split("@")[0]}</span>
+                      <span style={{color:D.txtD,fontSize:"10px",display:"flex",alignItems:"center",gap:"6px"}}>
+                        {profile?.display_name||user.user_metadata?.display_name||user.email?.split("@")[0]}
+                        <RepBadge tradeCount={profile?.trade_count||tradeHistory.length}/>
+                      </span>
+                      {profile?.is_admin&&<button onClick={()=>setAdminOpen(true)} title="Admin Panel" style={{padding:"3px 8px",background:"transparent",border:"1px solid #f59e0b",borderRadius:"3px",color:"#f59e0b",fontSize:"9px",fontFamily:"'Share Tech Mono',monospace",cursor:"pointer",letterSpacing:"0.06em"}}>⚙ ADMIN</button>}
                       <div style={{background:D.stBg,border:`1px solid ${D.bdr}`,borderRadius:"3px",padding:"3px 10px",fontSize:"11px",color:D.txtM}}>💵 ${balance.toLocaleString("en-US",{minimumFractionDigits:2})}</div>
                       <NotificationBell D={D} dark={dark} notifications={notifications} onClear={id=>setNotifications(p=>p.filter(n=>n.id!==id))} onClearAll={()=>setNotifications([])}/>
                       <button onClick={()=>setCsvModal(true)} title="Import CSV" style={{padding:"3px 8px",background:"transparent",border:`1px solid ${D.bdr}`,borderRadius:"3px",color:D.txtD,fontSize:"13px",cursor:"pointer"}}>📂</button>
