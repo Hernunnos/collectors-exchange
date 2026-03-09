@@ -131,7 +131,7 @@ const MONO="'Share Tech Mono','Courier New',monospace";
 const ORB="'Orbitron',sans-serif";
 
 // ── Portfolio ─────────────────────────────────────────────────────────────────
-function Portfolio({D,dark,holdings=[],tradeHistory=[],dbCards=[],isMobile=false}){
+function Portfolio({D,dark,holdings=[],tradeHistory=[],dbCards=[],isMobile=false,onNavigateToMarket}){
   const [selected,setSelected]=useState(null);
   const [watchlist,setWatchlist]=useState([CARDS[1],CARDS[2]]);
 
@@ -179,11 +179,11 @@ function Portfolio({D,dark,holdings=[],tradeHistory=[],dbCards=[],isMobile=false
       <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:"16px"}}>
         <div style={{background:D.bg2,border:`1px solid ${D.bdr}`,borderRadius:"6px",overflow:"hidden"}}>
           <div style={{padding:"10px 14px",borderBottom:`1px solid ${D.bdr}`,color:D.txtD,fontSize:"14px",letterSpacing:"0.12em"}}>▸ HOLDINGS</div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 50px 70px 70px 70px",padding:"5px 14px",color:D.txtD,fontSize:"13px",borderBottom:`1px solid ${D.bdr}`}}>
-            <span>CARD</span><span style={{textAlign:"right"}}>QTY</span><span style={{textAlign:"right"}}>PRICE</span><span style={{textAlign:"right"}}>VALUE</span><span style={{textAlign:"right"}}>P&L</span>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 50px 70px 70px 70px 32px",padding:"5px 14px",color:D.txtD,fontSize:"13px",borderBottom:`1px solid ${D.bdr}`}}>
+            <span>CARD</span><span style={{textAlign:"right"}}>QTY</span><span style={{textAlign:"right"}}>PRICE</span><span style={{textAlign:"right"}}>VALUE</span><span style={{textAlign:"right"}}>P&L</span><span/>
           </div>
           {enrichedHoldings.length===0?(<div style={{padding:"40px",textAlign:"center",color:D.txtD,fontSize:"17px"}}>No holdings yet — place your first trade in the Market tab</div>):enrichedHoldings.map(h=>(
-            <div key={h.cardId} onClick={()=>setSelected(selected?.cardId===h.cardId?null:h)} style={{display:"grid",gridTemplateColumns:"1fr 50px 70px 70px 70px",padding:"9px 14px",borderBottom:`1px solid ${D.bdr}`,cursor:"pointer",background:selected?.cardId===h.cardId?(dark?"rgba(0,255,80,0.05)":"rgba(22,128,58,0.05)"):"transparent",transition:"background 0.1s",alignItems:"center"}}>
+            <div key={h.cardId} onClick={()=>setSelected(selected?.cardId===h.cardId?null:h)} style={{display:"grid",gridTemplateColumns:"1fr 50px 70px 70px 70px 32px",padding:"9px 14px",borderBottom:`1px solid ${D.bdr}`,cursor:"pointer",background:selected?.cardId===h.cardId?(dark?"rgba(0,255,80,0.05)":"rgba(22,128,58,0.05)"):"transparent",transition:"background 0.1s",alignItems:"center"}}>
               <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
                 <img src={proxyImg(h.card.img)} alt={h.card.name} style={{width:"22px",height:"30px",objectFit:"cover",borderRadius:"2px"}} onError={e=>e.target.style.display="none"}/>
                 <div><div style={{color:D.txt,fontSize:"16px"}}>{h.card.name}</div><div style={{color:D.txtD,fontSize:"13px"}}>{h.card.condition}</div></div>
@@ -195,6 +195,7 @@ function Portfolio({D,dark,holdings=[],tradeHistory=[],dbCards=[],isMobile=false
               <span style={{textAlign:"right",color:D.txt,fontSize:"16px"}}>${h.cur.toLocaleString()}</span>
               <span style={{textAlign:"right",color:D.txt,fontSize:"16px"}}>${h.val.toLocaleString()}</span>
               <span style={{textAlign:"right",color:h.pnl>=0?D.buyT:D.askT,fontSize:"16px"}}>{h.pnl>=0?"+":""}${Math.abs(h.pnl).toLocaleString()}</span>
+              <span onClick={e=>{e.stopPropagation();onNavigateToMarket&&onNavigateToMarket(h.card);}} title="Go to market" style={{textAlign:"right",color:D.accD,fontSize:"18px",cursor:"pointer",opacity:0.7,transition:"opacity 0.1s"}} onMouseEnter={e=>e.target.style.opacity=1} onMouseLeave={e=>e.target.style.opacity=0.7}>→</span>
             </div>
           ))}
           {selected && (
@@ -216,19 +217,20 @@ function Portfolio({D,dark,holdings=[],tradeHistory=[],dbCards=[],isMobile=false
             <span>▸ WATCHLIST</span>
             <span style={{color:D.accD,fontSize:"13px",cursor:"pointer"}}>+ ADD</span>
           </div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 70px 70px 28px",padding:"5px 14px",color:D.txtD,fontSize:"13px",borderBottom:`1px solid ${D.bdr}`}}>
-            <span>CARD</span><span style={{textAlign:"right"}}>PRICE</span><span style={{textAlign:"right"}}>24H</span><span/>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 70px 70px 28px 28px",padding:"5px 14px",color:D.txtD,fontSize:"13px",borderBottom:`1px solid ${D.bdr}`}}>
+            <span>CARD</span><span style={{textAlign:"right"}}>PRICE</span><span style={{textAlign:"right"}}>24H</span><span/><span/>
           </div>
           {watchlist.map(c=>{
             const chg=(((c.id*11+7)%19-9)*0.55).toFixed(2);const up=+chg>=0;
             return(
-              <div key={c.id} style={{display:"grid",gridTemplateColumns:"1fr 70px 70px 28px",padding:"9px 14px",borderBottom:`1px solid ${D.bdr}`,alignItems:"center"}}>
+              <div key={c.id} style={{display:"grid",gridTemplateColumns:"1fr 70px 70px 28px 28px",padding:"9px 14px",borderBottom:`1px solid ${D.bdr}`,alignItems:"center"}}>
                 <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
                   <img src={proxyImg(c.img)} alt={c.name} style={{width:"22px",height:"30px",objectFit:"cover",borderRadius:"2px"}} onError={e=>e.target.style.display="none"}/>
                   <div><div style={{color:D.txt,fontSize:"16px"}}>{c.name}</div><div style={{color:D.txtD,fontSize:"13px"}}>{c.set}</div></div>
                 </div>
                 <span style={{textAlign:"right",color:D.txt,fontSize:"16px"}}>${(c.basePrice||BASE[c.id]||0).toLocaleString()}</span>
                 <span style={{textAlign:"right",color:up?D.buyT:D.askT,fontSize:"16px"}}>{up?"+":""}{chg}%</span>
+                <span onClick={()=>onNavigateToMarket&&onNavigateToMarket(c)} title="Go to market" style={{textAlign:"right",color:D.accD,fontSize:"18px",cursor:"pointer",opacity:0.7,transition:"opacity 0.1s"}} onMouseEnter={e=>e.target.style.opacity=1} onMouseLeave={e=>e.target.style.opacity=0.7}>→</span>
                 <span onClick={()=>setWatchlist(w=>w.filter(x=>x.id!==c.id))} style={{textAlign:"right",color:D.txtD,fontSize:"23px",cursor:"pointer",lineHeight:1}}>×</span>
               </div>
             );
@@ -3017,7 +3019,7 @@ export default function App(){
           <div style={{flex:1,display:"flex",overflow:"hidden",paddingBottom:isMobile?"54px":"0"}}>
             {tab==="MARKET"    && <Market    D={D} dark={dark} dbCards={dbCards} initialCard={selectedCard} balance={balance} holdings={holdings} onPlaceOrder={placeOrder} onUpdatePrice={handleUpdatePrice} tradeHistory={tradeHistory} isDemo={isDemo} isMobile={isMobile}/>}
             {tab==="BROWSE"    && <Browser   D={D} dark={dark} dbCards={dbCards} onSelectCard={handleBrowseSelect} isMobile={isMobile}/>}
-            {tab==="PORTFOLIO" && <Portfolio D={D} dark={dark} holdings={holdings} tradeHistory={tradeHistory} dbCards={dbCards} isMobile={isMobile}/>}
+            {tab==="PORTFOLIO" && <Portfolio D={D} dark={dark} holdings={holdings} tradeHistory={tradeHistory} dbCards={dbCards} isMobile={isMobile} onNavigateToMarket={c=>{setSelectedCard(c);setTab("MARKET");}}/>}
             {tab==="ORDERS"    && <Orders    D={D} dark={dark} orders={orders} onCancel={cancelOrder} dbCards={dbCards} isMobile={isMobile}/>}
             {tab==="HISTORY"   && <History   D={D} dark={dark} tradeHistory={tradeHistory} ledger={ledger} dbCards={dbCards} isMobile={isMobile}/>}
             {tab==="PROFILE"   && user && <ProfileSettings D={D} dark={dark} user={user} profile={profile} tradeHistory={tradeHistory} holdings={holdings} balance={balance} onProfileUpdate={handleProfileUpdate} onDarkToggle={()=>setDark(d=>!d)} isMobile={isMobile} onNotifPrefsChange={p=>setNotifPrefs(p)}/>}
