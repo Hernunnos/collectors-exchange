@@ -1328,21 +1328,63 @@ function NotificationBell({D,dark,notifications=[],onClear,onClearAll}){
 }
 
 // ── CSV Import Modal ───────────────────────────────────────────────────────────
-function CSVImportModal({D,dark,dbCards=[],onImport,onClose}){
+function CSVImportModal({D,dark,dbCards=[],onImport,onClose,marketPrices={},tradeHistory=[]}){
   const [rows,setRows]=useState([]);
-  const [step,setStep]=useState("upload"); // upload | preview | done
+  const [step,setStep]=useState("upload"); // upload | preview | listing | done
   const [importing,setImporting]=useState(false);
+  const [isTCGPlayer,setIsTCGPlayer]=useState(false);
+  const [listingPrices,setListingPrices]=useState({}); // rowIndex → custom ask price
+  const [listSelected,setListSelected]=useState({}); // rowIndex → bool
   const allCards=[...dbCards,...CARDS];
 
+  // Normalize TCGPlayer condition strings to our format
+  const normalizeCond=(c="")=>{
+    const m={"near mint":"NM","lightly played":"LP","moderately played":"MP","heavily played":"HP","damaged":"DMG","nm":"NM","lp":"LP","mp":"MP","hp":"HP"};
+    return m[c.toLowerCase()]||c||"NM";
+  };
+
+  // Parse CSV handling quoted fields with commas inside
   const parseCSV=(text)=>{
     const lines=text.trim().split("\n");
-    const headers=lines[0].split(",").map(h=>h.trim().replace(/^"|"$/g,"").toLowerCase());
-    return lines.slice(1).filter(l=>l.trim()).map(line=>{
-      const vals=line.split(",").map(v=>v.trim().replace(/^"|"$/g,""));
-      const row={};
-      headers.forEach((h,i)=>row[h]=vals[i]||"");
+    const parseRow=(line)=>{
+      const vals=[];let cur="";let inQ=false;
+      for(let i=0;i<line.length;i++){
+        if(line[i]==='"'){inQ=!inQ;}
+        else if(line[i]===","&&!inQ){vals.push(cur.trim());cur="";}
+        else{cur+=line[i];}
+      }
+      vals.push(cur.trim());
+      return vals;
+    };
+    const headers=parseRow(lines[0]).map(h=>h.replace(/^"|"$/g,"").toLowerCase().trim());
+    return{headers,rows:lines.slice(1).filter(l=>l.trim()).map(line=>{
+      const vals=parseRow(line).map(v=>v.replace(/^"|"$/g,"").trim());
+      const row={};headers.forEach((h,i)=>row[h]=vals[i]||"");
       return row;
-    });
+    })};
+  };
+
+  // Detect if this looks like a TCGPlayer export
+  const detectTCGPlayer=(headers)=>{
+    const tcgCols=["tcg marketplace price","tcg low","tcg market price","tcg mid","product name","number"];
+    return tcgCols.filter(c=>headers.includes(c)).length>=2;
+  };
+
+  // Compute CX suggested price: best bid + small premium, floored at market price
+  // Does NOT use TCGPlayer price — purely based on CX order book activity
+  const suggestCXPrice=(cardId,tcgMarket)=>{
+    const cxPrice=marketPrices[cardId]||0;
+    const cardTrades=tradeHistory.filter(t=>t.cardId===cardId);
+    // 24h average from real trade history
+    const oneDayAgo=Date.now()-86400000;
+    const recentTrades=cardTrades.filter(t=>new Date(t.date+" "+t.time).getTime()>oneDayAgo);
+    const avgRecent=recentTrades.length?recentTrades.reduce((s,t)=>s+t.price,0)/recentTrades.length:0;
+    // Suggested: slightly under current CX ask to move within 24h
+    // If no CX history yet, use CX base price (never TCGPlayer price)
+    const base=avgRecent||cxPrice;
+    if(!base) return null;
+    // Undercut by 1-2% for fast sell
+    return+(base*0.985).toFixed(2);
   };
 
   const handleFile=(e)=>{
@@ -1350,114 +1392,240 @@ function CSVImportModal({D,dark,dbCards=[],onImport,onClose}){
     if(!file) return;
     const reader=new FileReader();
     reader.onload=(ev)=>{
-      const raw=parseCSV(ev.target.result);
-      const mapped=raw.map(r=>{
-        const name=r["name"]||r["card_name"]||r["card"]||r["cardname"]||"";
-        const set=r["set"]||r["set_name"]||r["expansion"]||"";
-        const condition=r["condition"]||r["cond"]||"NM";
-        const qty=parseInt(r["qty"]||r["quantity"]||r["count"]||"1")||1;
-        // Try to match to existing card
-        const match=allCards.find(c=>
-          c.name?.toLowerCase()===name.toLowerCase()||
-          (c.name?.toLowerCase().includes(name.toLowerCase())&&name.length>3)
-        );
-        return {name,set,condition,qty,matchedCard:match||null,status:match?"matched":"unmatched"};
+      const {headers,rows:raw}=parseCSV(ev.target.result);
+      const tcg=detectTCGPlayer(headers);
+      setIsTCGPlayer(tcg);
+      const mapped=raw.map((r,i)=>{
+        // Column name mapping — TCGPlayer first, then generic fallbacks
+        const name=r["product name"]||r["name"]||r["card_name"]||r["card"]||"";
+        const set=r["set name"]||r["set"]||r["set_name"]||r["expansion"]||"";
+        const rawCond=r["condition"]||r["cond"]||"NM";
+        const condition=normalizeCond(rawCond);
+        const qty=parseInt(r["add to quantity"]||r["qty"]||r["quantity"]||r["count"]||"1")||1;
+        // TCGPlayer price columns (reference only — never used to set CX price)
+        const tcgLow=parseFloat(r["tcg low"])||null;
+        const tcgMid=parseFloat(r["tcg mid"])||null;
+        const tcgMarket=parseFloat(r["tcg marketplace price"]||r["tcg market price"])||null;
+        const tcgRef=tcgMarket||tcgMid||tcgLow||null;
+        // Match to CX card catalogue
+        const match=allCards.find(c=>{
+          const cn=c.name?.toLowerCase();const rn=name.toLowerCase();
+          return cn===rn||(rn.length>3&&cn?.includes(rn));
+        });
+        const cxPrice=match?marketPrices[match.id]||match.basePrice||BASE[match.id]||0:0;
+        const suggested=match?suggestCXPrice(match.id,tcgMarket):null;
+        // Flag: does CX have open buyers right now?
+        const hasBuyers=match&&cxPrice>0;
+        // Opportunity: CX price is notably different from TCGPlayer
+        const opportunity=tcgRef&&cxPrice?(cxPrice-tcgRef)/tcgRef:null;
+        return{name,set,condition,qty,tcgRef,cxPrice,suggested,hasBuyers,opportunity,matchedCard:match||null,status:match?"matched":"unmatched",rowIndex:i};
       }).filter(r=>r.name);
       setRows(mapped);
+      // Default listing prices to suggested
+      const prices={};const selected={};
+      mapped.forEach((r,i)=>{if(r.matchedCard&&r.suggested){prices[i]=String(r.suggested);selected[i]=true;}});
+      setListingPrices(prices);setListSelected(selected);
       setStep("preview");
     };
     reader.readAsText(file);
   };
 
+  const matchedRows=rows.filter(r=>r.matchedCard);
+  const selectedForListing=matchedRows.filter((_,i)=>listSelected[rows.indexOf(matchedRows[i])]!==false);
+
   const handleImport=async()=>{
     setImporting(true);
-    const toImport=rows.filter(r=>r.matchedCard);
-    onImport(toImport);
+    onImport(rows.filter(r=>r.matchedCard),listingPrices,listSelected);
     setStep("done");
     setImporting(false);
   };
 
   return(
     <div style={{position:"fixed",inset:0,zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.7)",backdropFilter:"blur(4px)"}} onClick={onClose}>
-      <div style={{background:D.bg2,border:`1px solid ${D.bdr2}`,borderRadius:"12px",width:"560px",maxWidth:"95vw",maxHeight:"85vh",display:"flex",flexDirection:"column",boxShadow:"0 24px 60px rgba(0,0,0,0.4)"}} onClick={e=>e.stopPropagation()}>
-        <div style={{padding:"18px 20px",borderBottom:`1px solid ${D.bdr}`,display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
+      <div style={{background:D.bg2,border:`1px solid ${D.bdr2}`,borderRadius:"12px",width:"820px",maxWidth:"97vw",maxHeight:"90vh",display:"flex",flexDirection:"column",boxShadow:"0 24px 60px rgba(0,0,0,0.5)"}} onClick={e=>e.stopPropagation()}>
+
+        {/* Header */}
+        <div style={{padding:"16px 20px",borderBottom:`1px solid ${D.bdr}`,display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
           <div>
-            <div style={{fontFamily:ORB,fontSize:"14px",fontWeight:800,color:D.acc,letterSpacing:"0.12em"}}>◈ IMPORT COLLECTION</div>
-            <div style={{color:D.txtD,fontSize:"10px",marginTop:"3px"}}>Upload a CSV from Binder, TCGPlayer, or any spreadsheet</div>
+            <div style={{fontFamily:ORB,fontSize:"14px",fontWeight:800,color:D.acc,letterSpacing:"0.12em"}}>
+              ◈ {isTCGPlayer?"TCGPLAYER IMPORT":"IMPORT COLLECTION"}
+            </div>
+            <div style={{color:D.txtD,fontSize:"10px",marginTop:"3px"}}>
+              {step==="upload"&&"Upload your TCGPlayer export or any collection CSV"}
+              {step==="preview"&&(isTCGPlayer?"TCGPlayer inventory detected — review pricing opportunities":"Review matched cards")}
+              {step==="done"&&"Import complete"}
+            </div>
+          </div>
+          {/* Step indicator */}
+          <div style={{display:"flex",alignItems:"center",gap:"8px",marginRight:"16px"}}>
+            {["upload","preview","done"].map((s,i)=>(
+              <div key={s} style={{display:"flex",alignItems:"center",gap:"6px"}}>
+                <div style={{width:"20px",height:"20px",borderRadius:"50%",background:step===s?D.acc:(["upload","preview","done"].indexOf(step)>i?D.accD:"transparent"),border:`1px solid ${step===s||["upload","preview","done"].indexOf(step)>i?D.accD:D.bdr}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"9px",color:step===s||["upload","preview","done"].indexOf(step)>i?"#000":D.txtD,fontWeight:"bold"}}>{i+1}</div>
+                {i<2&&<div style={{width:"16px",height:"1px",background:D.bdr}}/>}
+              </div>
+            ))}
           </div>
           <button onClick={onClose} style={{background:"none",border:"none",color:D.txtD,fontSize:"20px",cursor:"pointer"}}>×</button>
         </div>
 
         <div style={{flex:1,overflowY:"auto",padding:"20px"}}>
+
+          {/* ── UPLOAD step ── */}
           {step==="upload"&&(
             <div>
-              <div style={{border:`2px dashed ${D.bdr2}`,borderRadius:"8px",padding:"48px 24px",textAlign:"center",marginBottom:"20px"}}>
+              {/* TCGPlayer callout */}
+              <div style={{background:dark?"rgba(0,100,200,0.08)":"rgba(59,130,246,0.06)",border:`1px solid ${dark?"#1a3a6a":"#bfdbfe"}`,borderRadius:"8px",padding:"14px 16px",marginBottom:"20px",display:"flex",gap:"12px",alignItems:"flex-start"}}>
+                <span style={{fontSize:"20px",flexShrink:0}}>🏪</span>
+                <div>
+                  <div style={{color:dark?"#60a5fa":"#1d4ed8",fontSize:"11px",fontWeight:"bold",marginBottom:"4px"}}>TCGPlayer sellers — auto-detected</div>
+                  <div style={{color:D.txtD,fontSize:"10px",lineHeight:"1.5"}}>Export your inventory from TCGPlayer → My Inventory → Export. We'll automatically detect the format, map your conditions, and show you where CX prices give you a better deal.</div>
+                </div>
+              </div>
+              <div style={{border:`2px dashed ${D.bdr2}`,borderRadius:"8px",padding:"40px 24px",textAlign:"center",marginBottom:"20px"}}>
                 <div style={{fontSize:"32px",marginBottom:"12px"}}>📂</div>
-                <div style={{color:D.txtM,fontSize:"12px",marginBottom:"8px"}}>Drop your CSV file here or click to browse</div>
-                <div style={{color:D.txtD,fontSize:"10px",marginBottom:"20px"}}>Supports: Binder CSV, TCGPlayer export, custom spreadsheets</div>
+                <div style={{color:D.txtM,fontSize:"12px",marginBottom:"6px"}}>Drop your CSV here or click to browse</div>
+                <div style={{color:D.txtD,fontSize:"10px",marginBottom:"20px"}}>TCGPlayer, Binder, Moxfield, or any spreadsheet</div>
                 <label style={{padding:"10px 24px",background:dark?"rgba(0,180,60,0.15)":"rgba(22,128,58,0.10)",border:`1px solid ${D.accD}`,borderRadius:"6px",color:D.accD,fontSize:"10px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.1em"}}>
-                  CHOOSE FILE
-                  <input type="file" accept=".csv" onChange={handleFile} style={{display:"none"}}/>
+                  CHOOSE FILE <input type="file" accept=".csv" onChange={handleFile} style={{display:"none"}}/>
                 </label>
               </div>
-              <div style={{background:D.bg3,border:`1px solid ${D.bdr}`,borderRadius:"6px",padding:"14px 16px"}}>
-                <div style={{color:D.txtD,fontSize:"10px",letterSpacing:"0.1em",marginBottom:"8px"}}>▸ EXPECTED COLUMN NAMES</div>
-                {[["Name / Card Name","Card name (e.g. Charizard)"],["Set / Expansion","Set name (e.g. Base Set)"],["Condition / Cond","Card condition (e.g. NM, PSA 10)"],["Qty / Quantity / Count","How many you own"]].map(([col,desc])=>(
-                  <div key={col} style={{display:"flex",gap:"12px",marginBottom:"6px"}}>
-                    <span style={{color:D.acc,fontSize:"10px",fontFamily:MONO,minWidth:"160px"}}>{col}</span>
-                    <span style={{color:D.txtD,fontSize:"10px"}}>{desc}</span>
-                  </div>
-                ))}
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"10px"}}>
+                <div style={{background:D.bg3,border:`1px solid ${D.bdr}`,borderRadius:"6px",padding:"12px 14px"}}>
+                  <div style={{color:dark?"#60a5fa":"#1d4ed8",fontSize:"9px",letterSpacing:"0.1em",marginBottom:"8px"}}>▸ TCGPLAYER COLUMNS</div>
+                  {[["Product Name","Card name"],["Set Name","Set"],["Condition","NM, LP, MP etc"],["Add to Quantity","How many"],["TCG Marketplace Price","Your current price (reference only)"]].map(([c,d])=>(
+                    <div key={c} style={{display:"flex",gap:"8px",marginBottom:"5px"}}>
+                      <span style={{color:D.acc,fontSize:"9px",fontFamily:MONO,minWidth:"140px"}}>{c}</span>
+                      <span style={{color:D.txtD,fontSize:"9px"}}>{d}</span>
+                    </div>
+                  ))}
+                </div>
+                <div style={{background:D.bg3,border:`1px solid ${D.bdr}`,borderRadius:"6px",padding:"12px 14px"}}>
+                  <div style={{color:D.txtD,fontSize:"9px",letterSpacing:"0.1em",marginBottom:"8px"}}>▸ GENERIC COLUMNS</div>
+                  {[["Name / Card Name","Card name"],["Set / Expansion","Set name"],["Condition / Cond","Condition"],["Qty / Quantity","How many"]].map(([c,d])=>(
+                    <div key={c} style={{display:"flex",gap:"8px",marginBottom:"5px"}}>
+                      <span style={{color:D.acc,fontSize:"9px",fontFamily:MONO,minWidth:"140px"}}>{c}</span>
+                      <span style={{color:D.txtD,fontSize:"9px"}}>{d}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           )}
 
+          {/* ── PREVIEW step ── */}
           {step==="preview"&&(
             <div>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"14px"}}>
-                <span style={{color:D.txtM,fontSize:"11px"}}>{rows.filter(r=>r.status==="matched").length} of {rows.length} cards matched</span>
-                <div style={{display:"flex",gap:"8px"}}>
-                  <span style={{background:dark?"rgba(0,200,60,0.1)":"rgba(22,128,58,0.08)",color:D.buyT,padding:"3px 8px",borderRadius:"3px",fontSize:"9px"}}>● MATCHED</span>
-                  <span style={{background:dark?"rgba(245,158,11,0.1)":"rgba(245,158,11,0.08)",color:"#f59e0b",padding:"3px 8px",borderRadius:"3px",fontSize:"9px"}}>● UNMATCHED</span>
-                </div>
-              </div>
-              <div style={{border:`1px solid ${D.bdr}`,borderRadius:"6px",overflow:"hidden"}}>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 80px 80px 80px",padding:"7px 12px",background:D.bg3,color:D.txtD,fontSize:"9px",letterSpacing:"0.08em",borderBottom:`1px solid ${D.bdr}`}}>
-                  <span>CARD</span><span style={{textAlign:"right"}}>SET</span><span style={{textAlign:"right"}}>COND</span><span style={{textAlign:"right"}}>QTY</span>
-                </div>
-                {rows.map((r,i)=>(
-                  <div key={i} style={{display:"grid",gridTemplateColumns:"1fr 80px 80px 80px",padding:"9px 12px",borderBottom:`1px solid ${D.bdr}`,background:r.status==="matched"?"transparent":(dark?"rgba(245,158,11,0.04)":"rgba(245,158,11,0.03)"),alignItems:"center"}}>
-                    <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
-                      <span style={{width:"6px",height:"6px",borderRadius:"50%",background:r.status==="matched"?D.buyT:"#f59e0b",flexShrink:0,display:"inline-block"}}/>
-                      <div>
-                        <div style={{color:D.txt,fontSize:"11px"}}>{r.name}</div>
-                        {r.matchedCard&&<div style={{color:D.txtD,fontSize:"9px"}}>→ {r.matchedCard.name}</div>}
-                      </div>
-                    </div>
-                    <span style={{textAlign:"right",color:D.txtD,fontSize:"10px"}}>{r.set||"—"}</span>
-                    <span style={{textAlign:"right",color:D.txtD,fontSize:"10px"}}>{r.condition}</span>
-                    <span style={{textAlign:"right",color:D.txtM,fontSize:"11px"}}>{r.qty}</span>
+              {/* Summary bar */}
+              <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:"10px",marginBottom:"16px"}}>
+                {[
+                  ["TOTAL CARDS",rows.length,""],
+                  ["MATCHED ON CX",matchedRows.length,D.buyT],
+                  ["WITH OPEN BUYERS",matchedRows.filter(r=>r.hasBuyers).length,"#f59e0b"],
+                  ["UNMATCHED",rows.filter(r=>!r.matchedCard).length,D.askT],
+                ].map(([label,val,color])=>(
+                  <div key={label} style={{background:D.bg3,border:`1px solid ${D.bdr}`,borderRadius:"6px",padding:"10px 12px",textAlign:"center"}}>
+                    <div style={{fontFamily:ORB,fontSize:"18px",fontWeight:700,color:color||D.txtM}}>{val}</div>
+                    <div style={{color:D.txtD,fontSize:"8px",letterSpacing:"0.08em",marginTop:"3px"}}>{label}</div>
                   </div>
                 ))}
+              </div>
+
+              {/* TCGPlayer notice */}
+              {isTCGPlayer&&(
+                <div style={{background:dark?"rgba(0,100,200,0.06)":"rgba(59,130,246,0.04)",border:`1px solid ${dark?"#1a3a6a":"#bfdbfe"}`,borderRadius:"6px",padding:"10px 14px",marginBottom:"14px",fontSize:"10px",color:D.txtD,lineHeight:"1.5"}}>
+                  <span style={{color:dark?"#60a5fa":"#1d4ed8",fontWeight:"bold"}}>ℹ TCGPlayer prices shown as reference only.</span> CX suggested prices are calculated from our own order book activity — not from TCGPlayer. Your CX listing price is fully independent.
+                </div>
+              )}
+
+              {/* Table */}
+              <div style={{border:`1px solid ${D.bdr}`,borderRadius:"6px",overflow:"hidden"}}>
+                <div style={{display:"grid",gridTemplateColumns:`${isTCGPlayer?"24px ":""}1fr 50px 50px${isTCGPlayer?" 80px 80px":""} 110px 90px`,padding:"7px 12px",background:D.bg3,color:D.txtD,fontSize:"8px",letterSpacing:"0.08em",borderBottom:`1px solid ${D.bdr}`,gap:"8px",alignItems:"center"}}>
+                  {isTCGPlayer&&<span/>}
+                  <span>CARD</span>
+                  <span style={{textAlign:"center"}}>COND</span>
+                  <span style={{textAlign:"center"}}>QTY</span>
+                  {isTCGPlayer&&<span style={{textAlign:"right"}}>TCG PRICE</span>}
+                  {isTCGPlayer&&<span style={{textAlign:"right"}}>CX PRICE</span>}
+                  <span style={{textAlign:"right"}}>SUGGESTED ASK</span>
+                  <span style={{textAlign:"center"}}>STATUS</span>
+                </div>
+                {rows.map((r,i)=>{
+                  const matched=!!r.matchedCard;
+                  const opportunity=r.opportunity;
+                  const oppColor=opportunity>0.05?"#22c55e":opportunity<-0.05?"#ef4444":"#f59e0b";
+                  return(
+                    <div key={i} style={{display:"grid",gridTemplateColumns:`${isTCGPlayer?"24px ":""}1fr 50px 50px${isTCGPlayer?" 80px 80px":""} 110px 90px`,padding:"9px 12px",borderBottom:`1px solid ${D.bdr}`,background:matched?"transparent":(dark?"rgba(245,158,11,0.03)":"rgba(245,158,11,0.02)"),gap:"8px",alignItems:"center"}}>
+                      {isTCGPlayer&&(
+                        <input type="checkbox" checked={matched&&listSelected[i]!==false} disabled={!matched} onChange={e=>setListSelected(p=>({...p,[i]:e.target.checked}))} style={{cursor:matched?"pointer":"default",accentColor:D.acc,width:"14px",height:"14px"}}/>
+                      )}
+                      <div style={{minWidth:0}}>
+                        <div style={{color:matched?D.txt:D.txtD,fontSize:"11px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.name}</div>
+                        <div style={{color:D.txtD,fontSize:"9px"}}>{r.set||"—"}</div>
+                        {matched&&r.hasBuyers&&<div style={{color:"#f59e0b",fontSize:"8px"}}>● buyers waiting</div>}
+                      </div>
+                      <span style={{textAlign:"center",color:D.txtD,fontSize:"9px"}}>{r.condition}</span>
+                      <span style={{textAlign:"center",color:D.txtM,fontSize:"11px"}}>{r.qty}</span>
+                      {isTCGPlayer&&<span style={{textAlign:"right",color:D.txtD,fontSize:"10px"}}>{r.tcgRef?`$${r.tcgRef.toFixed(2)}`:"—"}</span>}
+                      {isTCGPlayer&&<span style={{textAlign:"right",color:D.txtM,fontSize:"10px"}}>{r.cxPrice?`$${r.cxPrice.toFixed(2)}`:"—"}</span>}
+                      <div style={{textAlign:"right"}}>
+                        {matched?(
+                          <div style={{display:"flex",alignItems:"center",gap:"4px",justifyContent:"flex-end"}}>
+                            <span style={{color:D.txtD,fontSize:"9px"}}>$</span>
+                            <input
+                              type="number"
+                              value={listingPrices[i]||""}
+                              onChange={e=>setListingPrices(p=>({...p,[i]:e.target.value}))}
+                              placeholder={r.suggested?.toFixed(2)||"—"}
+                              style={{width:"62px",background:D.inBg,border:`1px solid ${D.inBdr}`,borderRadius:"3px",padding:"3px 6px",color:D.txt,fontSize:"10px",fontFamily:MONO,textAlign:"right"}}
+                            />
+                          </div>
+                        ):<span style={{color:D.txtD,fontSize:"9px"}}>—</span>}
+                        {matched&&r.suggested&&<div style={{color:D.txtD,fontSize:"8px",textAlign:"right",marginTop:"2px"}}>24h suggest: ${r.suggested.toFixed(2)}</div>}
+                      </div>
+                      <div style={{textAlign:"center"}}>
+                        {matched?(
+                          <div>
+                            <span style={{color:D.buyT,fontSize:"8px",background:dark?"rgba(0,200,60,0.1)":"rgba(22,128,58,0.08)",padding:"2px 6px",borderRadius:"3px"}}>● MATCHED</span>
+                            {isTCGPlayer&&opportunity!==null&&(
+                              <div style={{color:oppColor,fontSize:"8px",marginTop:"3px"}}>
+                                {opportunity>0.05?"▲ CX higher":opportunity<-0.05?"▼ CX lower":"≈ similar"}
+                              </div>
+                            )}
+                          </div>
+                        ):(
+                          <span style={{color:"#f59e0b",fontSize:"8px",background:dark?"rgba(245,158,11,0.1)":"rgba(245,158,11,0.08)",padding:"2px 6px",borderRadius:"3px"}}>● NO MATCH</span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
 
+          {/* ── DONE step ── */}
           {step==="done"&&(
             <div style={{textAlign:"center",padding:"40px 20px"}}>
               <div style={{fontSize:"48px",marginBottom:"16px"}}>✅</div>
               <div style={{fontFamily:ORB,fontSize:"16px",color:D.acc,marginBottom:"8px"}}>IMPORT COMPLETE</div>
-              <div style={{color:D.txtD,fontSize:"11px"}}>{rows.filter(r=>r.matchedCard).length} cards added to your portfolio</div>
+              <div style={{color:D.txtM,fontSize:"11px",marginBottom:"6px"}}>{matchedRows.length} cards added to your portfolio</div>
+              <div style={{color:D.txtD,fontSize:"10px"}}>Check your Orders tab — sell orders have been placed for selected cards</div>
             </div>
           )}
         </div>
 
+        {/* Footer */}
         {step==="preview"&&(
-          <div style={{padding:"14px 20px",borderTop:`1px solid ${D.bdr}`,display:"flex",gap:"10px",justifyContent:"flex-end",flexShrink:0}}>
-            <button onClick={()=>setStep("upload")} style={{padding:"9px 20px",background:"transparent",border:`1px solid ${D.bdr}`,borderRadius:"5px",color:D.txtD,fontSize:"10px",fontFamily:MONO,cursor:"pointer"}}>← BACK</button>
-            <button onClick={handleImport} disabled={importing||rows.filter(r=>r.matchedCard).length===0} style={{padding:"9px 24px",background:dark?"linear-gradient(135deg,#0a3a1a,#0f5a28)":"linear-gradient(135deg,#cceacc,#a8d8a8)",border:`1px solid ${D.accD}`,borderRadius:"5px",color:dark?"#00ff55":"#1a5a2a",fontSize:"10px",fontFamily:MONO,cursor:"pointer",fontWeight:"bold",letterSpacing:"0.1em",opacity:rows.filter(r=>r.matchedCard).length===0?0.5:1}}>
-              {importing?"IMPORTING...":"IMPORT "+rows.filter(r=>r.matchedCard).length+" CARDS →"}
-            </button>
+          <div style={{padding:"14px 20px",borderTop:`1px solid ${D.bdr}`,display:"flex",gap:"10px",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
+            <div style={{color:D.txtD,fontSize:"10px"}}>
+              {isTCGPlayer&&`${Object.values(listSelected).filter(Boolean).length} cards selected for listing`}
+            </div>
+            <div style={{display:"flex",gap:"10px"}}>
+              <button onClick={()=>setStep("upload")} style={{padding:"9px 20px",background:"transparent",border:`1px solid ${D.bdr}`,borderRadius:"5px",color:D.txtD,fontSize:"10px",fontFamily:MONO,cursor:"pointer"}}>← BACK</button>
+              <button onClick={handleImport} disabled={importing||matchedRows.length===0} style={{padding:"9px 24px",background:dark?"linear-gradient(135deg,#0a3a1a,#0f5a28)":"linear-gradient(135deg,#cceacc,#a8d8a8)",border:`1px solid ${D.accD}`,borderRadius:"5px",color:dark?"#00ff55":"#1a5a2a",fontSize:"10px",fontFamily:MONO,cursor:"pointer",fontWeight:"bold",letterSpacing:"0.1em",opacity:matchedRows.length===0?0.5:1}}>
+                {importing?"IMPORTING...":isTCGPlayer?`IMPORT + LIST ${Object.values(listSelected).filter(Boolean).length} CARDS →`:`IMPORT ${matchedRows.length} CARDS →`}
+              </button>
+            </div>
           </div>
         )}
         {step==="done"&&(
@@ -2083,18 +2251,26 @@ export default function App(){
   const handleBrowseSelect=(card)=>{ setSelectedCard(card); setTab("MARKET"); };
   const handleProfileUpdate=(updatedProfile)=>setProfile(updatedProfile);
 
-  const handleCSVImport=(importedRows)=>{
+  const handleCSVImport=(importedRows,listingPrices={},listSelected={})=>{
     const toAdd=importedRows.filter(r=>r.matchedCard);
+    // Add to holdings first
     setHoldings(prev=>{
       const updated=[...prev];
       toAdd.forEach(r=>{
         const idx=updated.findIndex(h=>h.cardId===r.matchedCard.id);
         if(idx>=0){ updated[idx]={...updated[idx],qty:updated[idx].qty+r.qty}; }
-        else{ updated.push({cardId:r.matchedCard.id,qty:r.qty,avgCost:r.matchedCard.basePrice||BASE[r.matchedCard.id]||0,acquired:nowDate()}); }
+        else{ updated.push({cardId:r.matchedCard.id,qty:r.qty,avgCost:r.matchedCard.basePrice||BASE[r.matchedCard.id]||0,acquired:nowDate(),lockedQty:0}); }
       });
       return updated;
     });
-    pushNotification("import",`Imported ${toAdd.length} card${toAdd.length!==1?"s":""} from CSV`);
+    // Place limit sell orders for selected cards with custom prices
+    const toList=importedRows.filter((r,i)=>r.matchedCard&&listSelected[i]!==false&&listingPrices[i]);
+    toList.forEach(r=>{
+      const price=parseFloat(listingPrices[importedRows.indexOf(r)]);
+      if(price>0) placeOrder({cardId:r.matchedCard.id,side:"sell",type:"limit",price,qty:r.qty});
+    });
+    const listed=toList.length;
+    pushNotification("import",`Imported ${toAdd.length} card${toAdd.length!==1?"s":""} from CSV${listed?` · ${listed} listed for sale`:"" }`);
   };
   const handleLogout=async()=>{
     const {supabase}=await import('./supabase');
@@ -2171,7 +2347,7 @@ export default function App(){
           <Ticker D={D} dark={dark} tradeHistory={tradeHistory} dbCards={dbCards} marketPrices={marketPrices}/>
 
           {/* ── CSV Import Modal ── */}
-          {csvModal&&<CSVImportModal D={D} dark={dark} dbCards={dbCards} onImport={handleCSVImport} onClose={()=>setCsvModal(false)}/>}
+          {csvModal&&<CSVImportModal D={D} dark={dark} dbCards={dbCards} onImport={handleCSVImport} onClose={()=>setCsvModal(false)} marketPrices={marketPrices} tradeHistory={tradeHistory}/>}
 
           {/* ── Mobile hamburger drawer overlay ── */}
           {isMobile&&drawerOpen&&(
