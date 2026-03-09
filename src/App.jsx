@@ -1,5 +1,16 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 
+
+// ── Mobile hook ───────────────────────────────────────────────────────────────
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(typeof window !== "undefined" && window.innerWidth <= 480);
+  useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth <= 480);
+    window.addEventListener("resize", handler);
+    return () => window.removeEventListener("resize", handler);
+  }, []);
+  return isMobile;
+}
 // ── Data ─────────────────────────────────────────────────────────────────────
 const CARDS = [
   { id:1, name:"Charizard",          set:"Base Set",  condition:"PSA 10", rarity:"Holo Rare", game:"Pokémon", img:"https://images.pokemontcg.io/base1/4_hires.png" },
@@ -105,7 +116,7 @@ const MONO="'Share Tech Mono','Courier New',monospace";
 const ORB="'Orbitron',sans-serif";
 
 // ── Portfolio ─────────────────────────────────────────────────────────────────
-function Portfolio({D,dark,holdings=[],tradeHistory=[],dbCards=[]}){
+function Portfolio({D,dark,holdings=[],tradeHistory=[],dbCards=[],isMobile=false}){
   const [selected,setSelected]=useState(null);
   const [watchlist,setWatchlist]=useState([CARDS[1],CARDS[2]]);
 
@@ -130,8 +141,8 @@ function Portfolio({D,dark,holdings=[],tradeHistory=[],dbCards=[]}){
   const sp=portHist.map((v,i)=>`${i===0?"M":"L"}${((i/(portHist.length-1))*400).toFixed(1)},${(60-((v-minH)/rngH)*54).toFixed(1)}`).join(" ");
 
   return(
-    <div style={{flex:1,overflowY:"auto",padding:"20px",display:"flex",flexDirection:"column",gap:"16px"}}>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:"12px"}}>
+    <div style={{flex:1,overflowY:"auto",padding:isMobile?"12px":"20px",display:"flex",flexDirection:"column",gap:"16px"}}>
+      <div style={{display:"grid",gridTemplateColumns:isMobile?"repeat(2,1fr)":"repeat(4,1fr)",gap:"12px"}}>
         {[["TOTAL VALUE",`$${totalVal.toLocaleString("en-US",{minimumFractionDigits:2})}`,""],["TOTAL COST",`$${totalCost.toLocaleString("en-US",{minimumFractionDigits:2})}`,""],["UNREALISED P&L",`${totalPnl>=0?"+":""}$${Math.abs(totalPnl).toLocaleString("en-US",{minimumFractionDigits:2})}`,totalPnl>=0?"up":"dn"],["RETURN",`${totalPct>=0?"+":""}${totalPct}%`,totalPct>=0?"up":"dn"]].map(([label,val,dir])=>(
           <div key={label} style={{background:D.bg2,border:`1px solid ${D.bdr}`,borderRadius:"6px",padding:"14px 16px"}}>
             <div style={{color:D.txtD,fontSize:"9px",letterSpacing:"0.12em",marginBottom:"8px"}}>{label}</div>
@@ -150,7 +161,7 @@ function Portfolio({D,dark,holdings=[],tradeHistory=[],dbCards=[]}){
         </svg>
       </div>
 
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"16px"}}>
+      <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:"16px"}}>
         <div style={{background:D.bg2,border:`1px solid ${D.bdr}`,borderRadius:"6px",overflow:"hidden"}}>
           <div style={{padding:"10px 14px",borderBottom:`1px solid ${D.bdr}`,color:D.txtD,fontSize:"10px",letterSpacing:"0.12em"}}>▸ HOLDINGS</div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 50px 70px 70px 70px",padding:"5px 14px",color:D.txtD,fontSize:"9px",borderBottom:`1px solid ${D.bdr}`}}>
@@ -218,7 +229,7 @@ function Portfolio({D,dark,holdings=[],tradeHistory=[],dbCards=[]}){
 }
 
 // ── Orders ────────────────────────────────────────────────────────────────────
-function Orders({D,dark,orders=[],onCancel,dbCards=[]}){
+function Orders({D,dark,orders=[],onCancel,dbCards=[],isMobile=false}){
   const [filter,setFilter]=useState("all");
   const allCards=[...dbCards,...CARDS];
   const cancel=id=>{ if(onCancel) onCancel(id); };
@@ -227,8 +238,8 @@ function Orders({D,dark,orders=[],onCancel,dbCards=[]}){
   const sBg=s=>s==="open"?(dark?"rgba(0,200,60,0.08)":"rgba(22,128,58,0.08)"):s==="partial"?(dark?"rgba(245,158,11,0.08)":"rgba(245,158,11,0.06)"):dark?"rgba(80,80,80,0.08)":"rgba(80,80,80,0.04)";
 
   return(
-    <div style={{flex:1,overflowY:"auto",padding:"20px",display:"flex",flexDirection:"column",gap:"16px"}}>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:"12px"}}>
+    <div style={{flex:1,overflowY:"auto",padding:isMobile?"12px":"20px",display:"flex",flexDirection:"column",gap:"16px"}}>
+      <div style={{display:"grid",gridTemplateColumns:isMobile?"repeat(2,1fr)":"repeat(4,1fr)",gap:"12px"}}>
         {[["OPEN",orders.filter(o=>o.status==="open").length],["PARTIAL",orders.filter(o=>o.status==="partial").length],["FILLED",orders.filter(o=>o.status==="filled").length],["TOTAL",orders.length]].map(([label,val])=>(
           <div key={label} style={{background:D.bg2,border:`1px solid ${D.bdr}`,borderRadius:"6px",padding:"14px 16px"}}>
             <div style={{color:D.txtD,fontSize:"9px",letterSpacing:"0.12em",marginBottom:"8px"}}>{label} ORDERS</div>
@@ -245,39 +256,72 @@ function Orders({D,dark,orders=[],onCancel,dbCards=[]}){
             </button>
           ))}
         </div>
-        <div style={{display:"grid",gridTemplateColumns:"90px 1fr 50px 60px 80px 60px 80px 70px",padding:"6px 14px",color:D.txtD,fontSize:"9px",borderBottom:`1px solid ${D.bdr}`,letterSpacing:"0.08em"}}>
-          <span>ORDER ID</span><span>CARD</span><span>SIDE</span><span>TYPE</span><span style={{textAlign:"right"}}>PRICE</span><span style={{textAlign:"right"}}>QTY</span><span style={{textAlign:"right"}}>STATUS</span><span style={{textAlign:"right"}}>ACTION</span>
-        </div>
-        {filtered.length===0&&<div style={{padding:"40px",textAlign:"center",color:D.txtD,fontSize:"11px"}}>{filter==="all"?"No orders yet — place your first trade in the Market tab":`No ${filter} orders`}</div>}
-        {filtered.map(o=>{
-          const card=allCards.find(c=>c.id===o.cardId)||{name:"Unknown",img:"",img_url:""};
-          return(
-            <div key={o.id} style={{display:"grid",gridTemplateColumns:"90px 1fr 50px 60px 80px 60px 80px 70px",padding:"10px 14px",borderBottom:`1px solid ${D.bdr}`,alignItems:"center"}}>
-              <span style={{color:D.txtM,fontSize:"10px"}}>{o.id}</span>
-              <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
-                <img src={card.img} alt={card.name} style={{width:"20px",height:"28px",objectFit:"cover",borderRadius:"2px"}} onError={e=>e.target.style.display="none"}/>
-                <div><div style={{color:D.txt,fontSize:"11px"}}>{card.name}</div><div style={{color:D.txtD,fontSize:"9px"}}>{o.date} {o.time}</div></div>
-              </div>
-              <span style={{color:o.side==="buy"?D.buyT:D.askT,fontSize:"10px"}}>{o.side.toUpperCase()}</span>
-              <span style={{color:D.txtM,fontSize:"10px"}}>{o.type.toUpperCase()}</span>
-              <span style={{textAlign:"right",color:D.txt,fontSize:"11px"}}>${o.price.toLocaleString("en-US",{minimumFractionDigits:2})}</span>
-              <span style={{textAlign:"right",color:D.txtM,fontSize:"11px"}}>{o.filled}/{o.qty}</span>
-              <div style={{textAlign:"right"}}><span style={{background:sBg(o.status),color:sColor(o.status),padding:"2px 7px",borderRadius:"3px",fontSize:"9px"}}>{o.status.toUpperCase()}</span></div>
-              <div style={{textAlign:"right"}}>
-                {(o.status==="open"||o.status==="partial")?(
-                  <button onClick={()=>cancel(o.id)} style={{padding:"3px 8px",background:dark?"rgba(220,50,50,0.12)":"rgba(220,50,50,0.08)",border:`1px solid ${dark?"#5a1a1a":"#e07070"}`,borderRadius:"3px",color:D.askT,fontSize:"9px",fontFamily:MONO,cursor:"pointer"}}>CANCEL</button>
-                ):<span style={{color:D.txtD,fontSize:"9px"}}>—</span>}
-              </div>
+        {isMobile?(
+          /* Mobile: card-style order list */
+          <>
+            {filtered.length===0&&<div style={{padding:"40px",textAlign:"center",color:D.txtD,fontSize:"11px"}}>{filter==="all"?"No orders yet":"No "+filter+" orders"}</div>}
+            {filtered.map(o=>{
+              const card=allCards.find(c=>c.id===o.cardId)||{name:"Unknown",img:"",img_url:""};
+              return(
+                <div key={o.id} style={{padding:"12px 14px",borderBottom:`1px solid ${D.bdr}`,display:"flex",alignItems:"center",gap:"12px"}}>
+                  <img src={card.img||card.img_url} alt={card.name} style={{width:"28px",height:"38px",objectFit:"cover",borderRadius:"3px",flexShrink:0}} onError={e=>e.target.style.display="none"}/>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"3px"}}>
+                      <span style={{color:D.txt,fontSize:"12px",fontWeight:600}}>{card.name}</span>
+                      <span style={{background:sBg(o.status),color:sColor(o.status),padding:"2px 6px",borderRadius:"3px",fontSize:"9px"}}>{o.status.toUpperCase()}</span>
+                    </div>
+                    <div style={{display:"flex",gap:"10px",alignItems:"center"}}>
+                      <span style={{color:o.side==="buy"?D.buyT:D.askT,fontSize:"11px"}}>{o.side.toUpperCase()}</span>
+                      <span style={{color:D.txtD,fontSize:"10px"}}>{o.type.toUpperCase()}</span>
+                      <span style={{color:D.txtM,fontSize:"11px"}}>${o.price.toLocaleString("en-US",{minimumFractionDigits:2})}</span>
+                      <span style={{color:D.txtD,fontSize:"10px"}}>×{o.qty}</span>
+                    </div>
+                    <div style={{display:"flex",justifyContent:"space-between",marginTop:"4px",alignItems:"center"}}>
+                      <span style={{color:D.txtD,fontSize:"9px"}}>{o.id} · {o.date}</span>
+                      {(o.status==="open"||o.status==="partial")&&<button onClick={()=>cancel(o.id)} style={{padding:"3px 10px",background:dark?"rgba(220,50,50,0.12)":"rgba(220,50,50,0.08)",border:`1px solid ${dark?"#5a1a1a":"#e07070"}`,borderRadius:"3px",color:D.askT,fontSize:"9px",fontFamily:MONO,cursor:"pointer"}}>CANCEL</button>}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </>
+        ):(
+          <>
+            <div style={{display:"grid",gridTemplateColumns:"90px 1fr 50px 60px 80px 60px 80px 70px",padding:"6px 14px",color:D.txtD,fontSize:"9px",borderBottom:`1px solid ${D.bdr}`,letterSpacing:"0.08em"}}>
+              <span>ORDER ID</span><span>CARD</span><span>SIDE</span><span>TYPE</span><span style={{textAlign:"right"}}>PRICE</span><span style={{textAlign:"right"}}>QTY</span><span style={{textAlign:"right"}}>STATUS</span><span style={{textAlign:"right"}}>ACTION</span>
             </div>
-          );
-        })}
+            {filtered.length===0&&<div style={{padding:"40px",textAlign:"center",color:D.txtD,fontSize:"11px"}}>{filter==="all"?"No orders yet — place your first trade in the Market tab":`No ${filter} orders`}</div>}
+            {filtered.map(o=>{
+              const card=allCards.find(c=>c.id===o.cardId)||{name:"Unknown",img:"",img_url:""};
+              return(
+                <div key={o.id} style={{display:"grid",gridTemplateColumns:"90px 1fr 50px 60px 80px 60px 80px 70px",padding:"10px 14px",borderBottom:`1px solid ${D.bdr}`,alignItems:"center"}}>
+                  <span style={{color:D.txtM,fontSize:"10px"}}>{o.id}</span>
+                  <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
+                    <img src={card.img} alt={card.name} style={{width:"20px",height:"28px",objectFit:"cover",borderRadius:"2px"}} onError={e=>e.target.style.display="none"}/>
+                    <div><div style={{color:D.txt,fontSize:"11px"}}>{card.name}</div><div style={{color:D.txtD,fontSize:"9px"}}>{o.date} {o.time}</div></div>
+                  </div>
+                  <span style={{color:o.side==="buy"?D.buyT:D.askT,fontSize:"10px"}}>{o.side.toUpperCase()}</span>
+                  <span style={{color:D.txtM,fontSize:"10px"}}>{o.type.toUpperCase()}</span>
+                  <span style={{textAlign:"right",color:D.txt,fontSize:"11px"}}>${o.price.toLocaleString("en-US",{minimumFractionDigits:2})}</span>
+                  <span style={{textAlign:"right",color:D.txtM,fontSize:"11px"}}>{o.filled}/{o.qty}</span>
+                  <div style={{textAlign:"right"}}><span style={{background:sBg(o.status),color:sColor(o.status),padding:"2px 7px",borderRadius:"3px",fontSize:"9px"}}>{o.status.toUpperCase()}</span></div>
+                  <div style={{textAlign:"right"}}>
+                    {(o.status==="open"||o.status==="partial")?(
+                      <button onClick={()=>cancel(o.id)} style={{padding:"3px 8px",background:dark?"rgba(220,50,50,0.12)":"rgba(220,50,50,0.08)",border:`1px solid ${dark?"#5a1a1a":"#e07070"}`,borderRadius:"3px",color:D.askT,fontSize:"9px",fontFamily:MONO,cursor:"pointer"}}>CANCEL</button>
+                    ):<span style={{color:D.txtD,fontSize:"9px"}}>—</span>}
+                  </div>
+                </div>
+              );
+            })}
+          </>
+        )}
       </div>
     </div>
   );
 }
 
 // ── History ───────────────────────────────────────────────────────────────────
-function History({D,dark,tradeHistory=[],ledger=[],dbCards=[]}){
+function History({D,dark,tradeHistory=[],ledger=[],dbCards=[],isMobile=false}){
   const [tab,setTab]=useState("trades");
 
   const allCards=[...dbCards,...CARDS];
@@ -378,7 +422,7 @@ function History({D,dark,tradeHistory=[],ledger=[],dbCards=[]}){
 
 // ── Browser ───────────────────────────────────────────────────────────────────
 const PAGE_SIZE=40;
-function Browser({D,dark,dbCards,onSelectCard}){
+function Browser({D,dark,dbCards,onSelectCard,isMobile=false}){
   const [search,setSearch]=useState("");
   const [gameFilter,setGameFilter]=useState("all");
   const [condFilter,setCondFilter]=useState("all");
@@ -469,7 +513,7 @@ function Browser({D,dark,dbCards,onSelectCard}){
         <div style={{padding:"60px",textAlign:"center",color:D.txtD,fontSize:"12px",background:D.bg2,border:`1px solid ${D.bdr}`,borderRadius:"6px"}}>No cards match your filters</div>
       )}
 
-      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(180px,1fr))",gap:"14px"}}>
+      <div style={{display:"grid",gridTemplateColumns:isMobile?"repeat(2,1fr)":"repeat(auto-fill,minmax(180px,1fr))",gap:isMobile?"10px":"14px"}}>
         {paginated.map(c=>{
           const bp=c.basePrice||BASE[c.id]||0;
           const chg=((Math.random()-0.45)*5).toFixed(2);const up=+chg>=0;
@@ -503,7 +547,8 @@ function Browser({D,dark,dbCards,onSelectCard}){
 }
 
 // ── Market ────────────────────────────────────────────────────────────────────
-function Market({D,dark,dbCards=[],initialCard=null,balance=0,onPlaceOrder,onUpdatePrice,tradeHistory=[],isDemo=false}){
+function Market({D,dark,dbCards=[],initialCard=null,balance=0,onPlaceOrder,onUpdatePrice,tradeHistory=[],isDemo=false,isMobile=false}){
+  const [sheetOpen,setSheetOpen]=useState(false);
   const allCards=dbCards.length?dbCards:CARDS.map(c=>({...c,basePrice:BASE[c.id]}));
   const [card,setCard]=useState(()=>initialCard||allCards[0]||CARDS[0]);
   const [sidebarMode,setSidebarMode]=useState("value");
@@ -559,6 +604,116 @@ function Market({D,dark,dbCards=[],initialCard=null,balance=0,onPlaceOrder,onUpd
     setOPrice(""); setOQty("");
   };
   const maxA=Math.max(...asks.map(a=>a.qty)),maxB=Math.max(...bids.map(b=>b.qty));
+
+  // ── Mobile layout ────────────────────────────────────────────────────────
+  if(isMobile){
+    return(
+      <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",position:"relative"}}>
+        {/* Card selector strip */}
+        <div style={{overflowX:"auto",flexShrink:0,borderBottom:`1px solid ${D.bdr}`,background:D.bg2,display:"flex",WebkitOverflowScrolling:"touch"}}>
+          {(dbCards.length?dbCards:CARDS).slice(0,12).map(c=>{
+            const active=card.id===c.id;
+            return(
+              <div key={c.id} onClick={()=>setCard(c)} style={{flexShrink:0,padding:"8px 10px",borderRight:`1px solid ${D.bdr}`,background:active?(dark?"rgba(0,255,80,0.06)":"rgba(22,128,58,0.06)"):"transparent",borderBottom:`2px solid ${active?D.accD:"transparent"}`,cursor:"pointer",minWidth:"80px",textAlign:"center"}}>
+                <img src={c.img||c.img_url} alt={c.name} style={{width:"32px",height:"44px",objectFit:"cover",borderRadius:"3px",display:"block",margin:"0 auto 4px"}} onError={e=>e.target.style.display="none"}/>
+                <div style={{color:active?D.acc:D.txtM,fontSize:"9px",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:"72px"}}>{c.name.split(" ")[0]}</div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Price header */}
+        <div style={{background:D.bg3,borderBottom:`1px solid ${D.bdr}`,padding:"10px 14px",flexShrink:0}}>
+          <div style={{fontFamily:ORB,fontSize:"13px",fontWeight:700,color:D.txt,marginBottom:"2px"}}>{card.name}</div>
+          <div style={{display:"flex",alignItems:"baseline",gap:"10px"}}>
+            <span className={flash==="up"?"fu":flash==="down"?"fd":""} style={{fontFamily:ORB,fontSize:"22px",fontWeight:800,color:flash==="up"?D.buyT:flash==="down"?D.askT:D.txt}}>${(price||0).toLocaleString("en-US",{minimumFractionDigits:2})}</span>
+            <span style={{color:+pct>=0?D.buyT:D.askT,fontSize:"12px"}}>{+pct>=0?"▲":"▼"}{Math.abs(pct)}%</span>
+          </div>
+        </div>
+
+        {/* Chart */}
+        <div style={{background:D.bg3,borderBottom:`1px solid ${D.bdr}`,padding:"10px 14px 6px",flexShrink:0}}>
+          {!hasHistory?(
+            <div style={{height:"100px",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",opacity:0.4,gap:"6px"}}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={D.txtD} strokeWidth="1.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+              <span style={{color:D.txtD,fontSize:"9px"}}>NO TRADE HISTORY YET</span>
+            </div>
+          ):(
+            <svg width="100%" height="100" viewBox={`0 0 ${CW} ${CH}`} preserveAspectRatio="none" style={{display:"block"}}>
+              <defs><linearGradient id="cg2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={D.accD} stopOpacity="0.14"/><stop offset="100%" stopColor={D.accD} stopOpacity="0"/></linearGradient></defs>
+              <path d={lp()+` L${CW},${CH} L0,${CH} Z`} fill="url(#cg2)"/>
+              <path d={lp()} fill="none" stroke={D.accD} strokeWidth="2"/>
+            </svg>
+          )}
+        </div>
+
+        {/* Order book — scrollable */}
+        <div style={{flex:1,overflowY:"auto",background:D.bg2}}>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr"}}>
+            {[["BIDS",bids,maxB,D.bidT,"bid"],["ASKS",asks,maxA,D.askT,"ask"]].map(([label,rows,mx,tc])=>(
+              <div key={label} style={{borderRight:`1px solid ${D.bdr}`}}>
+                <div style={{padding:"6px 10px",borderBottom:`1px solid ${D.bdr}`,background:D.bg3,color:tc,fontSize:"9px",letterSpacing:"0.1em"}}>▸ {label}</div>
+                {rows.slice(0,6).map((r,i)=>(
+                  <div key={i} onClick={()=>{setOPrice(r.price.toString());setSheetOpen(true);}} style={{padding:"5px 10px",borderBottom:`1px solid ${D.bdr}`,cursor:"pointer"}}>
+                    <div style={{color:tc,fontSize:"11px"}}>${r.price.toLocaleString("en-US",{minimumFractionDigits:2})}</div>
+                    <div style={{color:D.txtD,fontSize:"9px"}}>qty {r.qty}</div>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+          {/* Recent trades */}
+          <div style={{borderTop:`1px solid ${D.bdr}`}}>
+            <div style={{padding:"6px 12px",background:D.bg3,color:D.txtD,fontSize:"9px",borderBottom:`1px solid ${D.bdr}`,letterSpacing:"0.1em",display:"flex",justifyContent:"space-between"}}><span>▸ RECENT TRADES</span><span style={{color:D.buyT}}>● LIVE</span></div>
+            {trades.slice(0,8).map(t=>(
+              <div key={t.id} style={{display:"grid",gridTemplateColumns:"1fr 1fr 40px",padding:"5px 12px",borderBottom:`1px solid ${D.bdr}`}}>
+                <span style={{color:D.txtD,fontSize:"10px"}}>{t.time}</span>
+                <span style={{color:t.side==="buy"?D.buyT:D.askT,fontSize:"11px"}}>${t.price.toLocaleString("en-US",{minimumFractionDigits:2})}</span>
+                <span style={{textAlign:"right",color:D.txtM,fontSize:"10px"}}>{t.qty}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Fixed Buy/Sell button */}
+        <div style={{position:"sticky",bottom:0,padding:"12px 14px",background:D.hdrBg,borderTop:`1px solid ${D.bdr2}`,display:"grid",gridTemplateColumns:"1fr 1fr",gap:"10px",flexShrink:0}}>
+          <button onClick={()=>{setOSide("buy");setSheetOpen(true);}} style={{padding:"13px",border:`1px solid ${dark?"#1a5a2a":"#7ab07a"}`,borderRadius:"6px",fontSize:"12px",fontFamily:MONO,fontWeight:"bold",letterSpacing:"0.1em",background:dark?"linear-gradient(135deg,#0a3a1a,#0f5a28)":"linear-gradient(135deg,#cceacc,#a8d8a8)",color:dark?"#00ff55":"#1a5a2a",cursor:"pointer"}}>▲ BUY</button>
+          <button onClick={()=>{setOSide("sell");setSheetOpen(true);}} style={{padding:"13px",border:`1px solid ${dark?"#5a1a1a":"#c07070"}`,borderRadius:"6px",fontSize:"12px",fontFamily:MONO,fontWeight:"bold",letterSpacing:"0.1em",background:dark?"linear-gradient(135deg,#3a0a0a,#5a1010)":"linear-gradient(135deg,#eacccc,#d8a8a8)",color:dark?"#ff5555":"#9a1a1a",cursor:"pointer"}}>▼ SELL</button>
+        </div>
+
+        {/* Order entry bottom sheet */}
+        {sheetOpen&&(
+          <>
+            <div className="overlay" onClick={()=>setSheetOpen(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:300}}/>
+            <div className="sheet" style={{position:"fixed",bottom:0,left:0,right:0,background:D.bg2,borderTop:`2px solid ${D.bdr2}`,borderRadius:"16px 16px 0 0",zIndex:301,padding:"0 0 24px"}}>
+              <div style={{padding:"12px 16px",borderBottom:`1px solid ${D.bdr}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <span style={{color:D.txtD,fontSize:"10px",letterSpacing:"0.12em"}}>▸ PLACE ORDER — {card.name.split(" ")[0].toUpperCase()}</span>
+                <button onClick={()=>setSheetOpen(false)} style={{background:"none",border:"none",color:D.txtD,fontSize:"20px",padding:"0 4px",cursor:"pointer"}}>✕</button>
+              </div>
+              <div style={{padding:"14px 16px",display:"flex",flexDirection:"column",gap:"12px"}}>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",border:`1px solid ${D.bdr}`,borderRadius:"6px",overflow:"hidden"}}>
+                  {["buy","sell"].map(s=><button key={s} onClick={()=>setOSide(s)} style={{padding:"11px",border:"none",cursor:"pointer",fontFamily:MONO,fontSize:"13px",letterSpacing:"0.1em",background:oSide===s?(s==="buy"?(dark?"rgba(0,180,60,0.22)":"rgba(22,128,58,0.15)"):(dark?"rgba(180,30,30,0.22)":"rgba(180,30,30,0.14)")):"transparent",color:oSide===s?(s==="buy"?D.buyT:D.askT):D.txtD,borderBottom:`2px solid ${oSide===s?(s==="buy"?D.buyT:D.askT):"transparent"}`}}>{s.toUpperCase()}</button>)}
+                </div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px"}}>
+                  {["limit","market"].map(t=><button key={t} onClick={()=>setOType(t)} style={{padding:"9px",border:`1px solid ${oType===t?D.accD:D.bdr}`,borderRadius:"5px",background:oType===t?(dark?"rgba(0,100,30,0.15)":"rgba(22,128,58,0.08)"):"transparent",color:oType===t?D.accD:D.txtD,fontSize:"11px",fontFamily:MONO,cursor:"pointer"}}>{t.toUpperCase()}</button>)}
+                </div>
+                {oType==="limit"&&<div><div style={{color:D.txtD,fontSize:"9px",marginBottom:"6px"}}>PRICE (USD)</div><input type="number" value={oPrice} onChange={e=>setOPrice(e.target.value)} placeholder={price.toFixed(2)} style={{width:"100%",background:D.inBg,border:`1px solid ${D.inBdr}`,borderRadius:"5px",padding:"10px 12px",color:D.txt,fontSize:"16px",fontFamily:MONO}}/></div>}
+                <div><div style={{color:D.txtD,fontSize:"9px",marginBottom:"6px"}}>QUANTITY</div><input type="number" value={oQty} onChange={e=>setOQty(e.target.value)} placeholder="0" style={{width:"100%",background:D.inBg,border:`1px solid ${D.inBdr}`,borderRadius:"5px",padding:"10px 12px",color:D.txt,fontSize:"16px",fontFamily:MONO}}/></div>
+                <div style={{background:D.stBg,border:`1px solid ${D.bdr}`,borderRadius:"5px",padding:"10px 12px",display:"flex",justifyContent:"space-between"}}>
+                  <span style={{color:D.txtD,fontSize:"10px"}}>TOTAL</span>
+                  <span style={{color:D.txtM,fontSize:"14px"}}>${((oType==="market"?price:+oPrice||0)*(+oQty||0)).toLocaleString("en-US",{minimumFractionDigits:2})}</span>
+                </div>
+                <button onClick={()=>{submitOrder();setSheetOpen(false);}} style={{padding:"14px",border:`1px solid ${oSide==="buy"?(dark?"#1a5a2a":"#7ab07a"):(dark?"#5a1a1a":"#c07070")}`,borderRadius:"6px",fontSize:"13px",fontFamily:MONO,letterSpacing:"0.1em",fontWeight:"bold",background:oSide==="buy"?(dark?"linear-gradient(135deg,#0a3a1a,#0f5a28)":"linear-gradient(135deg,#cceacc,#a8d8a8)"):(dark?"linear-gradient(135deg,#3a0a0a,#5a1010)":"linear-gradient(135deg,#eacccc,#d8a8a8)"),color:oSide==="buy"?(dark?"#00ff55":"#1a5a2a"):(dark?"#ff5555":"#9a1a1a"),cursor:"pointer"}}>
+                  {oSide==="buy"?"▲ BUY":"▼ SELL"} {card.name.split(" ")[0].toUpperCase()}
+                </button>
+                {oStatus&&<div style={{padding:"10px 12px",background:oStatus.error?(dark?"rgba(180,30,30,0.08)":"rgba(220,50,50,0.06)"):(dark?"rgba(0,180,60,0.08)":"rgba(22,128,58,0.08)"),border:`1px solid ${oStatus.error?D.askT:D.accD}`,borderRadius:"5px",fontSize:"11px",color:oStatus.error?D.askT:D.accD}}>{oStatus.error?`⚠ ${oStatus.error}`:`✓ ORDER PLACED — ${oStatus.side?.toUpperCase()} ${oStatus.qty}x @ $${oStatus.price?.toFixed(2)}`}</div>}
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    );
+  }
 
   return(
     <div style={{flex:1,display:"flex",overflow:"hidden"}}>
@@ -718,6 +873,7 @@ function Market({D,dark,dbCards=[],initialCard=null,balance=0,onPlaceOrder,onUpd
 
 // ── Auth Modal ────────────────────────────────────────────────────────────────
 function AuthModal({D,dark,onClose,onAuth}){
+  const isMobile=useIsMobile();
   const [mode,setMode]=useState("login");
   const [email,setEmail]=useState("");
   const [password,setPassword]=useState("");
@@ -746,7 +902,7 @@ function AuthModal({D,dark,onClose,onAuth}){
 
   return(
     <div style={{position:"fixed",inset:0,zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.7)",backdropFilter:"blur(4px)"}} onClick={onClose}>
-      <div style={{background:D.bg2,border:`1px solid ${D.bdr2}`,borderRadius:"12px",padding:"32px",width:"380px",boxShadow:"0 24px 60px rgba(0,0,0,0.4)"}} onClick={e=>e.stopPropagation()}>
+      <div style={{background:D.bg2,border:`1px solid ${D.bdr2}`,borderRadius:isMobile?"0":"12px",padding:isMobile?"24px 20px":"32px",width:isMobile?"100vw":"380px",maxHeight:isMobile?"100vh":"auto",overflowY:"auto",boxShadow:"0 24px 60px rgba(0,0,0,0.4)",position:isMobile?"fixed":"relative",inset:isMobile?"0":undefined}} onClick={e=>e.stopPropagation()}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"24px"}}>
           <div>
             <div style={{fontFamily:ORB,fontSize:"18px",fontWeight:800,color:D.acc,letterSpacing:"0.12em"}}>◈ CX</div>
@@ -789,6 +945,7 @@ function AuthModal({D,dark,onClose,onAuth}){
 
 // ── Landing Page ──────────────────────────────────────────────────────────────
 function Landing({D,dark,dbCards,onEnterDemo,onOpenAuth}){
+  const isMobile=useIsMobile();
   const allCards=dbCards.length?dbCards:CARDS.map(c=>({...c,basePrice:BASE[c.id]}));
   const featuredCard=allCards.find(c=>c.id===1)||allCards[0]||CARDS[0];
   const base=featuredCard.basePrice||BASE[featuredCard.id]||420;
@@ -864,22 +1021,22 @@ function Landing({D,dark,dbCards,onEnterDemo,onOpenAuth}){
         <div style={{position:"absolute",inset:0,background:dark?"linear-gradient(135deg,rgba(7,10,14,0.92) 50%,rgba(7,10,14,0.6))":"linear-gradient(135deg,rgba(240,244,240,0.94) 50%,rgba(240,244,240,0.5))",pointerEvents:"none"}}/>
 
         {/* Nav */}
-        <div style={{position:"relative",zIndex:10,display:"flex",justifyContent:"space-between",alignItems:"center",padding:"20px 40px",borderBottom:`1px solid ${dark?"rgba(255,255,255,0.05)":"rgba(0,0,0,0.06)"}`}}>
+        <div style={{position:"relative",zIndex:10,display:"flex",justifyContent:"space-between",alignItems:"center",padding:isMobile?"14px 16px":"20px 40px",borderBottom:`1px solid ${dark?"rgba(255,255,255,0.05)":"rgba(0,0,0,0.06)"}`}}>
           <div style={{maxWidth:"1100px",margin:"0 auto",width:"100%",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <div style={{display:"flex",alignItems:"baseline",gap:"10px"}}>
-            <span style={{fontFamily:ORB,fontSize:"20px",fontWeight:800,color:dark?"#00cc40":"#15803d",letterSpacing:"0.18em"}}>◈ CX</span>
-            <span style={{fontFamily:ORB,fontSize:"12px",fontWeight:600,color:dark?"#4a8a4a":"#3a7a3a",letterSpacing:"0.08em"}}>COLLECTOR'S EXCHANGE</span>
+          <div style={{display:"flex",alignItems:"baseline",gap:"8px"}}>
+            <span style={{fontFamily:ORB,fontSize:"18px",fontWeight:800,color:dark?"#00cc40":"#15803d",letterSpacing:"0.18em"}}>◈ CX</span>
+            {!isMobile&&<span style={{fontFamily:ORB,fontSize:"12px",fontWeight:600,color:dark?"#4a8a4a":"#3a7a3a",letterSpacing:"0.08em"}}>COLLECTOR'S EXCHANGE</span>}
           </div>
-          <div style={{display:"flex",gap:"12px",alignItems:"center"}}>
-            <button onClick={onEnterDemo} style={{padding:"8px 18px",background:"transparent",border:`1px solid ${dark?"#2a5a2a":"#b8d4b8"}`,borderRadius:"5px",color:dark?"#4a8a4a":"#3a7a3a",fontSize:"10px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.1em"}}>EXPLORE DEMO</button>
-            <button onClick={()=>onOpenAuth("login")} style={{padding:"8px 18px",background:"transparent",border:`1px solid ${dark?"#4a8a4a":"#7a9a7a"}`,borderRadius:"5px",color:dark?"#a8b8a0":"#2a3a2a",fontSize:"10px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.1em"}}>LOG IN</button>
-            <button onClick={()=>onOpenAuth("signup")} style={{padding:"8px 20px",background:dark?"linear-gradient(135deg,#0a3a1a,#0f5a28)":"linear-gradient(135deg,#cceacc,#a8d8a8)",border:`1px solid ${dark?"#1a5a2a":"#7ab07a"}`,borderRadius:"5px",color:dark?"#00ff55":"#1a5a2a",fontSize:"10px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.1em",fontWeight:"bold"}}>GET STARTED →</button>
+          <div style={{display:"flex",gap:"8px",alignItems:"center"}}>
+            {!isMobile&&<button onClick={onEnterDemo} style={{padding:"8px 18px",background:"transparent",border:`1px solid ${dark?"#2a5a2a":"#b8d4b8"}`,borderRadius:"5px",color:dark?"#4a8a4a":"#3a7a3a",fontSize:"10px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.1em"}}>DEMO</button>}
+            {!isMobile&&<button onClick={()=>onOpenAuth("login")} style={{padding:"8px 18px",background:"transparent",border:`1px solid ${dark?"#4a8a4a":"#7a9a7a"}`,borderRadius:"5px",color:dark?"#a8b8a0":"#2a3a2a",fontSize:"10px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.1em"}}>LOG IN</button>}
+            <button onClick={()=>onOpenAuth("signup")} style={{padding:"8px 16px",background:dark?"linear-gradient(135deg,#0a3a1a,#0f5a28)":"linear-gradient(135deg,#cceacc,#a8d8a8)",border:`1px solid ${dark?"#1a5a2a":"#7ab07a"}`,borderRadius:"5px",color:dark?"#00ff55":"#1a5a2a",fontSize:"10px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.1em",fontWeight:"bold"}}>GET STARTED →</button>
           </div>
         </div>
 
           </div>
         {/* Hero content */}
-        <div style={{position:"relative",zIndex:10,flex:1,display:"flex",flexDirection:"column",justifyContent:"center",alignItems:"center",padding:"60px 40px",textAlign:"center"}}>
+        <div style={{position:"relative",zIndex:10,flex:1,display:"flex",flexDirection:"column",justifyContent:"center",alignItems:"center",padding:isMobile?"40px 20px":"60px 40px",textAlign:"center"}}>
           <div style={{maxWidth:"700px",width:"100%"}}>
           <div style={{display:"inline-flex",alignItems:"center",gap:"8px",background:dark?"rgba(0,180,60,0.08)":"rgba(22,128,58,0.06)",border:`1px solid ${dark?"#1a4a1a":"#a8d4a8"}`,borderRadius:"20px",padding:"5px 14px",marginBottom:"28px",width:"fit-content"}}>
             <span style={{color:dark?"#00cc40":"#15803d",fontSize:"9px"}}>●</span>
@@ -891,7 +1048,7 @@ function Landing({D,dark,dbCards,onEnterDemo,onOpenAuth}){
           <p style={{fontSize:"14px",lineHeight:1.8,color:dark?"#4a8a4a":"#5a7a5a",marginBottom:"36px",maxWidth:"480px"}}>
             Buy, sell and trade rare TCG cards with a real order book, live pricing, and portfolio tracking. Pokémon, MTG, Yu-Gi-Oh! and more.
           </p>
-          <div style={{display:"flex",gap:"14px",flexWrap:"wrap",justifyContent:"center"}}>
+          <div style={{display:"flex",gap:"12px",flexWrap:"wrap",justifyContent:"center",flexDirection:isMobile?"column":"row",alignItems:"center"}}>
             <button onClick={()=>onOpenAuth("signup")} style={{padding:"14px 32px",background:dark?"linear-gradient(135deg,#0a3a1a,#0f5a28)":"linear-gradient(135deg,#b8e8b8,#8acc8a)",border:`1px solid ${dark?"#1a5a2a":"#5a9a5a"}`,borderRadius:"7px",color:dark?"#00ff55":"#1a4a1a",fontSize:"12px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.1em",fontWeight:"bold"}}>CREATE FREE ACCOUNT</button>
             <button onClick={onEnterDemo} style={{padding:"14px 28px",background:"transparent",border:`1px solid ${dark?"#2a5a2a":"#c5d8c5"}`,borderRadius:"7px",color:dark?"#4a8a4a":"#3a7a3a",fontSize:"12px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.1em"}}>EXPLORE DEMO ▸</button>
           </div>
@@ -911,7 +1068,7 @@ function Landing({D,dark,dbCards,onEnterDemo,onOpenAuth}){
       </div>
 
       {/* ── Features ── */}
-      <div style={{padding:"80px 40px",background:dark?"#080c09":"#ffffff",borderTop:`1px solid ${dark?"#0f1f0f":"#dde8dd"}`}}>
+      <div style={{padding:isMobile?"40px 16px":"80px 40px",background:dark?"#080c09":"#ffffff",borderTop:`1px solid ${dark?"#0f1f0f":"#dde8dd"}`}}>
         <div style={{maxWidth:"1100px",margin:"0 auto"}}>
         <div style={{textAlign:"center",marginBottom:"56px"}}>
           <div style={{fontFamily:ORB,fontSize:"10px",letterSpacing:"0.2em",color:dark?"#2a5a2a":"#7a9a7a",marginBottom:"12px"}}>WHAT YOU GET</div>
@@ -980,6 +1137,8 @@ function Landing({D,dark,dbCards,onEnterDemo,onOpenAuth}){
 export default function App(){
   const [dark,setDark]=useState(false);
   const [screen,setScreen]=useState("landing"); // "landing" | "app"
+  const isMobile=useIsMobile();
+  const [drawerOpen,setDrawerOpen]=useState(false);
   const [user,setUser]=useState(null);
   const [authModal,setAuthModal]=useState(null); // null | "login" | "signup"
   const [tab,setTab]=useState("MARKET");
@@ -1049,6 +1208,7 @@ export default function App(){
   };
 
   useEffect(()=>{
+    document.title = "Collector's Exchange";
     import('./supabase').then(({supabase})=>{
       // Check for existing session
       supabase.auth.getSession().then(({data:{session}})=>{
@@ -1140,6 +1300,14 @@ export default function App(){
         @keyframes fG{0%,100%{background:transparent}50%{background:rgba(0,200,60,0.14)}}
         @keyframes fR{0%,100%{background:transparent}50%{background:rgba(220,50,50,0.14)}}
         .fu{animation:fG 0.4s ease;} .fd{animation:fR 0.4s ease;}
+        @keyframes slideIn{from{transform:translateX(-100%)}to{transform:translateX(0)}}
+        @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+        @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+        .drawer{animation:slideIn 0.22s ease;}
+        .sheet{animation:slideUp 0.22s ease;}
+        .overlay{animation:fadeIn 0.18s ease;}
+        @media(max-width:480px){.desktop-only{display:none!important;}.mobile-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;}input,select,button{font-size:16px!important;}}
+        @media(min-width:481px){.mobile-only{display:none!important;}}
       `}</style>
 
       {authModal&&<AuthModal D={D} dark={dark} onClose={()=>setAuthModal(null)} onAuth={handleAuth}/>}
@@ -1155,51 +1323,121 @@ export default function App(){
           {/* Demo banner */}
           {isDemo&&(
             <div style={{background:dark?"rgba(0,120,40,0.12)":"rgba(22,128,58,0.08)",borderBottom:`1px solid ${dark?"#1a4a1a":"#a8d4a8"}`,padding:"7px 16px",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
-              <span style={{color:dark?"#4a8a4a":"#3a7a3a",fontSize:"10px",letterSpacing:"0.1em"}}>▸ DEMO MODE — Orders and portfolio reset on refresh. <span style={{color:D.accD,cursor:"pointer",textDecoration:"underline"}} onClick={()=>setAuthModal("signup")}>Create a free account</span> to save your trades.</span>
-              <button onClick={()=>setAuthModal("signup")} style={{padding:"4px 12px",background:dark?"rgba(0,180,60,0.15)":"rgba(22,128,58,0.10)",border:`1px solid ${dark?"#1a4a1a":"#8acc8a"}`,borderRadius:"4px",color:D.accD,fontSize:"9px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.08em"}}>SIGN UP FREE →</button>
+              <span style={{color:dark?"#4a8a4a":"#3a7a3a",fontSize:"10px",letterSpacing:"0.1em"}}>▸ DEMO MODE — Orders reset on refresh. <span style={{color:D.accD,cursor:"pointer",textDecoration:"underline"}} onClick={()=>setAuthModal("signup")}>Create a free account</span> to save your trades.</span>
+              <button onClick={()=>setAuthModal("signup")} style={{padding:"4px 12px",background:dark?"rgba(0,180,60,0.15)":"rgba(22,128,58,0.10)",border:`1px solid ${dark?"#1a4a1a":"#8acc8a"}`,borderRadius:"4px",color:D.accD,fontSize:"9px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.08em"}}>SIGN UP →</button>
             </div>
           )}
 
-          <div style={{background:D.hdrBg,borderBottom:`1px solid ${D.bdr2}`,padding:"0 16px",display:"flex",alignItems:"center",justifyContent:"space-between",height:"44px",position:"sticky",top:0,zIndex:100,boxShadow:D.shad,flexShrink:0}}>
-            <div style={{display:"flex",alignItems:"center",gap:"12px"}}>
-              <div style={{display:"flex",alignItems:"baseline",gap:"8px",cursor:"pointer"}} onClick={()=>setScreen("landing")}>
-                <span style={{fontFamily:ORB,fontSize:"16px",fontWeight:800,color:D.acc,letterSpacing:"0.18em",textShadow:dark?"0 0 22px rgba(0,255,80,0.45)":"none"}}>◈ CX</span>
-                <span style={{fontFamily:ORB,fontSize:"11px",fontWeight:600,color:D.txtM,letterSpacing:"0.08em"}}>COLLECTOR'S EXCHANGE</span>
+          {/* ── Mobile hamburger drawer overlay ── */}
+          {isMobile&&drawerOpen&&(
+            <div className="overlay" onClick={()=>setDrawerOpen(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",zIndex:200}}/>
+          )}
+          {isMobile&&drawerOpen&&(
+            <div className="drawer" style={{position:"fixed",top:0,left:0,bottom:0,width:"75vw",maxWidth:"280px",background:D.hdrBg,borderRight:`1px solid ${D.bdr2}`,zIndex:201,display:"flex",flexDirection:"column",padding:"0"}}>
+              <div style={{padding:"16px",borderBottom:`1px solid ${D.bdr}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                <span style={{fontFamily:ORB,fontSize:"15px",fontWeight:800,color:D.acc,letterSpacing:"0.18em"}}>◈ CX</span>
+                <button onClick={()=>setDrawerOpen(false)} style={{background:"none",border:"none",color:D.txtD,fontSize:"20px",padding:"4px 8px"}}>✕</button>
               </div>
-              <span style={{color:D.bdr2}}>|</span>
-              <span style={{color:D.txtD,fontSize:"9px",letterSpacing:"0.14em",fontStyle:"italic"}}>Buy. Sell. Collect.</span>
-            </div>
-            <div style={{display:"flex",gap:"2px",alignItems:"center"}}>
-              {["MARKET","BROWSE","PORTFOLIO","ORDERS","HISTORY"].map(t=>(
-                <button key={t} onClick={()=>setTab(t)} style={{padding:"0 16px",height:"44px",border:"none",background:"transparent",color:tab===t?D.accD:D.txtD,fontSize:"10px",fontFamily:MONO,letterSpacing:"0.12em",borderBottom:`2px solid ${tab===t?D.accD:"transparent"}`,transition:"all 0.12s",cursor:"pointer"}}>{t}</button>
-              ))}
-            </div>
-            <div style={{display:"flex",gap:"10px",alignItems:"center"}}>
-              {user?(
-                <>
-                  <span style={{color:D.txtD,fontSize:"10px"}}>{user.user_metadata?.display_name||user.email?.split("@")[0]}</span>
-                  <div style={{background:D.stBg,border:`1px solid ${D.bdr}`,borderRadius:"3px",padding:"3px 10px",fontSize:"11px",color:D.txtM}}>💵 ${balance.toLocaleString("en-US",{minimumFractionDigits:2})}</div>
-                  <button onClick={handleLogout} style={{padding:"3px 10px",background:"transparent",border:`1px solid ${D.bdr}`,borderRadius:"3px",color:D.txtD,fontSize:"9px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.08em"}}>LOG OUT</button>
-                </>
-              ):(
-                <>
-                  <div style={{background:D.stBg,border:`1px solid ${D.bdr}`,borderRadius:"3px",padding:"3px 10px",fontSize:"11px",color:D.txtM}}>💵 ${balance.toLocaleString("en-US",{minimumFractionDigits:2})}</div>
-                  <button onClick={()=>setAuthModal("login")} style={{padding:"3px 10px",background:"transparent",border:`1px solid ${D.bdr}`,borderRadius:"3px",color:D.txtD,fontSize:"9px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.08em"}}>LOG IN</button>
-                  <button onClick={()=>setAuthModal("signup")} style={{padding:"3px 10px",background:dark?"rgba(0,120,40,0.15)":"rgba(22,128,58,0.08)",border:`1px solid ${D.accD}`,borderRadius:"3px",color:D.accD,fontSize:"9px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.08em"}}>SIGN UP</button>
-                </>
+              {user&&(
+                <div style={{padding:"12px 16px",borderBottom:`1px solid ${D.bdr}`}}>
+                  <div style={{color:D.txtM,fontSize:"11px",marginBottom:"4px"}}>{user.user_metadata?.display_name||user.email?.split("@")[0]}</div>
+                  <div style={{color:D.acc,fontSize:"13px",fontWeight:"bold"}}>💵 ${balance.toLocaleString("en-US",{minimumFractionDigits:2})}</div>
+                </div>
               )}
-              <div onClick={()=>setDark(d=>!d)} style={{width:"44px",height:"24px",background:dark?"#1a3a1a":"#d1ecd1",borderRadius:"12px",border:`1px solid ${D.bdr2}`,display:"flex",alignItems:"center",padding:"3px",transition:"background 0.3s",cursor:"pointer"}}>
-                <div style={{width:"16px",height:"16px",borderRadius:"50%",background:dark?"#00cc40":"#f59e0b",transform:dark?"translateX(0)":"translateX(20px)",transition:"transform 0.3s,background 0.3s",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"9px"}}>{dark?"🌙":"☀️"}</div>
+              <div style={{flex:1,padding:"8px 0"}}>
+                {["MARKET","BROWSE","PORTFOLIO","ORDERS","HISTORY"].map(t=>(
+                  <button key={t} onClick={()=>{setTab(t);setDrawerOpen(false);}} style={{display:"block",width:"100%",padding:"14px 20px",border:"none",background:tab===t?(dark?"rgba(0,255,80,0.08)":"rgba(22,128,58,0.07)"):"transparent",color:tab===t?D.accD:D.txtM,fontSize:"11px",fontFamily:MONO,letterSpacing:"0.12em",textAlign:"left",borderLeft:`3px solid ${tab===t?D.accD:"transparent"}`,cursor:"pointer"}}>{t}</button>
+                ))}
+              </div>
+              <div style={{padding:"16px",borderTop:`1px solid ${D.bdr}`,display:"flex",flexDirection:"column",gap:"8px"}}>
+                <div onClick={()=>setDark(d=>!d)} style={{display:"flex",alignItems:"center",gap:"10px",cursor:"pointer",padding:"8px 0"}}>
+                  <div style={{width:"36px",height:"20px",background:dark?"#1a3a1a":"#d1ecd1",borderRadius:"10px",border:`1px solid ${D.bdr2}`,display:"flex",alignItems:"center",padding:"2px",transition:"background 0.3s"}}>
+                    <div style={{width:"14px",height:"14px",borderRadius:"50%",background:dark?"#00cc40":"#f59e0b",transform:dark?"translateX(0)":"translateX(16px)",transition:"transform 0.3s"}}/>
+                  </div>
+                  <span style={{color:D.txtM,fontSize:"10px"}}>{dark?"DARK MODE":"LIGHT MODE"}</span>
+                </div>
+                {user?(
+                  <button onClick={()=>{handleLogout();setDrawerOpen(false);}} style={{padding:"10px",background:"transparent",border:`1px solid ${D.bdr}`,borderRadius:"4px",color:D.txtD,fontSize:"10px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.08em"}}>LOG OUT</button>
+                ):(
+                  <div style={{display:"flex",gap:"8px"}}>
+                    <button onClick={()=>{setAuthModal("login");setDrawerOpen(false);}} style={{flex:1,padding:"10px",background:"transparent",border:`1px solid ${D.bdr}`,borderRadius:"4px",color:D.txtD,fontSize:"10px",fontFamily:MONO,cursor:"pointer"}}>LOG IN</button>
+                    <button onClick={()=>{setAuthModal("signup");setDrawerOpen(false);}} style={{flex:1,padding:"10px",background:dark?"rgba(0,120,40,0.15)":"rgba(22,128,58,0.08)",border:`1px solid ${D.accD}`,borderRadius:"4px",color:D.accD,fontSize:"10px",fontFamily:MONO,cursor:"pointer"}}>SIGN UP</button>
+                  </div>
+                )}
               </div>
             </div>
+          )}
+
+          {/* ── Nav bar ── */}
+          <div style={{background:D.hdrBg,borderBottom:`1px solid ${D.bdr2}`,padding:isMobile?"0 12px":"0 16px",display:"flex",alignItems:"center",justifyContent:"space-between",height:"44px",position:"sticky",top:0,zIndex:100,boxShadow:D.shad,flexShrink:0}}>
+            {isMobile?(
+              <>
+                <button onClick={()=>setDrawerOpen(true)} style={{background:"none",border:`1px solid ${D.bdr}`,borderRadius:"4px",color:D.txtM,fontSize:"18px",padding:"4px 8px",lineHeight:1,cursor:"pointer"}}>☰</button>
+                <div style={{display:"flex",alignItems:"baseline",gap:"6px",cursor:"pointer"}} onClick={()=>setScreen("landing")}>
+                  <span style={{fontFamily:ORB,fontSize:"15px",fontWeight:800,color:D.acc,letterSpacing:"0.18em",textShadow:dark?"0 0 22px rgba(0,255,80,0.45)":"none"}}>◈ CX</span>
+                </div>
+                <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
+                  <span style={{color:D.txtM,fontSize:"11px"}}>💵 ${balance.toLocaleString("en-US",{maximumFractionDigits:0})}</span>
+                  <div onClick={()=>setDark(d=>!d)} style={{width:"36px",height:"20px",background:dark?"#1a3a1a":"#d1ecd1",borderRadius:"10px",border:`1px solid ${D.bdr2}`,display:"flex",alignItems:"center",padding:"2px",cursor:"pointer"}}>
+                    <div style={{width:"14px",height:"14px",borderRadius:"50%",background:dark?"#00cc40":"#f59e0b",transform:dark?"translateX(0)":"translateX(16px)",transition:"transform 0.3s"}}/>
+                  </div>
+                </div>
+              </>
+            ):(
+              <>
+                <div style={{display:"flex",alignItems:"center",gap:"12px"}}>
+                  <div style={{display:"flex",alignItems:"baseline",gap:"8px",cursor:"pointer"}} onClick={()=>setScreen("landing")}>
+                    <span style={{fontFamily:ORB,fontSize:"16px",fontWeight:800,color:D.acc,letterSpacing:"0.18em",textShadow:dark?"0 0 22px rgba(0,255,80,0.45)":"none"}}>◈ CX</span>
+                    <span style={{fontFamily:ORB,fontSize:"11px",fontWeight:600,color:D.txtM,letterSpacing:"0.08em"}}>COLLECTOR'S EXCHANGE</span>
+                  </div>
+                  <span style={{color:D.bdr2}}>|</span>
+                  <span style={{color:D.txtD,fontSize:"9px",letterSpacing:"0.14em",fontStyle:"italic"}}>Buy. Sell. Collect.</span>
+                </div>
+                <div style={{display:"flex",gap:"2px",alignItems:"center"}}>
+                  {["MARKET","BROWSE","PORTFOLIO","ORDERS","HISTORY"].map(t=>(
+                    <button key={t} onClick={()=>setTab(t)} style={{padding:"0 16px",height:"44px",border:"none",background:"transparent",color:tab===t?D.accD:D.txtD,fontSize:"10px",fontFamily:MONO,letterSpacing:"0.12em",borderBottom:`2px solid ${tab===t?D.accD:"transparent"}`,transition:"all 0.12s",cursor:"pointer"}}>{t}</button>
+                  ))}
+                </div>
+                <div style={{display:"flex",gap:"10px",alignItems:"center"}}>
+                  {user?(
+                    <>
+                      <span style={{color:D.txtD,fontSize:"10px"}}>{user.user_metadata?.display_name||user.email?.split("@")[0]}</span>
+                      <div style={{background:D.stBg,border:`1px solid ${D.bdr}`,borderRadius:"3px",padding:"3px 10px",fontSize:"11px",color:D.txtM}}>💵 ${balance.toLocaleString("en-US",{minimumFractionDigits:2})}</div>
+                      <button onClick={handleLogout} style={{padding:"3px 10px",background:"transparent",border:`1px solid ${D.bdr}`,borderRadius:"3px",color:D.txtD,fontSize:"9px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.08em"}}>LOG OUT</button>
+                    </>
+                  ):(
+                    <>
+                      <div style={{background:D.stBg,border:`1px solid ${D.bdr}`,borderRadius:"3px",padding:"3px 10px",fontSize:"11px",color:D.txtM}}>💵 ${balance.toLocaleString("en-US",{minimumFractionDigits:2})}</div>
+                      <button onClick={()=>setAuthModal("login")} style={{padding:"3px 10px",background:"transparent",border:`1px solid ${D.bdr}`,borderRadius:"3px",color:D.txtD,fontSize:"9px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.08em"}}>LOG IN</button>
+                      <button onClick={()=>setAuthModal("signup")} style={{padding:"3px 10px",background:dark?"rgba(0,120,40,0.15)":"rgba(22,128,58,0.08)",border:`1px solid ${D.accD}`,borderRadius:"3px",color:D.accD,fontSize:"9px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.08em"}}>SIGN UP</button>
+                    </>
+                  )}
+                  <div onClick={()=>setDark(d=>!d)} style={{width:"44px",height:"24px",background:dark?"#1a3a1a":"#d1ecd1",borderRadius:"12px",border:`1px solid ${D.bdr2}`,display:"flex",alignItems:"center",padding:"3px",transition:"background 0.3s",cursor:"pointer"}}>
+                    <div style={{width:"16px",height:"16px",borderRadius:"50%",background:dark?"#00cc40":"#f59e0b",transform:dark?"translateX(0)":"translateX(20px)",transition:"transform 0.3s,background 0.3s",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"9px"}}>{dark?"🌙":"☀️"}</div>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
 
-          <div style={{flex:1,display:"flex",overflow:"hidden"}}>
-            {tab==="MARKET"    && <Market    D={D} dark={dark} dbCards={dbCards} initialCard={selectedCard} balance={balance} onPlaceOrder={placeOrder} onUpdatePrice={handleUpdatePrice} tradeHistory={tradeHistory} isDemo={isDemo}/>}
-            {tab==="BROWSE"    && <Browser   D={D} dark={dark} dbCards={dbCards} onSelectCard={handleBrowseSelect}/>}
-            {tab==="PORTFOLIO" && <Portfolio D={D} dark={dark} holdings={holdings} tradeHistory={tradeHistory} dbCards={dbCards}/>}
-            {tab==="ORDERS"    && <Orders    D={D} dark={dark} orders={orders} onCancel={cancelOrder} dbCards={dbCards}/>}
-            {tab==="HISTORY"   && <History   D={D} dark={dark} tradeHistory={tradeHistory} ledger={ledger} dbCards={dbCards}/>}
+          {/* ── Mobile bottom tab bar ── */}
+          {isMobile&&(
+            <div style={{position:"fixed",bottom:0,left:0,right:0,background:D.hdrBg,borderTop:`1px solid ${D.bdr2}`,display:"flex",zIndex:100,height:"54px",boxShadow:"0 -2px 12px rgba(0,0,0,0.15)"}}>
+              {[{t:"MARKET",i:"📈"},{t:"BROWSE",i:"🔍"},{t:"PORTFOLIO",i:"💼"},{t:"ORDERS",i:"📋"},{t:"HISTORY",i:"📜"}].map(({t,i})=>(
+                <button key={t} onClick={()=>setTab(t)} style={{flex:1,border:"none",background:"transparent",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:"2px",color:tab===t?D.accD:D.txtD,fontSize:"8px",fontFamily:MONO,letterSpacing:"0.06em",borderTop:`2px solid ${tab===t?D.accD:"transparent"}`,cursor:"pointer",padding:"6px 0"}}>
+                  <span style={{fontSize:"16px"}}>{i}</span>
+                  <span>{t}</span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div style={{flex:1,display:"flex",overflow:"hidden",paddingBottom:isMobile?"54px":"0"}}>
+            {tab==="MARKET"    && <Market    D={D} dark={dark} dbCards={dbCards} initialCard={selectedCard} balance={balance} onPlaceOrder={placeOrder} onUpdatePrice={handleUpdatePrice} tradeHistory={tradeHistory} isDemo={isDemo} isMobile={isMobile}/>}
+            {tab==="BROWSE"    && <Browser   D={D} dark={dark} dbCards={dbCards} onSelectCard={handleBrowseSelect} isMobile={isMobile}/>}
+            {tab==="PORTFOLIO" && <Portfolio D={D} dark={dark} holdings={holdings} tradeHistory={tradeHistory} dbCards={dbCards} isMobile={isMobile}/>}
+            {tab==="ORDERS"    && <Orders    D={D} dark={dark} orders={orders} onCancel={cancelOrder} dbCards={dbCards} isMobile={isMobile}/>}
+            {tab==="HISTORY"   && <History   D={D} dark={dark} tradeHistory={tradeHistory} ledger={ledger} dbCards={dbCards} isMobile={isMobile}/>}
           </div>
         </div>
       )}
