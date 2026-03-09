@@ -646,7 +646,10 @@ function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[],onPlac
   const maxP=hasHistory?Math.max(...hist.map(h=>h.p)):0;
   const rng=maxP-minP||1;
   const CW=560,CH=200;
-  const lp=()=>hist.map((h,i)=>`${i===0?"M":"L"}${((i/(hist.length-1))*CW).toFixed(1)},${((CH-8)-((h.p-minP)/rng)*(CH-16)).toFixed(1)}`).join(" ");
+  const lp=()=>{
+    if(hist.length<2) return "";
+    return hist.map((h,i)=>`${i===0?"M":"L"}${((i/(hist.length-1))*CW).toFixed(1)},${((CH-8)-((h.p-minP)/rng)*(CH-16)).toFixed(1)}`).join(" ");
+  };
   const submitOrder=()=>{
     if(!oQty||!oPrice) return;
     const orderPrice=+oPrice;
@@ -707,8 +710,8 @@ function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[],onPlac
           ):(
             <svg width="100%" height="100" viewBox={`0 0 ${CW} ${CH}`} preserveAspectRatio="none" style={{display:"block"}}>
               <defs><linearGradient id="cg2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={D.accD} stopOpacity="0.14"/><stop offset="100%" stopColor={D.accD} stopOpacity="0"/></linearGradient></defs>
-              <path d={lp()+` L${CW},${CH} L0,${CH} Z`} fill="url(#cg2)"/>
-              <path d={lp()} fill="none" stroke={D.accD} strokeWidth="2"/>
+              {lp()&&<path d={lp()+` L${CW},${CH} L0,${CH} Z`} fill="url(#cg2)"/>}
+              {lp()&&<path d={lp()} fill="none" stroke={D.accD} strokeWidth="2"/>}
             </svg>
           )}
         </div>
@@ -874,10 +877,10 @@ function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[],onPlac
                 <svg width="100%" height={CH} viewBox={`0 0 ${CW} ${CH}`} preserveAspectRatio="none" style={{display:"block"}}>
                   <defs><linearGradient id="cg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={D.accD} stopOpacity={dark?"0.16":"0.10"}/><stop offset="100%" stopColor={D.accD} stopOpacity="0"/></linearGradient></defs>
                   {[0.25,0.5,0.75].map(f=><line key={f} x1="0" y1={CH*f} x2={CW} y2={CH*f} stroke={D.bdr} strokeWidth="0.5"/>)}
-                  <path d={lp()+` L${CW},${CH} L0,${CH} Z`} fill="url(#cg)"/>
-                  <path d={lp()} fill="none" stroke={D.accD} strokeWidth="1.8" style={{filter:dark?`drop-shadow(0 0 4px ${D.accD}70)`:"none"}}/>
+                  {lp()&&<path d={lp()+` L${CW},${CH} L0,${CH} Z`} fill="url(#cg)"/>}
+                  {lp()&&<path d={lp()} fill="none" stroke={D.accD} strokeWidth="1.8" style={{filter:dark?`drop-shadow(0 0 4px ${D.accD}70)`:"none"}}/>}
                   <circle cx={CW} cy={(CH-8)-((price-minP)/rng)*(CH-16)} r="3" fill={D.accD}/>
-                  {hist.map((h,i)=>{
+                  {hist.length>=2&&hist.map((h,i)=>{
                     if(i===0) return null;
                     const x=((i/(hist.length-1))*CW).toFixed(1);
                     const y=((CH-8)-((h.p-minP)/rng)*(CH-16)).toFixed(1);
