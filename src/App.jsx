@@ -982,47 +982,46 @@ function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[],onPlac
           </div>
 
           <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
-            <div style={{background:D.bg3,borderBottom:`1px solid ${D.bdr}`,padding:"10px 16px 0",flexShrink:0}}>
-              {/* Chart toolbar */}
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"8px"}}>
-                <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
-                  <span style={{color:D.txtD,fontSize:"13px",letterSpacing:"0.12em"}}>▸ PRICE CHART</span>
-                  {crosshair&&<span style={{fontFamily:ORB,fontSize:"14px",color:D.txt}}>${crosshair.price.toLocaleString("en-US",{minimumFractionDigits:2})} <span style={{color:D.txtD,fontSize:"12px",fontFamily:MONO}}>{crosshair.time}</span></span>}
-                </div>
-                <div style={{display:"flex",gap:"6px",alignItems:"center"}}>
-                  {/* Chart type toggle */}
-                  <div style={{display:"flex",border:`1px solid ${D.bdr}`,borderRadius:"4px",overflow:"hidden",marginRight:"4px"}}>
-                    {[["line","▲"],["candle","▮"]].map(([t,icon])=>(
-                      <button key={t} onClick={()=>setChartType(t)} title={t==="line"?"Line chart":"Candlestick"} style={{padding:"2px 8px",border:"none",background:chartType===t?(dark?"rgba(0,180,60,0.18)":"rgba(22,128,58,0.10)"):"transparent",color:chartType===t?D.accD:D.txtD,fontSize:"13px",cursor:"pointer",borderRight:t==="line"?`1px solid ${D.bdr}`:"none"}}>{icon}</button>
-                    ))}
-                  </div>
-                  {/* Time range */}
-                  {["1H","6H","1D","1W","1M"].map(r=>(
-                    <button key={r} onClick={()=>setChartRange(r)} style={{padding:"2px 8px",border:`1px solid ${r===chartRange?D.accD:D.bdr}`,borderRadius:"3px",background:r===chartRange?(dark?"rgba(0,180,60,0.14)":"rgba(22,128,58,0.08)"):"transparent",color:r===chartRange?D.accD:D.txtD,fontSize:"12px",fontFamily:MONO,cursor:"pointer"}}>{r}</button>
+            {/* Chart toolbar - fixed height */}
+            <div style={{background:D.bg3,borderBottom:`1px solid ${D.bdr}`,padding:"8px 16px",flexShrink:0,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
+                <span style={{color:D.txtD,fontSize:"13px",letterSpacing:"0.12em"}}>▸ PRICE CHART</span>
+                {crosshair&&<span style={{fontFamily:ORB,fontSize:"14px",color:D.txt}}>${crosshair.price.toLocaleString("en-US",{minimumFractionDigits:2})} <span style={{color:D.txtD,fontSize:"12px",fontFamily:MONO}}>{crosshair.time}</span></span>}
+              </div>
+              <div style={{display:"flex",gap:"6px",alignItems:"center"}}>
+                <div style={{display:"flex",border:`1px solid ${D.bdr}`,borderRadius:"4px",overflow:"hidden",marginRight:"4px"}}>
+                  {[["line","▲"],["candle","▮"]].map(([t,icon])=>(
+                    <button key={t} onClick={()=>setChartType(t)} style={{padding:"2px 8px",border:"none",background:chartType===t?(dark?"rgba(0,180,60,0.18)":"rgba(22,128,58,0.10)"):"transparent",color:chartType===t?D.accD:D.txtD,fontSize:"13px",cursor:"pointer",borderRight:t==="line"?`1px solid ${D.bdr}`:"none"}}>{icon}</button>
                   ))}
                 </div>
+                {["1H","6H","1D","1W","1M"].map(r=>(
+                  <button key={r} onClick={()=>setChartRange(r)} style={{padding:"2px 8px",border:`1px solid ${r===chartRange?D.accD:D.bdr}`,borderRadius:"3px",background:r===chartRange?(dark?"rgba(0,180,60,0.14)":"rgba(22,128,58,0.08)"):"transparent",color:r===chartRange?D.accD:D.txtD,fontSize:"12px",fontFamily:MONO,cursor:"pointer"}}>{r}</button>
+                ))}
               </div>
+            </div>
+
+            {/* Chart area - flex:1 to fill all remaining space */}
+            <div style={{flex:1,position:"relative",background:D.bg3,borderBottom:`1px solid ${D.bdr}`,minHeight:0}}>
               {!hasHistory?(
-                <div style={{height:CH,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:"8px",opacity:0.4}}>
+                <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:"8px",opacity:0.4}}>
                   <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke={D.txtD} strokeWidth="1.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
                   <span style={{color:D.txtD,fontSize:"14px",letterSpacing:"0.12em"}}>NO TRADE HISTORY YET</span>
                   <span style={{color:D.txtD,fontSize:"13px"}}>Place a trade to start recording price history</span>
                 </div>
               ):(
-                <div style={{position:"relative"}}>
-                  {(() => {
-                    // Chart layout with explicit margins
+                <div style={{position:"absolute",inset:0}}>
+                  {(()=>{
                     const MARGIN={top:8,right:72,bottom:DATE_H,left:4};
-                    const IW=CW-MARGIN.left-MARGIN.right; // inner width
-                    const IH=CH-MARGIN.top-MARGIN.bottom; // inner height
+                    const IW=CW-MARGIN.left-MARGIN.right;
+                    const IH=CH-MARGIN.top-MARGIN.bottom;
                     const ix=(i,len)=>MARGIN.left+((i/(len-1))*IW);
                     const iy=(p)=>MARGIN.top+(IH-((p-minP)/rng)*IH);
                     const linePath=hist.length<2?"":hist.map((h,i)=>`${i===0?"M":"L"}${ix(i,hist.length).toFixed(1)},${iy(h.p).toFixed(1)}`).join(" ");
                     return(
-                      <svg width="100%" height={CH} viewBox={`0 0 ${CW} ${CH}`} style={{display:"block",cursor:"crosshair",overflow:"visible"}}
+                      <svg width="100%" height="100%" viewBox={`0 0 ${CW} ${CH}`} preserveAspectRatio="none" style={{display:"block",cursor:"crosshair"}}
                         onMouseMove={e=>{
                           const rect=e.currentTarget.getBoundingClientRect();
-                          const xRatio=Math.max(0,Math.min(1,(e.clientX-rect.left-MARGIN.left*rect.width/CW)/((rect.width*(IW/CW)))));
+                          const xRatio=Math.max(0,Math.min(1,(e.clientX-rect.left)/(rect.width)));
                           if(chartType==="line"&&hist.length>=2){
                             const idx=Math.round(xRatio*(hist.length-1));
                             const h=hist[Math.max(0,Math.min(idx,hist.length-1))];
@@ -1040,12 +1039,8 @@ function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[],onPlac
                             <stop offset="0%" stopColor={D.accD} stopOpacity={dark?"0.18":"0.12"}/>
                             <stop offset="100%" stopColor={D.accD} stopOpacity="0"/>
                           </linearGradient>
-                          <clipPath id="chartClip">
-                            <rect x={MARGIN.left} y={MARGIN.top} width={IW} height={IH}/>
-                          </clipPath>
+                          <clipPath id="chartClip"><rect x={MARGIN.left} y={MARGIN.top} width={IW} height={IH}/></clipPath>
                         </defs>
-
-                        {/* Y grid lines + price labels on right */}
                         {[0,0.25,0.5,0.75,1].map(f=>{
                           const p=minP+rng*(1-f);
                           const y=iy(p);
@@ -1054,13 +1049,9 @@ function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[],onPlac
                             <text x={MARGIN.left+IW+4} y={y+4} fontSize="11" fill={dark?"#5a8a5a":"#6a8a6a"} fontFamily="monospace">${p.toLocaleString("en-US",{maximumFractionDigits:0})}</text>
                           </g>;
                         })}
-
-                        {/* Current price dashed line + live label */}
                         <line x1={MARGIN.left} y1={iy(price)} x2={MARGIN.left+IW} y2={iy(price)} stroke={D.accD} strokeWidth="0.8" strokeDasharray="4,3" opacity="0.6"/>
                         <rect x={MARGIN.left+IW+1} y={iy(price)-10} width={62} height={20} rx="3" fill={D.accD}/>
                         <text x={MARGIN.left+IW+32} y={iy(price)+5} fontSize="11" fill={dark?"#000":"#fff"} fontFamily="monospace" textAnchor="middle" fontWeight="bold">${price.toLocaleString("en-US",{minimumFractionDigits:2})}</text>
-
-                        {/* Chart content clipped to inner area */}
                         <g clipPath="url(#chartClip)">
                           {chartType==="line"&&linePath&&<>
                             <path d={linePath+` L${MARGIN.left+IW},${MARGIN.top+IH} L${MARGIN.left},${MARGIN.top+IH} Z`} fill="url(#cg)"/>
@@ -1079,18 +1070,14 @@ function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[],onPlac
                             </g>;
                           })}
                         </g>
-
-                        {/* X date axis */}
                         <line x1={MARGIN.left} y1={MARGIN.top+IH} x2={MARGIN.left+IW} y2={MARGIN.top+IH} stroke={dark?"rgba(255,255,255,0.08)":"rgba(0,0,0,0.1)"} strokeWidth="1"/>
                         {dateLabels.map((d,i)=>{
                           const xd=MARGIN.left+(+d.x/CW)*IW;
                           return <g key={i}>
                             <line x1={xd} y1={MARGIN.top+IH} x2={xd} y2={MARGIN.top+IH+4} stroke={dark?"rgba(255,255,255,0.15)":"rgba(0,0,0,0.15)"} strokeWidth="1"/>
-                            <text x={xd} y={CH-4} fontSize="9" fill={dark?"#4a7a4a":"#8a9a8a"} fontFamily="monospace" textAnchor={i===0?"start":i===dateLabels.length-1?"end":"middle"}>{d.label}</text>
+                            <text x={xd} y={CH-4} fontSize="10" fill={dark?"#4a7a4a":"#8a9a8a"} fontFamily="monospace" textAnchor={i===0?"start":i===dateLabels.length-1?"end":"middle"}>{d.label}</text>
                           </g>;
                         })}
-
-                        {/* Crosshair */}
                         {crosshair&&<g clipPath="url(#chartClip)">
                           <line x1={crosshair.x} y1={MARGIN.top} x2={crosshair.x} y2={MARGIN.top+IH} stroke={dark?"rgba(255,255,255,0.2)":"rgba(0,0,0,0.15)"} strokeWidth="1" strokeDasharray="3,3"/>
                           <line x1={MARGIN.left} y1={crosshair.y} x2={MARGIN.left+IW} y2={crosshair.y} stroke={dark?"rgba(255,255,255,0.2)":"rgba(0,0,0,0.15)"} strokeWidth="1" strokeDasharray="3,3"/>
@@ -1099,7 +1086,6 @@ function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[],onPlac
                       </svg>
                     );
                   })()}
-                  {/* OHLC tooltip */}
                   {crosshair&&chartType==="candle"&&crosshair.open!==undefined&&(
                     <div style={{position:"absolute",top:"4px",left:"8px",display:"flex",gap:"14px",background:dark?"rgba(7,10,14,0.92)":"rgba(255,255,255,0.92)",border:`1px solid ${D.bdr}`,borderRadius:"5px",padding:"4px 12px",pointerEvents:"none",backdropFilter:"blur(4px)"}}>
                       {[["O",crosshair.open],["H",crosshair.high],["L",crosshair.low],["C",crosshair.price]].map(([label,val])=>(
@@ -1114,7 +1100,8 @@ function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[],onPlac
               )}
             </div>
 
-            <div style={{flex:1,display:"flex",overflow:"hidden"}}>
+            {/* Order book - fixed 200px height */}
+            <div style={{height:"200px",flexShrink:0,display:"flex",overflow:"hidden"}}>
               {[["BUY PRICE",bids,maxB,D.bidT,"bid"],["SELL PRICE",asks,maxA,D.askT,"ask"]].map(([label,rows,mx,tc,side])=>(
                 <div key={label} style={{flex:1,display:"flex",flexDirection:"column",borderRight:`1px solid ${D.bdr}`,overflow:"hidden"}}>
                   <div style={{padding:"5px 12px",borderBottom:`1px solid ${D.bdr}`,background:D.bg3,color:tc,fontSize:"14px",letterSpacing:"0.1em",flexShrink:0}}>▸ {label}</div>
