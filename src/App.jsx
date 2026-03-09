@@ -375,11 +375,11 @@ function History({D,dark,tradeHistory=[],ledger=[],dbCards=[],isMobile=false}){
 
         {tab==="trades"&&(
           <>
-            <div style={{display:"grid",gridTemplateColumns:"90px 1fr 50px 80px 50px 90px 110px",padding:"6px 14px",color:D.txtD,fontSize:"13px",borderBottom:`1px solid ${D.bdr}`,letterSpacing:"0.08em"}}>
+            <div style={{display:"grid",gridTemplateColumns:"90px 1fr 50px 80px 50px 90px 130px",padding:"6px 14px",color:D.txtD,fontSize:"13px",borderBottom:`1px solid ${D.bdr}`,letterSpacing:"0.08em"}}>
               <span>TRADE ID</span><span>CARD</span><span>SIDE</span><span style={{textAlign:"right"}}>PRICE</span><span style={{textAlign:"right"}}>QTY</span><span style={{textAlign:"right"}}>TOTAL</span><span style={{textAlign:"right"}}>DATE</span>
             </div>
             {tradeHistory.length===0?(<div style={{padding:"40px",textAlign:"center",color:D.txtD,fontSize:"17px"}}>No trades yet</div>):tradeHistory.map(t=>{const card=allCards.find(c=>c.id===t.cardId)||{name:"Unknown",img:"",img_url:""};return(
-              <div key={t.id} style={{display:"grid",gridTemplateColumns:"90px 1fr 50px 80px 50px 90px 110px",padding:"10px 14px",borderBottom:`1px solid ${D.bdr}`,alignItems:"center"}}>
+              <div key={t.id} style={{display:"grid",gridTemplateColumns:"90px 1fr 50px 80px 50px 90px 130px",padding:"10px 14px",borderBottom:`1px solid ${D.bdr}`,alignItems:"center"}}>
                 <span style={{color:D.txtM,fontSize:"14px"}}>{t.id}</span>
                 <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
                   <img src={proxyImg(card.img)} alt={card.name} style={{width:"20px",height:"28px",objectFit:"cover",borderRadius:"2px"}} onError={e=>e.target.style.display="none"}/>
@@ -742,10 +742,10 @@ function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[],onPlac
           <div style={{borderTop:`1px solid ${D.bdr}`}}>
             <div style={{padding:"6px 12px",background:D.bg3,color:D.txtD,fontSize:"13px",borderBottom:`1px solid ${D.bdr}`,letterSpacing:"0.1em",display:"flex",justifyContent:"space-between"}}><span>▸ RECENT TRADES</span><span style={{color:D.buyT}}>● LIVE</span></div>
             {trades.slice(0,8).map(t=>(
-              <div key={t.id} style={{display:"grid",gridTemplateColumns:"1fr 1fr 40px",padding:"5px 12px",borderBottom:`1px solid ${D.bdr}`}}>
-                <span style={{color:D.txtD,fontSize:"14px"}}>{t.time}</span>
-                <span style={{color:t.side==="buy"?D.buyT:D.askT,fontSize:"16px"}}>${t.price.toLocaleString("en-US",{minimumFractionDigits:2})}</span>
-                <span style={{textAlign:"right",color:D.txtM,fontSize:"14px"}}>{t.qty}</span>
+              <div key={t.id} style={{display:"grid",gridTemplateColumns:"70px 1fr 36px",padding:"5px 12px",borderBottom:`1px solid ${D.bdr}`,alignItems:"center"}}>
+                <span style={{color:D.txtD,fontSize:"13px"}}>{t.time}</span>
+                <span style={{color:t.side==="buy"?D.buyT:D.askT,fontSize:"14px"}}>${t.price.toLocaleString("en-US",{minimumFractionDigits:2})}</span>
+                <span style={{textAlign:"right",color:D.txtM,fontSize:"13px"}}>{t.qty}</span>
               </div>
             ))}
           </div>
@@ -918,13 +918,13 @@ function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[],onPlac
               ))}
               <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
                 <div style={{padding:"5px 12px",borderBottom:`1px solid ${D.bdr}`,background:D.bg3,color:D.txtD,fontSize:"14px",letterSpacing:"0.1em",display:"flex",justifyContent:"space-between",flexShrink:0}}><span>▸ TRADES</span><span style={{color:D.buyT,fontSize:"13px"}}>● LIVE</span></div>
-                <div style={{display:"grid",gridTemplateColumns:"62px 1fr 36px",padding:"3px 12px",color:D.txtD,fontSize:"13px",borderBottom:`1px solid ${D.bdr}`,background:D.bg3,flexShrink:0}}><span>TIME</span><span>PRICE</span><span style={{textAlign:"right"}}>QTY</span></div>
+                <div style={{display:"grid",gridTemplateColumns:"70px 1fr 36px",padding:"3px 12px",color:D.txtD,fontSize:"13px",borderBottom:`1px solid ${D.bdr}`,background:D.bg3,flexShrink:0}}><span>TIME</span><span>PRICE</span><span style={{textAlign:"right"}}>QTY</span></div>
                 <div style={{flex:1,overflowY:"auto",background:D.bg2}}>
                   {trades.map(t=>(
-                    <div key={t.id} style={{display:"grid",gridTemplateColumns:"62px 1fr 36px",padding:"4px 12px",borderBottom:`1px solid ${D.bdr}`}}>
-                      <span style={{color:D.txtD,fontSize:"16px"}}>{t.time}</span>
-                      <span style={{color:t.side==="buy"?D.buyT:D.askT,fontSize:"17px"}}>${t.price.toLocaleString("en-US",{minimumFractionDigits:2})}</span>
-                      <span style={{textAlign:"right",color:D.txtM,fontSize:"16px"}}>{t.qty}</span>
+                    <div key={t.id} style={{display:"grid",gridTemplateColumns:"70px 1fr 36px",padding:"4px 12px",borderBottom:`1px solid ${D.bdr}`,alignItems:"center"}}>
+                      <span style={{color:D.txtD,fontSize:"13px"}}>{t.time}</span>
+                      <span style={{color:t.side==="buy"?D.buyT:D.askT,fontSize:"14px"}}>${t.price.toLocaleString("en-US",{minimumFractionDigits:2})}</span>
+                      <span style={{textAlign:"right",color:D.txtM,fontSize:"13px"}}>{t.qty}</span>
                     </div>
                   ))}
                 </div>
