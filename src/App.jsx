@@ -17,7 +17,7 @@ const CARDS = [
   { id:2, name:"Black Lotus",         set:"Alpha",     condition:"NM",     rarity:"Rare",      game:"MTG",     img:"https://cards.scryfall.io/large/front/b/d/bd8fa327-dd41-4737-8f19-2cf5eb1f7cdd.jpg" },
   { id:3, name:"Pikachu Illustrator", set:"CoroCoro",  condition:"PSA 9",  rarity:"Promo",     game:"Pokémon", img:"https://images.pokemontcg.io/basep/1_hires.png" },
   { id:4, name:"Blastoise",           set:"Base Set",  condition:"PSA 8",  rarity:"Holo Rare", game:"Pokémon", img:"https://images.pokemontcg.io/base1/2_hires.png" },
-  { id:5, name:"Mewtwo",              set:"Base Set",  condition:"PSA 9",  rarity:"Holo Rare", game:"Pokémon", img:"https://images.pokemontcg.io/base1/10_hires.png" },
+  { id:5, name:"Mewtwo",              set:"Base Set",  condition:"PSA 9",  rarity:"Holo Rare", game:"Pokémon", img:"https://images.pokemontcg.io/base1/9_hires.png" },
 ];
 const BASE = { 1:420, 2:8500, 3:74000, 4:280, 5:310 };
 
@@ -209,7 +209,7 @@ function Portfolio({D,dark,holdings=[],tradeHistory=[],dbCards=[],isMobile=false
             <span>CARD</span><span style={{textAlign:"right"}}>PRICE</span><span style={{textAlign:"right"}}>24H</span><span/>
           </div>
           {watchlist.map(c=>{
-            const chg=(((h.cardId*11+7)%19-9)*0.55).toFixed(2);const up=+chg>=0;
+            const chg=(((c.id*11+7)%19-9)*0.55).toFixed(2);const up=+chg>=0;
             return(
               <div key={c.id} style={{display:"grid",gridTemplateColumns:"1fr 70px 70px 28px",padding:"9px 14px",borderBottom:`1px solid ${D.bdr}`,alignItems:"center"}}>
                 <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
@@ -1256,7 +1256,10 @@ function Ticker({D,dark,tradeHistory=[],dbCards=[],marketPrices={}}){
       <div style={{position:"absolute",right:0,top:0,bottom:0,width:"60px",background:dark?"linear-gradient(270deg,#050805,transparent)":"linear-gradient(270deg,#e8f0e8,transparent)",zIndex:2,pointerEvents:"none"}}/>
       <div style={{
         display:"flex",alignItems:"center",gap:"0",
-        animation:`tickerScroll ${items.length*2.2}s linear infinite`,
+        animationName:"tickerScroll",
+        animationDuration:`${items.length*2.2}s`,
+        animationTimingFunction:"linear",
+        animationIterationCount:"infinite",
         animationPlayState:paused?"paused":"running",
         whiteSpace:"nowrap",
       }}>
