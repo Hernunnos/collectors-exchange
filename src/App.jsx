@@ -2389,7 +2389,7 @@ export default function App(){
                 </div>
               )}
               <div style={{flex:1,padding:"8px 0"}}>
-                {(user?["MARKET","BROWSE","PORTFOLIO","ORDERS","HISTORY","PROFILE"]:["MARKET","BROWSE","PORTFOLIO","ORDERS","HISTORY"]).map(t=>(
+                {["MARKET","BROWSE","PORTFOLIO","ORDERS","HISTORY"].map(t=>(
                   <button key={t} onClick={()=>{setTab(t);setDrawerOpen(false);}} style={{display:"block",width:"100%",padding:"14px 20px",border:"none",background:tab===t?(dark?"rgba(0,255,80,0.08)":"rgba(22,128,58,0.07)"):"transparent",color:tab===t?D.accD:D.txtM,fontSize:"11px",fontFamily:MONO,letterSpacing:"0.12em",textAlign:"left",borderLeft:`3px solid ${tab===t?D.accD:"transparent"}`,cursor:"pointer"}}>{t}</button>
                 ))}
               </div>
@@ -2442,7 +2442,7 @@ export default function App(){
                   <span style={{color:D.txtD,fontSize:"9px",letterSpacing:"0.14em",fontStyle:"italic"}}>Buy. Sell. Collect.</span>
                 </div>
                 <div style={{display:"flex",gap:"2px",alignItems:"center"}}>
-                  {(user?["MARKET","BROWSE","PORTFOLIO","ORDERS","HISTORY","PROFILE"]:["MARKET","BROWSE","PORTFOLIO","ORDERS","HISTORY"]).map(t=>(
+                  {["MARKET","BROWSE","PORTFOLIO","ORDERS","HISTORY"].map(t=>(
                     <button key={t} onClick={()=>setTab(t)} style={{padding:"0 16px",height:"44px",border:"none",background:"transparent",color:tab===t?D.accD:D.txtD,fontSize:"10px",fontFamily:MONO,letterSpacing:"0.12em",borderBottom:`2px solid ${tab===t?D.accD:"transparent"}`,transition:"all 0.12s",cursor:"pointer"}}>{t}</button>
                   ))}
                 </div>
@@ -2477,7 +2477,7 @@ export default function App(){
           {/* ── Mobile bottom tab bar ── */}
           {isMobile&&(
             <div style={{position:"fixed",bottom:0,left:0,right:0,background:D.hdrBg,borderTop:`1px solid ${D.bdr2}`,display:"flex",zIndex:100,height:"54px",boxShadow:"0 -2px 12px rgba(0,0,0,0.15)"}}>
-              {[{t:"MARKET",i:"📈"},{t:"BROWSE",i:"🔍"},{t:"PORTFOLIO",i:"💼"},{t:"ORDERS",i:"📋"},{t:"HISTORY",i:"📜"},...(user?[{t:"PROFILE",i:"👤"}]:[])].map(({t,i})=>(
+              {[{t:"MARKET",i:"📈"},{t:"BROWSE",i:"🔍"},{t:"PORTFOLIO",i:"💼"},{t:"ORDERS",i:"📋"},{t:"HISTORY",i:"📜"}].map(({t,i})=>(
                 <button key={t} onClick={()=>setTab(t)} style={{flex:1,border:"none",background:"transparent",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:"2px",color:tab===t?D.accD:D.txtD,fontSize:"8px",fontFamily:MONO,letterSpacing:"0.06em",borderTop:`2px solid ${tab===t?D.accD:"transparent"}`,cursor:"pointer",padding:"6px 0"}}>
                   <span style={{fontSize:"16px"}}>{i}</span>
                   <span>{t}</span>
