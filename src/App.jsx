@@ -725,7 +725,7 @@ function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[],onPlac
                 {rows.slice(0,6).map((r,i)=>{
                   const rowTotal=+(r.price*r.qty).toFixed(2);
                   return(
-                    <div key={i} onClick={()=>{setOPrice(r.price.toString());setSheetOpen(true);}} style={{padding:"6px 10px",borderBottom:`1px solid ${D.bdr}`,cursor:"pointer",position:"relative"}}>
+                    <div key={i} onClick={()=>{setOPrice(r.price.toString());setOSide(side==="bid"?"sell":"buy");setSheetOpen(true);}} style={{padding:"6px 10px",borderBottom:`1px solid ${D.bdr}`,cursor:"pointer",position:"relative"}}>
                       <div style={{position:"absolute",[side==="bid"?"left":"right"]:0,top:0,bottom:0,width:`${(r.qty/mx)*100}%`,background:side==="bid"?(dark?"rgba(0,180,60,0.07)":"rgba(22,128,58,0.06)"):(dark?"rgba(180,40,40,0.08)":"rgba(180,30,30,0.06)")}}/>
                       <div style={{color:tc,fontSize:"11px",zIndex:1,position:"relative"}}>${r.price.toLocaleString("en-US",{minimumFractionDigits:2})} <span style={{color:D.txtD,fontSize:"9px"}}>/ card</span></div>
                       <div style={{display:"flex",justifyContent:"space-between",zIndex:1,position:"relative"}}>
@@ -901,7 +901,7 @@ function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[],onPlac
                     {rows.map((r,i)=>{
                       const rowTotal=+(r.price*r.qty).toFixed(2);
                       return(
-                        <div key={i} onClick={()=>setOPrice(r.price.toString())} style={{display:"grid",gridTemplateColumns:"1fr 36px 70px 70px",padding:"4px 12px",borderBottom:`1px solid ${D.bdr}`,position:"relative",cursor:"pointer",alignItems:"center"}}>
+                        <div key={i} onClick={()=>{setOPrice(r.price.toString());setOSide(side==="bid"?"sell":"buy");}} style={{display:"grid",gridTemplateColumns:"1fr 36px 70px 70px",padding:"4px 12px",borderBottom:`1px solid ${D.bdr}`,position:"relative",cursor:"pointer",alignItems:"center"}}>
                           <div style={{position:"absolute",[side==="bid"?"left":"right"]:0,top:0,bottom:0,width:`${(r.qty/mx)*100}%`,background:side==="bid"?(dark?"rgba(0,180,60,0.07)":"rgba(22,128,58,0.06)"):(dark?"rgba(180,40,40,0.08)":"rgba(180,30,30,0.06)")}}/>
                           <div style={{zIndex:1}}>
                             <div style={{color:tc,fontSize:"12px"}}>${r.price.toLocaleString("en-US",{minimumFractionDigits:2})}</div>
