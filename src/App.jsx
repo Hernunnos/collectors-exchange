@@ -854,6 +854,23 @@ function Market({D,dark,dbCards=[],initialCard=null,balance=0,onPlaceOrder,onUpd
               {oType==="limit"&&<div style={{marginBottom:"10px"}}><div style={{color:D.txtD,fontSize:"9px",marginBottom:"4px"}}>PRICE (USD)</div><input type="number" value={oPrice} onChange={e=>setOPrice(e.target.value)} placeholder={price.toFixed(2)} style={{width:"100%",background:D.inBg,border:`1px solid ${D.inBdr}`,borderRadius:"4px",padding:"7px 10px",color:D.txt,fontSize:"12px"}}/></div>}
               <div style={{marginBottom:"10px"}}><div style={{color:D.txtD,fontSize:"9px",marginBottom:"4px"}}>QUANTITY</div><input type="number" value={oQty} onChange={e=>setOQty(e.target.value)} placeholder="0" style={{width:"100%",background:D.inBg,border:`1px solid ${D.inBdr}`,borderRadius:"4px",padding:"7px 10px",color:D.txt,fontSize:"12px"}}/></div>
               <div style={{background:D.stBg,border:`1px solid ${D.bdr}`,borderRadius:"4px",padding:"8px 10px",marginBottom:"14px",display:"flex",justifyContent:"space-between"}}><span style={{color:D.txtD,fontSize:"9px"}}>TOTAL</span><span style={{color:D.txtM,fontSize:"13px"}}>${((oType==="market"?price:+oPrice||0)*(+oQty||0)).toLocaleString("en-US",{minimumFractionDigits:2})}</span></div>
+              {/* Instant buy/sell */}
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"5px",marginBottom:"8px"}}>
+                <button onClick={()=>{
+                  if(!oQty){setOStatus({error:"Enter quantity"});setTimeout(()=>setOStatus(null),2000);return;}
+                  setOSide("buy");setOType("market");
+                  if(onPlaceOrder) onPlaceOrder({cardId:card.id,side:"buy",type:"market",price:asks[0]?.price||price,qty:+oQty});
+                  setOStatus({side:"buy",price:asks[0]?.price||price,qty:+oQty});
+                  setTimeout(()=>setOStatus(null),3000); setOQty("");
+                }} style={{padding:"7px",border:`1px solid ${dark?"#1a5a2a":"#7ab07a"}`,borderRadius:"4px",fontSize:"9px",fontFamily:MONO,letterSpacing:"0.06em",fontWeight:"bold",background:dark?"rgba(0,180,60,0.18)":"rgba(22,128,58,0.12)",color:dark?"#00ff55":"#1a5a2a",cursor:"pointer"}}>⚡ INSTANT BUY</button>
+                <button onClick={()=>{
+                  if(!oQty){setOStatus({error:"Enter quantity"});setTimeout(()=>setOStatus(null),2000);return;}
+                  setOSide("sell");setOType("market");
+                  if(onPlaceOrder) onPlaceOrder({cardId:card.id,side:"sell",type:"market",price:bids[0]?.price||price,qty:+oQty});
+                  setOStatus({side:"sell",price:bids[0]?.price||price,qty:+oQty});
+                  setTimeout(()=>setOStatus(null),3000); setOQty("");
+                }} style={{padding:"7px",border:`1px solid ${dark?"#5a1a1a":"#c07070"}`,borderRadius:"4px",fontSize:"9px",fontFamily:MONO,letterSpacing:"0.06em",fontWeight:"bold",background:dark?"rgba(180,30,30,0.18)":"rgba(180,30,30,0.10)",color:dark?"#ff5555":"#9a1a1a",cursor:"pointer"}}>⚡ INSTANT SELL</button>
+              </div>
               <button onClick={submitOrder} style={{width:"100%",padding:"10px",border:`1px solid ${oSide==="buy"?(dark?"#1a5a2a":"#7ab07a"):(dark?"#5a1a1a":"#c07070")}`,borderRadius:"5px",fontSize:"11px",fontFamily:MONO,letterSpacing:"0.1em",fontWeight:"bold",background:oSide==="buy"?(dark?"linear-gradient(135deg,#0a3a1a,#0f5a28)":"linear-gradient(135deg,#cceacc,#a8d8a8)"):(dark?"linear-gradient(135deg,#3a0a0a,#5a1010)":"linear-gradient(135deg,#eacccc,#d8a8a8)"),color:oSide==="buy"?(dark?"#00ff55":"#1a5a2a"):(dark?"#ff5555":"#9a1a1a"),cursor:"pointer"}}>
                 {oSide==="buy"?"▲ BUY":"▼ SELL"} {card.name.split(" ")[0].toUpperCase()}
               </button>
@@ -1134,6 +1151,240 @@ function Landing({D,dark,dbCards,onEnterDemo,onOpenAuth}){
 }
 
 // ── Root ──────────────────────────────────────────────────────────────────────
+
+// ── Ticker ────────────────────────────────────────────────────────────────────
+function Ticker({D,dark,tradeHistory=[],dbCards=[],marketPrices={}}){
+  const [paused,setPaused]=useState(false);
+  const allCards=[...dbCards,...CARDS];
+
+  // Build ticker items from real trades + simulated live ticks
+  const items=useMemo(()=>{
+    const real=tradeHistory.slice(0,30).map(t=>{
+      const card=allCards.find(c=>c.id===t.cardId)||{name:"Unknown",game:""};
+      return {id:t.id,name:card.name,game:card.game,price:t.price,qty:t.qty,side:t.side,type:"trade"};
+    });
+    // Fill up with simulated ticks if not enough real trades
+    const sim=Object.entries(marketPrices).slice(0,12).map(([id,price])=>{
+      const card=allCards.find(c=>c.id===+id)||{name:"Card",game:""};
+      const side=Math.random()>0.5?"buy":"sell";
+      return {id:`sim-${id}`,name:card.name,game:card.game,price,qty:Math.floor(Math.random()*3)+1,side,type:"tick"};
+    });
+    const all=[...real,...sim];
+    return all.length ? [...all,...all,...all] : []; // triple for seamless loop
+  },[tradeHistory.length,Object.keys(marketPrices).length]);
+
+  if(!items.length) return null;
+
+  return(
+    <div
+      onMouseEnter={()=>setPaused(true)}
+      onMouseLeave={()=>setPaused(false)}
+      style={{background:dark?"#050805":"#e8f0e8",borderBottom:`1px solid ${D.bdr}`,height:"28px",overflow:"hidden",flexShrink:0,position:"relative",display:"flex",alignItems:"center"}}
+    >
+      <div style={{position:"absolute",left:0,top:0,bottom:0,width:"60px",background:dark?"linear-gradient(90deg,#050805,transparent)":"linear-gradient(90deg,#e8f0e8,transparent)",zIndex:2,pointerEvents:"none"}}/>
+      <div style={{position:"absolute",right:0,top:0,bottom:0,width:"60px",background:dark?"linear-gradient(270deg,#050805,transparent)":"linear-gradient(270deg,#e8f0e8,transparent)",zIndex:2,pointerEvents:"none"}}/>
+      <div style={{
+        display:"flex",alignItems:"center",gap:"0",
+        animation:`tickerScroll ${items.length*2.2}s linear infinite`,
+        animationPlayState:paused?"paused":"running",
+        whiteSpace:"nowrap",
+      }}>
+        {items.map((item,i)=>(
+          <span key={`${item.id}-${i}`} style={{display:"inline-flex",alignItems:"center",gap:"6px",padding:"0 20px",borderRight:`1px solid ${D.bdr}`,fontSize:"10px",letterSpacing:"0.06em",flexShrink:0}}>
+            <span style={{color:item.side==="buy"?D.buyT:D.askT,fontSize:"9px"}}>{item.side==="buy"?"▲":"▼"}</span>
+            <span style={{color:D.txtM,fontWeight:600}}>{item.name}</span>
+            <span style={{color:dark?"#00cc40":"#15803d",fontFamily:ORB,fontSize:"10px",fontWeight:700}}>${item.price?.toLocaleString("en-US",{minimumFractionDigits:2})}</span>
+            <span style={{color:D.txtD}}>×{item.qty}</span>
+            {item.game&&<span style={{color:D.txtD,fontSize:"9px",opacity:0.6}}>{item.game}</span>}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Notification system ────────────────────────────────────────────────────────
+function NotificationBell({D,dark,notifications=[],onClear,onClearAll}){
+  const [open,setOpen]=useState(false);
+  const unread=notifications.filter(n=>!n.read).length;
+  return(
+    <div style={{position:"relative"}}>
+      <button onClick={()=>setOpen(o=>!o)} style={{position:"relative",background:"none",border:`1px solid ${D.bdr}`,borderRadius:"4px",padding:"3px 8px",color:D.txtD,cursor:"pointer",display:"flex",alignItems:"center",gap:"4px",fontSize:"14px"}}>
+        🔔
+        {unread>0&&<span style={{position:"absolute",top:"-4px",right:"-4px",background:"#dc2626",color:"#fff",borderRadius:"50%",width:"14px",height:"14px",fontSize:"8px",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:MONO,fontWeight:"bold"}}>{unread>9?"9+":unread}</span>}
+      </button>
+      {open&&(
+        <>
+          <div onClick={()=>setOpen(false)} style={{position:"fixed",inset:0,zIndex:299}}/>
+          <div style={{position:"absolute",right:0,top:"36px",width:"300px",background:D.bg2,border:`1px solid ${D.bdr2}`,borderRadius:"8px",boxShadow:"0 8px 32px rgba(0,0,0,0.3)",zIndex:300,overflow:"hidden"}}>
+            <div style={{padding:"10px 14px",borderBottom:`1px solid ${D.bdr}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <span style={{color:D.txtD,fontSize:"10px",letterSpacing:"0.12em"}}>▸ NOTIFICATIONS</span>
+              {notifications.length>0&&<button onClick={()=>{onClearAll();setOpen(false);}} style={{background:"none",border:"none",color:D.txtD,fontSize:"9px",cursor:"pointer",fontFamily:MONO}}>CLEAR ALL</button>}
+            </div>
+            <div style={{maxHeight:"320px",overflowY:"auto"}}>
+              {notifications.length===0?(
+                <div style={{padding:"32px",textAlign:"center",color:D.txtD,fontSize:"11px"}}>No notifications yet</div>
+              ):notifications.map(n=>(
+                <div key={n.id} style={{padding:"10px 14px",borderBottom:`1px solid ${D.bdr}`,background:n.read?"transparent":(dark?"rgba(0,200,60,0.04)":"rgba(22,128,58,0.03)"),display:"flex",gap:"10px",alignItems:"flex-start"}}>
+                  <span style={{fontSize:"14px",flexShrink:0}}>{n.type==="filled_buy"?"📈":n.type==="filled_sell"?"📉":n.type==="partial"?"⏳":"🔔"}</span>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{color:D.txt,fontSize:"11px",lineHeight:1.4}}>{n.message}</div>
+                    <div style={{color:D.txtD,fontSize:"9px",marginTop:"3px"}}>{n.time}</div>
+                  </div>
+                  <button onClick={()=>onClear(n.id)} style={{background:"none",border:"none",color:D.txtD,fontSize:"14px",cursor:"pointer",flexShrink:0,lineHeight:1}}>×</button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ── CSV Import Modal ───────────────────────────────────────────────────────────
+function CSVImportModal({D,dark,dbCards=[],onImport,onClose}){
+  const [rows,setRows]=useState([]);
+  const [step,setStep]=useState("upload"); // upload | preview | done
+  const [importing,setImporting]=useState(false);
+  const allCards=[...dbCards,...CARDS];
+
+  const parseCSV=(text)=>{
+    const lines=text.trim().split("\n");
+    const headers=lines[0].split(",").map(h=>h.trim().replace(/^"|"$/g,"").toLowerCase());
+    return lines.slice(1).filter(l=>l.trim()).map(line=>{
+      const vals=line.split(",").map(v=>v.trim().replace(/^"|"$/g,""));
+      const row={};
+      headers.forEach((h,i)=>row[h]=vals[i]||"");
+      return row;
+    });
+  };
+
+  const handleFile=(e)=>{
+    const file=e.target.files[0];
+    if(!file) return;
+    const reader=new FileReader();
+    reader.onload=(ev)=>{
+      const raw=parseCSV(ev.target.result);
+      const mapped=raw.map(r=>{
+        const name=r["name"]||r["card_name"]||r["card"]||r["cardname"]||"";
+        const set=r["set"]||r["set_name"]||r["expansion"]||"";
+        const condition=r["condition"]||r["cond"]||"NM";
+        const qty=parseInt(r["qty"]||r["quantity"]||r["count"]||"1")||1;
+        // Try to match to existing card
+        const match=allCards.find(c=>
+          c.name?.toLowerCase()===name.toLowerCase()||
+          (c.name?.toLowerCase().includes(name.toLowerCase())&&name.length>3)
+        );
+        return {name,set,condition,qty,matchedCard:match||null,status:match?"matched":"unmatched"};
+      }).filter(r=>r.name);
+      setRows(mapped);
+      setStep("preview");
+    };
+    reader.readAsText(file);
+  };
+
+  const handleImport=async()=>{
+    setImporting(true);
+    const toImport=rows.filter(r=>r.matchedCard);
+    onImport(toImport);
+    setStep("done");
+    setImporting(false);
+  };
+
+  return(
+    <div style={{position:"fixed",inset:0,zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.7)",backdropFilter:"blur(4px)"}} onClick={onClose}>
+      <div style={{background:D.bg2,border:`1px solid ${D.bdr2}`,borderRadius:"12px",width:"560px",maxWidth:"95vw",maxHeight:"85vh",display:"flex",flexDirection:"column",boxShadow:"0 24px 60px rgba(0,0,0,0.4)"}} onClick={e=>e.stopPropagation()}>
+        <div style={{padding:"18px 20px",borderBottom:`1px solid ${D.bdr}`,display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
+          <div>
+            <div style={{fontFamily:ORB,fontSize:"14px",fontWeight:800,color:D.acc,letterSpacing:"0.12em"}}>◈ IMPORT COLLECTION</div>
+            <div style={{color:D.txtD,fontSize:"10px",marginTop:"3px"}}>Upload a CSV from Binder, TCGPlayer, or any spreadsheet</div>
+          </div>
+          <button onClick={onClose} style={{background:"none",border:"none",color:D.txtD,fontSize:"20px",cursor:"pointer"}}>×</button>
+        </div>
+
+        <div style={{flex:1,overflowY:"auto",padding:"20px"}}>
+          {step==="upload"&&(
+            <div>
+              <div style={{border:`2px dashed ${D.bdr2}`,borderRadius:"8px",padding:"48px 24px",textAlign:"center",marginBottom:"20px"}}>
+                <div style={{fontSize:"32px",marginBottom:"12px"}}>📂</div>
+                <div style={{color:D.txtM,fontSize:"12px",marginBottom:"8px"}}>Drop your CSV file here or click to browse</div>
+                <div style={{color:D.txtD,fontSize:"10px",marginBottom:"20px"}}>Supports: Binder CSV, TCGPlayer export, custom spreadsheets</div>
+                <label style={{padding:"10px 24px",background:dark?"rgba(0,180,60,0.15)":"rgba(22,128,58,0.10)",border:`1px solid ${D.accD}`,borderRadius:"6px",color:D.accD,fontSize:"10px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.1em"}}>
+                  CHOOSE FILE
+                  <input type="file" accept=".csv" onChange={handleFile} style={{display:"none"}}/>
+                </label>
+              </div>
+              <div style={{background:D.bg3,border:`1px solid ${D.bdr}`,borderRadius:"6px",padding:"14px 16px"}}>
+                <div style={{color:D.txtD,fontSize:"10px",letterSpacing:"0.1em",marginBottom:"8px"}}>▸ EXPECTED COLUMN NAMES</div>
+                {[["Name / Card Name","Card name (e.g. Charizard)"],["Set / Expansion","Set name (e.g. Base Set)"],["Condition / Cond","Card condition (e.g. NM, PSA 10)"],["Qty / Quantity / Count","How many you own"]].map(([col,desc])=>(
+                  <div key={col} style={{display:"flex",gap:"12px",marginBottom:"6px"}}>
+                    <span style={{color:D.acc,fontSize:"10px",fontFamily:MONO,minWidth:"160px"}}>{col}</span>
+                    <span style={{color:D.txtD,fontSize:"10px"}}>{desc}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {step==="preview"&&(
+            <div>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"14px"}}>
+                <span style={{color:D.txtM,fontSize:"11px"}}>{rows.filter(r=>r.status==="matched").length} of {rows.length} cards matched</span>
+                <div style={{display:"flex",gap:"8px"}}>
+                  <span style={{background:dark?"rgba(0,200,60,0.1)":"rgba(22,128,58,0.08)",color:D.buyT,padding:"3px 8px",borderRadius:"3px",fontSize:"9px"}}>● MATCHED</span>
+                  <span style={{background:dark?"rgba(245,158,11,0.1)":"rgba(245,158,11,0.08)",color:"#f59e0b",padding:"3px 8px",borderRadius:"3px",fontSize:"9px"}}>● UNMATCHED</span>
+                </div>
+              </div>
+              <div style={{border:`1px solid ${D.bdr}`,borderRadius:"6px",overflow:"hidden"}}>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 80px 80px 80px",padding:"7px 12px",background:D.bg3,color:D.txtD,fontSize:"9px",letterSpacing:"0.08em",borderBottom:`1px solid ${D.bdr}`}}>
+                  <span>CARD</span><span style={{textAlign:"right"}}>SET</span><span style={{textAlign:"right"}}>COND</span><span style={{textAlign:"right"}}>QTY</span>
+                </div>
+                {rows.map((r,i)=>(
+                  <div key={i} style={{display:"grid",gridTemplateColumns:"1fr 80px 80px 80px",padding:"9px 12px",borderBottom:`1px solid ${D.bdr}`,background:r.status==="matched"?"transparent":(dark?"rgba(245,158,11,0.04)":"rgba(245,158,11,0.03)"),alignItems:"center"}}>
+                    <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
+                      <span style={{width:"6px",height:"6px",borderRadius:"50%",background:r.status==="matched"?D.buyT:"#f59e0b",flexShrink:0,display:"inline-block"}}/>
+                      <div>
+                        <div style={{color:D.txt,fontSize:"11px"}}>{r.name}</div>
+                        {r.matchedCard&&<div style={{color:D.txtD,fontSize:"9px"}}>→ {r.matchedCard.name}</div>}
+                      </div>
+                    </div>
+                    <span style={{textAlign:"right",color:D.txtD,fontSize:"10px"}}>{r.set||"—"}</span>
+                    <span style={{textAlign:"right",color:D.txtD,fontSize:"10px"}}>{r.condition}</span>
+                    <span style={{textAlign:"right",color:D.txtM,fontSize:"11px"}}>{r.qty}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {step==="done"&&(
+            <div style={{textAlign:"center",padding:"40px 20px"}}>
+              <div style={{fontSize:"48px",marginBottom:"16px"}}>✅</div>
+              <div style={{fontFamily:ORB,fontSize:"16px",color:D.acc,marginBottom:"8px"}}>IMPORT COMPLETE</div>
+              <div style={{color:D.txtD,fontSize:"11px"}}>{rows.filter(r=>r.matchedCard).length} cards added to your portfolio</div>
+            </div>
+          )}
+        </div>
+
+        {step==="preview"&&(
+          <div style={{padding:"14px 20px",borderTop:`1px solid ${D.bdr}`,display:"flex",gap:"10px",justifyContent:"flex-end",flexShrink:0}}>
+            <button onClick={()=>setStep("upload")} style={{padding:"9px 20px",background:"transparent",border:`1px solid ${D.bdr}`,borderRadius:"5px",color:D.txtD,fontSize:"10px",fontFamily:MONO,cursor:"pointer"}}>← BACK</button>
+            <button onClick={handleImport} disabled={importing||rows.filter(r=>r.matchedCard).length===0} style={{padding:"9px 24px",background:dark?"linear-gradient(135deg,#0a3a1a,#0f5a28)":"linear-gradient(135deg,#cceacc,#a8d8a8)",border:`1px solid ${D.accD}`,borderRadius:"5px",color:dark?"#00ff55":"#1a5a2a",fontSize:"10px",fontFamily:MONO,cursor:"pointer",fontWeight:"bold",letterSpacing:"0.1em",opacity:rows.filter(r=>r.matchedCard).length===0?0.5:1}}>
+              {importing?"IMPORTING...":"IMPORT "+rows.filter(r=>r.matchedCard).length+" CARDS →"}
+            </button>
+          </div>
+        )}
+        {step==="done"&&(
+          <div style={{padding:"14px 20px",borderTop:`1px solid ${D.bdr}`,flexShrink:0}}>
+            <button onClick={onClose} style={{width:"100%",padding:"10px",background:dark?"linear-gradient(135deg,#0a3a1a,#0f5a28)":"linear-gradient(135deg,#cceacc,#a8d8a8)",border:`1px solid ${D.accD}`,borderRadius:"5px",color:dark?"#00ff55":"#1a5a2a",fontSize:"10px",fontFamily:MONO,cursor:"pointer",fontWeight:"bold"}}>DONE →</button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function App(){
   const [dark,setDark]=useState(false);
   const [screen,setScreen]=useState("landing"); // "landing" | "app"
@@ -1144,6 +1395,8 @@ export default function App(){
   const [tab,setTab]=useState("MARKET");
   const [dbCards,setDbCards]=useState([]);
   const [selectedCard,setSelectedCard]=useState(null);
+  const [notifications,setNotifications]=useState([]);
+  const [csvModal,setCsvModal]=useState(false);
 
   // ── Global trading state ──────────────────────────────────────────────────
   const [balance,setBalance]=useState(STARTING_BALANCE);
@@ -1158,7 +1411,9 @@ export default function App(){
   const holdingsRef=useRef(holdings);
   const marketPricesRef=useRef(marketPrices);
   const userRef=useRef(user);
+  const dbCardsRef=useRef(dbCards);
   useEffect(()=>{ balanceRef.current=balance; },[balance]);
+  useEffect(()=>{ dbCardsRef.current=dbCards; },[dbCards]);
   useEffect(()=>{ holdingsRef.current=holdings; },[holdings]);
   useEffect(()=>{ marketPricesRef.current=marketPrices; },[marketPrices]);
   useEffect(()=>{ userRef.current=user; },[user]);
@@ -1239,6 +1494,12 @@ export default function App(){
           setBalance(result.balance);
           setTradeHistory(h=>[...result.newTrades,...h]);
           if(userRef.current) import('./supabase').then(({supabase})=>saveToDb(supabase,userRef.current.id,result.orders,result.holdings,result.newTrades,result.balance));
+          result.newTrades.forEach(t=>{
+            const allC=[...dbCardsRef.current,...CARDS];
+            const card=allC.find(c=>c.id===t.cardId)||{name:"Card"};
+            const type=t.side==="buy"?"filled_buy":"filled_sell";
+            pushNotification(type,`${t.side==="buy"?"Bought":"Sold"} ${t.qty}× ${card.name} @ $${t.price.toLocaleString("en-US",{minimumFractionDigits:2})}`);
+          });
         }
         return result.orders;
       });
@@ -1257,6 +1518,11 @@ export default function App(){
         setHoldings(result.holdings);
         setBalance(result.balance);
         setTradeHistory(h=>[...result.newTrades,...h]);
+        result.newTrades.forEach(t=>{
+          const allC=[...dbCards,...CARDS];
+          const card=allC.find(c=>c.id===t.cardId)||{name:"Card"};
+          pushNotification(t.side==="buy"?"filled_buy":"filled_sell",`${t.side==="buy"?"Bought":"Sold"} ${t.qty}× ${card.name} @ $${t.price.toLocaleString("en-US",{minimumFractionDigits:2})}`);
+        });
       }
       if(user){ const {supabase}=await import('./supabase'); saveToDb(supabase,user.id,[result.orders[0]],result.holdings,result.newTrades,result.balance); }
     } else {
@@ -1274,6 +1540,20 @@ export default function App(){
   };
 
   const handleBrowseSelect=(card)=>{ setSelectedCard(card); setTab("MARKET"); };
+
+  const handleCSVImport=(importedRows)=>{
+    const toAdd=importedRows.filter(r=>r.matchedCard);
+    setHoldings(prev=>{
+      const updated=[...prev];
+      toAdd.forEach(r=>{
+        const idx=updated.findIndex(h=>h.cardId===r.matchedCard.id);
+        if(idx>=0){ updated[idx]={...updated[idx],qty:updated[idx].qty+r.qty}; }
+        else{ updated.push({cardId:r.matchedCard.id,qty:r.qty,avgCost:r.matchedCard.basePrice||BASE[r.matchedCard.id]||0,acquired:nowDate()}); }
+      });
+      return updated;
+    });
+    pushNotification("import",`Imported ${toAdd.length} card${toAdd.length!==1?"s":""} from CSV`);
+  };
   const handleLogout=async()=>{
     const {supabase}=await import('./supabase');
     await supabase.auth.signOut();
@@ -1286,6 +1566,13 @@ export default function App(){
     await loadUserData(supabase,u.id);
   };
   const handleUpdatePrice=(cardId,price)=>setMarketPrices(p=>({...p,[cardId]:price}));
+
+  const pushNotification=(type,message)=>{
+    const notif={id:`N-${Date.now()}`,type,message,time:nowTime(),read:false};
+    setNotifications(prev=>[notif,...prev].slice(0,50));
+    // Auto-mark as read after 8s if toast seen
+    setTimeout(()=>setNotifications(prev=>prev.map(n=>n.id===notif.id?{...n,read:true}:n)),8000);
+  };
 
   const isDemo = screen==="app" && !user;
 
@@ -1300,6 +1587,9 @@ export default function App(){
         @keyframes fG{0%,100%{background:transparent}50%{background:rgba(0,200,60,0.14)}}
         @keyframes fR{0%,100%{background:transparent}50%{background:rgba(220,50,50,0.14)}}
         .fu{animation:fG 0.4s ease;} .fd{animation:fR 0.4s ease;}
+        @keyframes tickerScroll{0%{transform:translateX(0)}100%{transform:translateX(-33.333%)}}
+        @keyframes notifPop{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+        .notif-toast{animation:notifPop 0.2s ease;}
         @keyframes slideIn{from{transform:translateX(-100%)}to{transform:translateX(0)}}
         @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
         @keyframes fadeIn{from{opacity:0}to{opacity:1}}
@@ -1327,6 +1617,12 @@ export default function App(){
               <button onClick={()=>setAuthModal("signup")} style={{padding:"4px 12px",background:dark?"rgba(0,180,60,0.15)":"rgba(22,128,58,0.10)",border:`1px solid ${dark?"#1a4a1a":"#8acc8a"}`,borderRadius:"4px",color:D.accD,fontSize:"9px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.08em"}}>SIGN UP →</button>
             </div>
           )}
+
+          {/* ── Live ticker ── */}
+          <Ticker D={D} dark={dark} tradeHistory={tradeHistory} dbCards={dbCards} marketPrices={marketPrices}/>
+
+          {/* ── CSV Import Modal ── */}
+          {csvModal&&<CSVImportModal D={D} dark={dark} dbCards={dbCards} onImport={handleCSVImport} onClose={()=>setCsvModal(false)}/>}
 
           {/* ── Mobile hamburger drawer overlay ── */}
           {isMobile&&drawerOpen&&(
@@ -1357,7 +1653,10 @@ export default function App(){
                   <span style={{color:D.txtM,fontSize:"10px"}}>{dark?"DARK MODE":"LIGHT MODE"}</span>
                 </div>
                 {user?(
+                  <>
+                  <button onClick={()=>{setCsvModal(true);setDrawerOpen(false);}} style={{padding:"10px",background:"transparent",border:`1px solid ${D.bdr}`,borderRadius:"4px",color:D.txtD,fontSize:"10px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.08em"}}>📂 IMPORT CSV</button>
                   <button onClick={()=>{handleLogout();setDrawerOpen(false);}} style={{padding:"10px",background:"transparent",border:`1px solid ${D.bdr}`,borderRadius:"4px",color:D.txtD,fontSize:"10px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.08em"}}>LOG OUT</button>
+                  </>
                 ):(
                   <div style={{display:"flex",gap:"8px"}}>
                     <button onClick={()=>{setAuthModal("login");setDrawerOpen(false);}} style={{flex:1,padding:"10px",background:"transparent",border:`1px solid ${D.bdr}`,borderRadius:"4px",color:D.txtD,fontSize:"10px",fontFamily:MONO,cursor:"pointer"}}>LOG IN</button>
@@ -1403,6 +1702,8 @@ export default function App(){
                     <>
                       <span style={{color:D.txtD,fontSize:"10px"}}>{user.user_metadata?.display_name||user.email?.split("@")[0]}</span>
                       <div style={{background:D.stBg,border:`1px solid ${D.bdr}`,borderRadius:"3px",padding:"3px 10px",fontSize:"11px",color:D.txtM}}>💵 ${balance.toLocaleString("en-US",{minimumFractionDigits:2})}</div>
+                      <NotificationBell D={D} dark={dark} notifications={notifications} onClear={id=>setNotifications(p=>p.filter(n=>n.id!==id))} onClearAll={()=>setNotifications([])}/>
+                      <button onClick={()=>setCsvModal(true)} title="Import CSV" style={{padding:"3px 8px",background:"transparent",border:`1px solid ${D.bdr}`,borderRadius:"3px",color:D.txtD,fontSize:"13px",cursor:"pointer"}}>📂</button>
                       <button onClick={handleLogout} style={{padding:"3px 10px",background:"transparent",border:`1px solid ${D.bdr}`,borderRadius:"3px",color:D.txtD,fontSize:"9px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.08em"}}>LOG OUT</button>
                     </>
                   ):(
