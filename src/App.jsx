@@ -1099,6 +1099,141 @@ function AuthModal({D,dark,onClose,onAuth}){
   );
 }
 
+
+// ── Waitlist Form ─────────────────────────────────────────────────────────────
+function WaitlistForm({D,dark,isMobile=false,onLoginClick}){
+  const [name,setName]=useState("");
+  const [email,setEmail]=useState("");
+  const [role,setRole]=useState(""); // "shop" | "collector"
+  const [games,setGames]=useState([]); // multi-select
+  const [feature,setFeature]=useState("");
+  const [step,setStep]=useState("form"); // "form" | "submitting" | "done" | "error"
+  const [error,setError]=useState("");
+  const [position,setPosition]=useState(null); // queue position after submit
+
+  const GAMES=["Pokémon","MTG","Yu-Gi-Oh!","One Piece","Lorcana","Flesh & Blood","Other"];
+
+  const toggleGame=(g)=>setGames(p=>p.includes(g)?p.filter(x=>x!==g):[...p,g]);
+
+  const submit=async()=>{
+    if(!name.trim()||!email.trim()||!role||games.length===0){
+      setError("Please fill in all fields and select at least one game.");
+      return;
+    }
+    if(!/^[^@]+@[^@]+\.[^@]+$/.test(email)){
+      setError("Please enter a valid email address.");
+      return;
+    }
+    setError("");
+    setStep("submitting");
+    try{
+      const {supabase}=await import('./supabase');
+      // Check for duplicate email
+      const {data:existing}=await supabase.from('waitlist').select('id,position').eq('email',email.toLowerCase().trim());
+      if(existing?.length){
+        setPosition(existing[0].position);
+        setStep("done");
+        return;
+      }
+      // Get current count for position
+      const {count}=await supabase.from('waitlist').select('*',{count:'exact',head:true});
+      const pos=(count||0)+1;
+      const {error:e}=await supabase.from('waitlist').insert({
+        name:name.trim(),
+        email:email.toLowerCase().trim(),
+        role,
+        games,
+        feature_request:feature.trim()||null,
+        position:pos,
+        signed_up_at:new Date().toISOString(),
+      });
+      if(e) throw e;
+      setPosition(pos);
+      setStep("done");
+    } catch(e){
+      setError("Something went wrong. Please try again.");
+      setStep("form");
+    }
+  };
+
+  const inputStyle={width:"100%",background:dark?"rgba(0,0,0,0.3)":"#fff",border:`1px solid ${dark?"#2a5a2a":"#c8dcc8"}`,borderRadius:"6px",padding:"11px 14px",color:dark?"#a8b8a0":"#1a2a1a",fontSize:"13px",fontFamily:"'Share Tech Mono',monospace",outline:"none",boxSizing:"border-box"};
+
+  if(step==="done") return(
+    <div style={{background:dark?"rgba(0,20,0,0.6)":"rgba(255,255,255,0.95)",backdropFilter:"blur(8px)",border:`1px solid ${dark?"#1a5a2a":"#86efac"}`,borderRadius:"12px",padding:"36px 32px",textAlign:"center",maxWidth:"480px",margin:"0 auto"}}>
+      <div style={{fontSize:"48px",marginBottom:"16px"}}>🎉</div>
+      <div style={{fontFamily:"'Orbitron',sans-serif",fontSize:"18px",fontWeight:800,color:dark?"#00cc40":"#15803d",letterSpacing:"0.08em",marginBottom:"10px"}}>YOU'RE ON THE LIST</div>
+      <div style={{color:dark?"#6aaa6a":"#3a7a3a",fontSize:"13px",marginBottom:"8px"}}>
+        You're <span style={{fontFamily:"'Orbitron',sans-serif",fontWeight:800,color:dark?"#00ff55":"#15803d",fontSize:"18px"}}>#{position}</span> in the queue
+      </div>
+      <div style={{color:dark?"#4a8a4a":"#5a7a5a",fontSize:"11px",lineHeight:"1.7",marginBottom:"24px"}}>
+        We'll email you at <strong>{email}</strong> when your spot is ready.<br/>
+        In the meantime, explore the demo below.
+      </div>
+      <button onClick={onLoginClick} style={{padding:"10px 28px",background:"transparent",border:`1px solid ${dark?"#2a5a2a":"#c5d8c5"}`,borderRadius:"6px",color:dark?"#4a8a4a":"#3a7a3a",fontSize:"10px",fontFamily:"'Share Tech Mono',monospace",cursor:"pointer",letterSpacing:"0.1em"}}>EXPLORE DEMO ▸</button>
+    </div>
+  );
+
+  return(
+    <div style={{background:dark?"rgba(0,20,0,0.6)":"rgba(255,255,255,0.95)",backdropFilter:"blur(8px)",border:`1px solid ${dark?"#1a5a2a":"#a8d4a8"}`,borderRadius:"12px",padding:isMobile?"24px 20px":"36px 32px",maxWidth:"520px",margin:"0 auto",boxShadow:dark?"0 0 60px rgba(0,255,80,0.06)":"0 16px 48px rgba(0,0,0,0.08)"}}>
+      <div style={{fontFamily:"'Orbitron',sans-serif",fontSize:"13px",fontWeight:800,color:dark?"#00cc40":"#15803d",letterSpacing:"0.14em",marginBottom:"6px"}}>◈ JOIN THE ALPHA</div>
+      <div style={{color:dark?"#4a8a4a":"#5a7a5a",fontSize:"11px",marginBottom:"24px",lineHeight:"1.6"}}>Be among the first to trade on Collector's Exchange. We're onboarding in small batches.</div>
+
+      {/* Name + Email */}
+      <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:"10px",marginBottom:"12px"}}>
+        <div>
+          <div style={{color:dark?"#4a8a4a":"#5a7a5a",fontSize:"9px",letterSpacing:"0.1em",marginBottom:"5px"}}>YOUR NAME</div>
+          <input value={name} onChange={e=>setName(e.target.value)} placeholder="First name" style={inputStyle}/>
+        </div>
+        <div>
+          <div style={{color:dark?"#4a8a4a":"#5a7a5a",fontSize:"9px",letterSpacing:"0.1em",marginBottom:"5px"}}>EMAIL ADDRESS</div>
+          <input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@email.com" style={inputStyle}/>
+        </div>
+      </div>
+
+      {/* Role */}
+      <div style={{marginBottom:"12px"}}>
+        <div style={{color:dark?"#4a8a4a":"#5a7a5a",fontSize:"9px",letterSpacing:"0.1em",marginBottom:"8px"}}>I AM A...</div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px"}}>
+          {[["shop","🏪 Shop Owner","I run a card shop or sell professionally"],["collector","🃏 Collector","I buy and trade for my personal collection"]].map(([val,label,desc])=>(
+            <button key={val} onClick={()=>setRole(val)} style={{padding:"12px",border:`1px solid ${role===val?(dark?"#00cc40":"#15803d"):(dark?"#1a3a1a":"#c8dcc8")}`,borderRadius:"7px",background:role===val?(dark?"rgba(0,180,60,0.12)":"rgba(22,128,58,0.07)"):"transparent",cursor:"pointer",textAlign:"left",transition:"all 0.15s"}}>
+              <div style={{color:role===val?(dark?"#00cc40":"#15803d"):(dark?"#a8b8a0":"#1a2a1a"),fontSize:"12px",fontFamily:"'Share Tech Mono',monospace",marginBottom:"3px"}}>{label}</div>
+              <div style={{color:dark?"#3a6a3a":"#7a9a7a",fontSize:"9px"}}>{desc}</div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Games */}
+      <div style={{marginBottom:"12px"}}>
+        <div style={{color:dark?"#4a8a4a":"#5a7a5a",fontSize:"9px",letterSpacing:"0.1em",marginBottom:"8px"}}>GAMES I PLAY <span style={{opacity:0.6}}>(select all that apply)</span></div>
+        <div style={{display:"flex",flexWrap:"wrap",gap:"6px"}}>
+          {GAMES.map(g=>(
+            <button key={g} onClick={()=>toggleGame(g)} style={{padding:"5px 12px",border:`1px solid ${games.includes(g)?(dark?"#00cc40":"#15803d"):(dark?"#1a3a1a":"#c8dcc8")}`,borderRadius:"20px",background:games.includes(g)?(dark?"rgba(0,180,60,0.12)":"rgba(22,128,58,0.08)"):"transparent",color:games.includes(g)?(dark?"#00cc40":"#15803d"):(dark?"#6a8a6a":"#5a7a5a"),fontSize:"10px",fontFamily:"'Share Tech Mono',monospace",cursor:"pointer",transition:"all 0.12s"}}>
+              {games.includes(g)?"✓ ":""}{g}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Feature request */}
+      <div style={{marginBottom:"20px"}}>
+        <div style={{color:dark?"#4a8a4a":"#5a7a5a",fontSize:"9px",letterSpacing:"0.1em",marginBottom:"5px"}}>ONE FEATURE YOU'D LOVE TO SEE <span style={{opacity:0.6}}>(optional)</span></div>
+        <input value={feature} onChange={e=>setFeature(e.target.value)} placeholder="e.g. bulk pricing tools, trade history export..." style={{...inputStyle,fontSize:"12px"}}/>
+      </div>
+
+      {error&&<div style={{marginBottom:"14px",padding:"10px 12px",background:dark?"rgba(180,30,30,0.1)":"rgba(220,50,50,0.06)",border:`1px solid ${dark?"#5a1a1a":"#e07070"}`,borderRadius:"5px",color:dark?"#ff8080":"#dc2626",fontSize:"10px"}}>{error}</div>}
+
+      <button onClick={submit} disabled={step==="submitting"} style={{width:"100%",padding:"13px",background:dark?"linear-gradient(135deg,#0a3a1a,#0f5a28)":"linear-gradient(135deg,#b8e8b8,#8acc8a)",border:`1px solid ${dark?"#1a5a2a":"#5a9a5a"}`,borderRadius:"7px",color:dark?"#00ff55":"#1a4a1a",fontSize:"12px",fontFamily:"'Share Tech Mono',monospace",cursor:step==="submitting"?"wait":"pointer",letterSpacing:"0.1em",fontWeight:"bold",opacity:step==="submitting"?0.7:1}}>
+        {step==="submitting"?"JOINING...":"JOIN THE WAITLIST →"}
+      </button>
+
+      <div style={{textAlign:"center",marginTop:"14px",color:dark?"#2a5a2a":"#9aaa9a",fontSize:"9px"}}>
+        Already have an account? <span onClick={onLoginClick} style={{color:dark?"#4a8a4a":"#3a7a3a",cursor:"pointer",textDecoration:"underline"}}>Log in here</span>
+      </div>
+    </div>
+  );
+}
+
 // ── Landing Page ──────────────────────────────────────────────────────────────
 function Landing({D,dark,dbCards,onEnterDemo,onOpenAuth}){
   const isMobile=useIsMobile();
@@ -1189,13 +1324,13 @@ function Landing({D,dark,dbCards,onEnterDemo,onOpenAuth}){
             <div style={{display:"flex",gap:"8px",alignItems:"center"}}>
               {!isMobile&&<button onClick={onEnterDemo} style={{padding:"8px 18px",background:"transparent",border:`1px solid ${dark?"#2a5a2a":"#b8d4b8"}`,borderRadius:"5px",color:dark?"#4a8a4a":"#3a7a3a",fontSize:"10px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.1em"}}>DEMO</button>}
               {!isMobile&&<button onClick={()=>onOpenAuth("login")} style={{padding:"8px 18px",background:"transparent",border:`1px solid ${dark?"#4a8a4a":"#7a9a7a"}`,borderRadius:"5px",color:dark?"#a8b8a0":"#2a3a2a",fontSize:"10px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.1em"}}>LOG IN</button>}
-              <button onClick={()=>onOpenAuth("signup")} style={{padding:"8px 16px",background:dark?"linear-gradient(135deg,#0a3a1a,#0f5a28)":"linear-gradient(135deg,#cceacc,#a8d8a8)",border:`1px solid ${dark?"#1a5a2a":"#7ab07a"}`,borderRadius:"5px",color:dark?"#00ff55":"#1a5a2a",fontSize:"10px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.1em",fontWeight:"bold"}}>GET STARTED →</button>
+              <button onClick={()=>document.getElementById("cx-waitlist")?.scrollIntoView({behavior:"smooth"})} style={{padding:"8px 16px",background:dark?"linear-gradient(135deg,#0a3a1a,#0f5a28)":"linear-gradient(135deg,#cceacc,#a8d8a8)",border:`1px solid ${dark?"#1a5a2a":"#7ab07a"}`,borderRadius:"5px",color:dark?"#00ff55":"#1a5a2a",fontSize:"10px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.1em",fontWeight:"bold"}}>JOIN WAITLIST →</button>
             </div>
           </div>
         </div>
 
         {/* Hero content */}
-        <div style={{position:"relative",zIndex:10,flex:1,display:"flex",flexDirection:"column",justifyContent:"center",alignItems:"center",padding:isMobile?"40px 20px":"60px 40px",textAlign:"center"}}>
+        <div id="cx-waitlist" style={{position:"relative",zIndex:10,flex:1,display:"flex",flexDirection:"column",justifyContent:"center",alignItems:"center",padding:isMobile?"40px 20px":"60px 40px",textAlign:"center"}}>
           <div style={{maxWidth:"700px",width:"100%",display:"flex",flexDirection:"column",alignItems:"center"}}>
             <div style={{display:"inline-flex",alignItems:"center",gap:"8px",background:dark?"rgba(0,180,60,0.08)":"rgba(22,128,58,0.06)",border:`1px solid ${dark?"#1a4a1a":"#a8d4a8"}`,borderRadius:"20px",padding:"5px 14px",marginBottom:"28px"}}>
               <span style={{color:dark?"#00cc40":"#15803d",fontSize:"9px"}}>●</span>
@@ -1207,11 +1342,8 @@ function Landing({D,dark,dbCards,onEnterDemo,onOpenAuth}){
             <p style={{fontSize:"14px",lineHeight:1.8,color:dark?"#4a8a4a":"#5a7a5a",marginBottom:"36px",maxWidth:"480px"}}>
               Buy, sell and trade rare TCG cards with a real order book, live pricing, and portfolio tracking. Pokémon, MTG, Yu-Gi-Oh! and more.
             </p>
-            <div style={{display:"flex",gap:"12px",flexWrap:"wrap",justifyContent:"center",flexDirection:isMobile?"column":"row",alignItems:"center"}}>
-              <button onClick={()=>onOpenAuth("signup")} style={{padding:"14px 32px",background:dark?"linear-gradient(135deg,#0a3a1a,#0f5a28)":"linear-gradient(135deg,#b8e8b8,#8acc8a)",border:`1px solid ${dark?"#1a5a2a":"#5a9a5a"}`,borderRadius:"7px",color:dark?"#00ff55":"#1a4a1a",fontSize:"12px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.1em",fontWeight:"bold"}}>CREATE FREE ACCOUNT</button>
-              <button onClick={onEnterDemo} style={{padding:"14px 28px",background:"transparent",border:`1px solid ${dark?"#2a5a2a":"#c5d8c5"}`,borderRadius:"7px",color:dark?"#4a8a4a":"#3a7a3a",fontSize:"12px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.1em"}}>EXPLORE DEMO ▸</button>
-            </div>
-            <div style={{display:"flex",gap:"28px",marginTop:"44px",justifyContent:"center"}}>
+            <WaitlistForm D={D} dark={dark} isMobile={isMobile} onLoginClick={()=>onOpenAuth("login")}/>
+            <div style={{display:"flex",gap:"28px",marginTop:"32px",justifyContent:"center"}}>
               {[[allCards.length>=100000?"100k+":allCards.length>0?`${allCards.length}`:"20+","Cards Listed"],["$0","To Get Started"],["Live","Order Matching"]].map(([val,label])=>(
                 <div key={label}>
                   <div style={{fontFamily:ORB,fontSize:"22px",fontWeight:800,color:dark?"#00cc40":"#15803d"}}>{val}</div>
@@ -1219,6 +1351,7 @@ function Landing({D,dark,dbCards,onEnterDemo,onOpenAuth}){
                 </div>
               ))}
             </div>
+            <button onClick={onEnterDemo} style={{marginTop:"14px",padding:"10px 24px",background:"transparent",border:`1px solid ${dark?"#1a3a1a":"#c5d8c5"}`,borderRadius:"6px",color:dark?"#3a6a3a":"#5a7a5a",fontSize:"10px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.1em"}}>or explore the demo first ▸</button>
           </div>
         </div>
         {/* Scroll indicator */}
@@ -1268,16 +1401,14 @@ function Landing({D,dark,dbCards,onEnterDemo,onOpenAuth}){
 
         </div>
       {/* ── CTA ── */}
-      <div style={{padding:"80px 40px",textAlign:"center",background:dark?"linear-gradient(135deg,#080c09,#0a100a)":"linear-gradient(135deg,#e8f4e8,#f0f8f0)",borderTop:`1px solid ${dark?"#0f1f0f":"#dde8dd"}`}}>
+      <div style={{padding:"80px 40px",background:dark?"linear-gradient(135deg,#080c09,#0a100a)":"linear-gradient(135deg,#e8f4e8,#f0f8f0)",borderTop:`1px solid ${dark?"#0f1f0f":"#dde8dd"}`}}>
         <div style={{maxWidth:"1100px",margin:"0 auto"}}>
-        <h2 style={{fontFamily:ORB,fontSize:"32px",fontWeight:800,color:dark?"#a8b8a0":"#1a2a1a",marginBottom:"14px"}}>Ready to Start Trading?</h2>
-        <p style={{color:dark?"#4a8a4a":"#5a7a5a",fontSize:"12px",marginBottom:"32px"}}>Create a free account and get $15,000 in demo funds to trade with immediately.</p>
-        <div style={{display:"flex",gap:"14px",justifyContent:"center",flexWrap:"wrap"}}>
-          <button onClick={()=>onOpenAuth("signup")} style={{padding:"14px 36px",background:dark?"linear-gradient(135deg,#0a3a1a,#0f5a28)":"linear-gradient(135deg,#b8e8b8,#8acc8a)",border:`1px solid ${dark?"#1a5a2a":"#5a9a5a"}`,borderRadius:"7px",color:dark?"#00ff55":"#1a4a1a",fontSize:"12px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.1em",fontWeight:"bold"}}>CREATE FREE ACCOUNT</button>
-          <button onClick={onEnterDemo} style={{padding:"14px 28px",background:"transparent",border:`1px solid ${dark?"#2a5a2a":"#c5d8c5"}`,borderRadius:"7px",color:dark?"#4a8a4a":"#3a7a3a",fontSize:"12px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.1em"}}>TRY DEMO FIRST</button>
+          <div style={{textAlign:"center",marginBottom:"40px"}}>
+            <h2 style={{fontFamily:ORB,fontSize:"32px",fontWeight:800,color:dark?"#a8b8a0":"#1a2a1a",marginBottom:"12px"}}>Ready to Trade?</h2>
+            <p style={{color:dark?"#4a8a4a":"#5a7a5a",fontSize:"12px"}}>Join the waitlist and we'll let you know when your spot is ready.</p>
+          </div>
+          <WaitlistForm D={D} dark={dark} isMobile={isMobile} onLoginClick={()=>onOpenAuth("login")}/>
         </div>
-      </div>
-
         </div>
       {/* ── Footer ── */}
       <div style={{padding:"20px 40px",borderTop:`1px solid ${dark?"#0f1f0f":"#dde8dd"}`,background:dark?"#070a0e":"#f0f4f0"}}>
