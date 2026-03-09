@@ -140,7 +140,7 @@ function Portfolio({D,dark,holdings=[],tradeHistory=[],dbCards=[],isMobile=false
   const totalPnl=+(totalVal-totalCost).toFixed(2);
   const totalPct=+((totalPnl/totalCost)*100).toFixed(2);
 
-  const portHist=Array.from({length:30},(_,i)=>totalCost*(0.9+i*0.005)+(Math.random()-0.4)*totalCost*0.02);
+  const portHist=useMemo(()=>Array.from({length:30},(_,i)=>totalCost*(0.9+i*0.005)+(Math.random()-0.4)*totalCost*0.02),[totalCost]);
   const minH=Math.min(...portHist),maxH=Math.max(...portHist),rngH=maxH-minH||1;
   const sp=portHist.map((v,i)=>`${i===0?"M":"L"}${((i/(portHist.length-1))*400).toFixed(1)},${(60-((v-minH)/rngH)*54).toFixed(1)}`).join(" ");
 
@@ -209,7 +209,7 @@ function Portfolio({D,dark,holdings=[],tradeHistory=[],dbCards=[],isMobile=false
             <span>CARD</span><span style={{textAlign:"right"}}>PRICE</span><span style={{textAlign:"right"}}>24H</span><span/>
           </div>
           {watchlist.map(c=>{
-            const chg=((Math.random()-0.45)*6).toFixed(2);const up=+chg>=0;
+            const chg=(((h.cardId*11+7)%19-9)*0.55).toFixed(2);const up=+chg>=0;
             return(
               <div key={c.id} style={{display:"grid",gridTemplateColumns:"1fr 70px 70px 28px",padding:"9px 14px",borderBottom:`1px solid ${D.bdr}`,alignItems:"center"}}>
                 <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
@@ -579,10 +579,29 @@ function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[],onPlac
   useEffect(()=>{ if(initialCard) setCard(initialCard); },[initialCard]);
 
   useEffect(()=>{setAsks(genOrders(base,6,"ask"));setBids(genOrders(base,6,"bid"));setPrice(base);setTrades(Array.from({length:16},()=>genTrade(base)));setOPrice("");setOQty("");},[card]);
+  // Price ticker: fast flash every 5s, full chart/book refresh every 30s
+  const priceRef=useRef(price);
+  useEffect(()=>{ priceRef.current=price; },[price]);
   useEffect(()=>{
-    const iv=setInterval(()=>{const t=genTrade(base);setFlash(t.price>price?"up":"down");setTimeout(()=>setFlash(null),400);setPrice(t.price);if(onUpdatePrice&&card.id) onUpdatePrice(card.id,t.price);setTrades(p=>[t,...p.slice(0,19)]);setAsks(genOrders(t.price,6,"ask"));setBids(genOrders(t.price,6,"bid"));if(isDemo) setDemoHist(p=>[...p.slice(1),{p:t.price}]);},1800);
-    return ()=>clearInterval(iv);
-  },[base,price]);
+    // Fast: just update price + flash (no orderbook re-render)
+    const fastIv=setInterval(()=>{
+      const t=genTrade(priceRef.current);
+      setFlash(t.price>priceRef.current?"up":"down");
+      setTimeout(()=>setFlash(null),400);
+      setPrice(t.price);
+      priceRef.current=t.price;
+      if(onUpdatePrice&&card.id) onUpdatePrice(card.id,t.price);
+      setTrades(p=>[t,...p.slice(0,19)]);
+    },5000);
+    // Slow: regenerate orderbook + chart every 30s
+    const slowIv=setInterval(()=>{
+      const cur=priceRef.current;
+      setAsks(genOrders(cur,6,"ask"));
+      setBids(genOrders(cur,6,"bid"));
+      if(isDemo) setDemoHist(p=>[...p.slice(1),{p:cur}]);
+    },30000);
+    return ()=>{ clearInterval(fastIv); clearInterval(slowIv); };
+  },[base,card.id,isDemo]);
 
   // Demo mode: use animated genHist; logged-in: use real trade history
   const [demoHist,setDemoHist]=useState(()=>genHist(base));
@@ -748,7 +767,7 @@ function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[],onPlac
           </div>
         </div>
         <div style={{overflowY:"auto",flex:1}}>
-        {sidebarCards.map(c=>{const bp=c.basePrice||BASE[c.id]||0;const chg=((Math.random()-0.45)*5).toFixed(2);const up=+chg>=0;const active=card.id===c.id;return(
+        {sidebarCards.map(c=>{const bp=c.basePrice||BASE[c.id]||0;const chg=(((c.id*7+13)%17-8)*0.6).toFixed(2);const up=+chg>=0;const active=card.id===c.id;return(
           <div key={c.id} onClick={()=>setCard(c)} style={{padding:"12px 14px",borderBottom:`1px solid ${D.bdr}`,cursor:"pointer",background:active?(dark?"rgba(0,255,80,0.05)":"rgba(22,128,58,0.05)"):"transparent",borderLeft:active?`3px solid ${D.accD}`:"3px solid transparent",transition:"all 0.1s"}}>
             <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
               <img src={c.img||c.img_url} alt={c.name} style={{width:"38px",height:"52px",objectFit:"cover",borderRadius:"4px",border:`1px solid ${D.bdr}`,flexShrink:0}} onError={e=>e.target.style.display="none"}/>
@@ -1010,6 +1029,7 @@ function Landing({D,dark,dbCards,onEnterDemo,onOpenAuth}){
   const [liveTrades,setLiveTrades]=useState(()=>Array.from({length:8},()=>genTrade(base)));
 
   useEffect(()=>{
+    // Landing demo ticks every 8s — just eye candy, no need to hammer it
     const iv=setInterval(()=>{
       const t=genTrade(base);
       setFlash(t.price>price?"up":"down");
@@ -1019,7 +1039,7 @@ function Landing({D,dark,dbCards,onEnterDemo,onOpenAuth}){
       setLiveAsks(genOrders(t.price,5,"ask"));
       setLiveBids(genOrders(t.price,5,"bid"));
       setLiveTrades(p=>[t,...p.slice(0,7)]);
-    },1600);
+    },8000);
     return ()=>clearInterval(iv);
   },[base,price]);
 
@@ -1844,30 +1864,57 @@ export default function App(){
   const D=dark?DK:LT;
 
   // ── Supabase helpers ────────────────────────────────────────────────────────
-  const saveToDb=async(sb,uid,newOrders,newHoldings,newTrades,newBalance)=>{
+  // ── Rate limiter ─────────────────────────────────────────────────────────────
+  // Tracks DB write timestamps to enforce a minimum 10s cooldown between saves.
+  // Urgent writes (trades) bypass the cooldown. All writes are counted per minute
+  // and logged so you can monitor usage during development.
+  const lastSaveRef=useRef(0);
+  const saveCountRef=useRef({count:0,windowStart:Date.now()});
+  const pendingSaveRef=useRef(null); // queues a deferred save if cooldown is active
+
+  const saveToDb=async(sb,uid,newOrders,newHoldings,newTrades,newBalance,{urgent=false}={})=>{
     if(!uid) return;
+    const now=Date.now();
+
+    // Per-minute counter (dev visibility)
+    const w=saveCountRef.current;
+    if(now-w.windowStart>60000){ saveCountRef.current={count:1,windowStart:now}; }
+    else { w.count++; }
+    if(w.count>20) console.warn(`[CX] High DB write rate: ${w.count} writes/min — check for runaway intervals`);
+
+    // Cooldown: non-urgent writes must wait 10s since last save
+    const elapsed=now-lastSaveRef.current;
+    const COOLDOWN=10000; // 10 seconds
+    if(!urgent && elapsed < COOLDOWN){
+      // Schedule a deferred flush after the cooldown expires
+      if(pendingSaveRef.current) clearTimeout(pendingSaveRef.current);
+      pendingSaveRef.current=setTimeout(()=>{
+        saveToDb(sb,uid,newOrders,newHoldings,newTrades,newBalance,{urgent:true});
+      }, COOLDOWN - elapsed + 100);
+      return;
+    }
+    lastSaveRef.current=now;
+    if(pendingSaveRef.current){ clearTimeout(pendingSaveRef.current); pendingSaveRef.current=null; }
+
+    // ── Actual DB writes ──────────────────────────────────────────────────────
     // balance upsert
     const balRes=await sb.from('user_balance').upsert({user_id:uid,balance:newBalance},{onConflict:'user_id',ignoreDuplicates:false});
     if(balRes.error) await sb.from('user_balance').insert({user_id:uid,balance:newBalance});
-    console.log("balance save:", balRes.error?"retried OK":"OK");
-    // orders — only upsert the changed/new ones, deduplicated by id
+    // orders
     if(newOrders?.length){
       const unique=[...new Map(newOrders.map(o=>[o.id,o])).values()];
-      const ordRes=await sb.from('user_orders').upsert(unique.map(o=>({id:o.id,user_id:uid,card_id:o.cardId,side:o.side,type:o.type,price:o.price,qty:o.qty,filled:o.filled,status:o.status,time:o.time,date:o.date})),{onConflict:'id'});
-      console.log("orders save:", ordRes.error||"OK");
+      await sb.from('user_orders').upsert(unique.map(o=>({id:o.id,user_id:uid,card_id:o.cardId,side:o.side,type:o.type,price:o.price,qty:o.qty,filled:o.filled,status:o.status,time:o.time,date:o.date})),{onConflict:'id'});
     }
     // holdings replace
     if(newHoldings!==undefined){
       await sb.from('user_holdings').delete().eq('user_id',uid);
       if(newHoldings.length){
-        const holdRes=await sb.from('user_holdings').insert(newHoldings.map(h=>({user_id:uid,card_id:h.cardId,qty:h.qty,avg_cost:h.avgCost,acquired:h.acquired,locked_qty:h.lockedQty||0})));
-        console.log("holdings save:", holdRes.error||"OK");
+        await sb.from('user_holdings').insert(newHoldings.map(h=>({user_id:uid,card_id:h.cardId,qty:h.qty,avg_cost:h.avgCost,acquired:h.acquired,locked_qty:h.lockedQty||0})));
       }
     }
-    // trades — upsert so duplicates are ignored
+    // trades
     if(newTrades?.length){
-      const trdRes=await sb.from('user_trades').upsert(newTrades.map(t=>({id:t.id,user_id:uid,card_id:t.cardId,side:t.side,price:t.price,qty:t.qty,total:t.total,date:t.date,time:t.time})),{onConflict:'id'});
-      console.log("trades save:", trdRes.error||"OK");
+      await sb.from('user_trades').upsert(newTrades.map(t=>({id:t.id,user_id:uid,card_id:t.cardId,side:t.side,price:t.price,qty:t.qty,total:t.total,date:t.date,time:t.time})),{onConflict:'id'});
     }
   };
 
@@ -1919,7 +1966,7 @@ export default function App(){
           setBalance(result.balance);
           setTradeHistory(h=>[...result.newTrades,...h]);
           if(userRef.current) import('./supabase').then(({supabase})=>{
-            saveToDb(supabase,userRef.current.id,result.orders,result.holdings,result.newTrades,result.balance);
+            saveToDb(supabase,userRef.current.id,result.orders,result.holdings,result.newTrades,result.balance,{urgent:true});
             // Increment trade_count on profile
             if(result.newTrades.length){
               supabase.rpc('increment_trade_count',{uid:userRef.current.id,n:result.newTrades.length}).then(()=>{
@@ -1959,7 +2006,7 @@ export default function App(){
           pushNotification(t.side==="buy"?"filled_buy":"filled_sell",`${t.side==="buy"?"Bought":"Sold"} ${t.qty}× ${card.name} @ $${t.price.toLocaleString("en-US",{minimumFractionDigits:2})}`);
         });
       }
-      if(user){ const {supabase}=await import('./supabase'); saveToDb(supabase,user.id,[result.orders[0]],result.holdings,result.newTrades,result.balance); }
+      if(user){ const {supabase}=await import('./supabase'); saveToDb(supabase,user.id,[result.orders[0]],result.holdings,result.newTrades,result.balance,{urgent:true}); }
     } else {
       // If limit sell: lock the qty in holdings immediately
       let updatedHoldings = holdings;
