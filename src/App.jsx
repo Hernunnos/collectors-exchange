@@ -18,10 +18,10 @@ const CARDS = [
   { id:3, name:"Pikachu Illustrator", set:"CoroCoro",  condition:"PSA 9",  rarity:"Promo",     game:"Pokémon", img:"https://images.pokemontcg.io/basep/1_hires.png" },
   { id:4, name:"Blastoise",           set:"Base Set",  condition:"PSA 8",  rarity:"Holo Rare", game:"Pokémon", img:"https://images.pokemontcg.io/base1/2_hires.png" },
   { id:5, name:"Mewtwo",              set:"Base Set",  condition:"PSA 9",  rarity:"Holo Rare", game:"Pokémon", img:"https://images.pokemontcg.io/base1/9_hires.png" },
-  { id:6, name:"Ancestral Recall",    set:"Alpha",     condition:"NM",     rarity:"Rare",      game:"MTG",     img:"https://api.scryfall.com/cards/lea/47?format=image&version=large" },
-  { id:7, name:"Time Walk",           set:"Alpha",     condition:"NM",     rarity:"Rare",      game:"MTG",     img:"https://api.scryfall.com/cards/lea/116?format=image&version=large" },
-  { id:8, name:"Mox Sapphire",        set:"Alpha",     condition:"NM",     rarity:"Rare",      game:"MTG",     img:"https://api.scryfall.com/cards/lea/265?format=image&version=large" },
-  { id:9, name:"Underground Sea",     set:"Alpha",     condition:"NM",     rarity:"Rare",      game:"MTG",     img:"https://api.scryfall.com/cards/lea/96?format=image&version=large" },
+  { id:6, name:"Ancestral Recall",    set:"Alpha",     condition:"NM",     rarity:"Rare",      game:"MTG",     img:"https://cards.scryfall.io/large/front/7/0/70e7ddf2-5604-41e7-bb9d-ddd03d3e9d0b.jpg" },
+  { id:7, name:"Time Walk",           set:"Alpha",     condition:"NM",     rarity:"Rare",      game:"MTG",     img:"https://cards.scryfall.io/large/front/e/0/e0139f60-d48e-46fb-9f5a-1e3d7558c834.jpg" },
+  { id:8, name:"Mox Sapphire",        set:"Alpha",     condition:"NM",     rarity:"Rare",      game:"MTG",     img:"https://cards.scryfall.io/large/front/8/2/82da0972-b17b-4600-9efd-e9430a0db04b.jpg" },
+  { id:9, name:"Underground Sea",     set:"Alpha",     condition:"NM",     rarity:"Rare",      game:"MTG",     img:"https://cards.scryfall.io/large/front/f/f/ff76ac86-8a8a-47fe-9388-8950ca3e26c3.jpg" },
 ];
 const BASE = { 1:420, 2:8500, 3:74000, 4:280, 5:310, 6:4200, 7:2800, 8:3900, 9:1800 };
 
