@@ -979,6 +979,7 @@ function AuthModal({D,dark,onClose,onAuth}){
   const [loading,setLoading]=useState(false);
   const [error,setError]=useState("");
   const [success,setSuccess]=useState("");
+  const [rememberMe,setRememberMe]=useState(true);
 
   const submit=async()=>{
     setError(""); setSuccess(""); setLoading(true);
@@ -990,8 +991,15 @@ function AuthModal({D,dark,onClose,onAuth}){
         if(data.user && !data.session){ setSuccess("Check your email to confirm your account."); setLoading(false); return; }
         if(data.user) onAuth(data.user);
       } else {
+        // rememberMe: 30 days vs session-only (tab close logs out)
         const {data,error:e}=await supabase.auth.signInWithPassword({email,password});
         if(e) throw e;
+        if(!rememberMe){
+          // Set a short-lived session flag so on next load we don't restore
+          sessionStorage.setItem("cx_session_only","1");
+        } else {
+          sessionStorage.removeItem("cx_session_only");
+        }
         onAuth(data.user);
       }
     } catch(e){ setError(e.message||"Something went wrong"); }
@@ -1025,10 +1033,19 @@ function AuthModal({D,dark,onClose,onAuth}){
           <div style={{color:D.txtD,fontSize:"10px",marginBottom:"5px",letterSpacing:"0.08em"}}>EMAIL</div>
           <input type="email" value={email} onChange={e=>setEmail(e.target.value)} onKeyDown={e=>e.key==="Enter"&&submit()} placeholder="you@email.com" style={{width:"100%",background:D.inBg,border:`1px solid ${D.inBdr}`,borderRadius:"5px",padding:"10px 12px",color:D.txt,fontSize:"12px",fontFamily:MONO}}/>
         </div>
-        <div style={{marginBottom:"20px"}}>
+        <div style={{marginBottom:"14px"}}>
           <div style={{color:D.txtD,fontSize:"10px",marginBottom:"5px",letterSpacing:"0.08em"}}>PASSWORD</div>
           <input type="password" value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>e.key==="Enter"&&submit()} placeholder="••••••••" style={{width:"100%",background:D.inBg,border:`1px solid ${D.inBdr}`,borderRadius:"5px",padding:"10px 12px",color:D.txt,fontSize:"12px",fontFamily:MONO}}/>
         </div>
+
+        {mode==="login"&&(
+          <div style={{display:"flex",alignItems:"center",gap:"8px",marginBottom:"18px",cursor:"pointer"}} onClick={()=>setRememberMe(r=>!r)}>
+            <div style={{width:"16px",height:"16px",borderRadius:"3px",border:`1px solid ${rememberMe?D.accD:D.bdr2}`,background:rememberMe?(dark?"rgba(0,180,60,0.25)":"rgba(22,128,58,0.15)"):"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,transition:"all 0.15s"}}>
+              {rememberMe&&<span style={{color:D.accD,fontSize:"11px",lineHeight:1}}>✓</span>}
+            </div>
+            <span style={{color:D.txtD,fontSize:"10px",userSelect:"none"}}>Remember me for 30 days</span>
+          </div>
+        )}
 
         {error&&<div style={{marginBottom:"14px",padding:"8px 12px",background:dark?"rgba(180,30,30,0.1)":"rgba(220,50,50,0.06)",border:`1px solid ${dark?"#5a1a1a":"#e07070"}`,borderRadius:"4px",color:D.askT,fontSize:"10px"}}>{error}</div>}
         {success&&<div style={{marginBottom:"14px",padding:"8px 12px",background:dark?"rgba(0,180,60,0.1)":"rgba(22,128,58,0.06)",border:`1px solid ${dark?"#1a4a1a":"#8acc8a"}`,borderRadius:"4px",color:D.accD,fontSize:"10px"}}>{success}</div>}
@@ -2137,7 +2154,10 @@ export default function App(){
     import('./supabase').then(({supabase})=>{
       // Check for existing session
       supabase.auth.getSession().then(({data:{session}})=>{
-        if(session?.user){ setUser(session.user); setScreen("app"); loadUserData(supabase,session.user.id); }
+        // If user chose not to remember, only restore if still in same browser session
+        const sessionOnly=sessionStorage.getItem("cx_session_only");
+        if(session?.user && !sessionOnly){ setUser(session.user); setScreen("app"); loadUserData(supabase,session.user.id); }
+        else if(session?.user && sessionOnly){ /* session-only: already logged in this tab, restore */ setUser(session.user); setScreen("app"); loadUserData(supabase,session.user.id); }
       });
       // Load cards
       supabase.from('cards').select('*').then(({data,error})=>{
@@ -2275,7 +2295,7 @@ export default function App(){
   const handleLogout=async()=>{
     const {supabase}=await import('./supabase');
     await supabase.auth.signOut();
-    setUser(null); setProfile(null); setScreen("landing");
+    sessionStorage.removeItem("cx_session_only"); setUser(null); setProfile(null); setScreen("landing");
     setOrders([]); setHoldings([]); setTradeHistory([]); setBalance(STARTING_BALANCE);
   };
   const handleAuth=async(u)=>{
@@ -2361,8 +2381,8 @@ export default function App(){
               </div>
               {user&&(
                 <div style={{padding:"12px 16px",borderBottom:`1px solid ${D.bdr}`}}>
-                  <div style={{color:D.txtM,fontSize:"11px",marginBottom:"4px",display:"flex",alignItems:"center",gap:"6px"}}>
-                    {profile?.display_name||user.user_metadata?.display_name||user.email?.split("@")[0]}
+                  <div onClick={()=>{setTab("PROFILE");setDrawerOpen(false);}} style={{color:D.txtM,fontSize:"11px",marginBottom:"4px",display:"flex",alignItems:"center",gap:"6px",cursor:"pointer"}}>
+                    👤 {profile?.display_name||user.user_metadata?.display_name||user.email?.split("@")[0]}
                   </div>
                   <div style={{marginBottom:"4px"}}><RepBadge tradeCount={profile?.trade_count||tradeHistory.length}/></div>
                   <div style={{color:D.acc,fontSize:"13px",fontWeight:"bold"}}>💵 ${balance.toLocaleString("en-US",{minimumFractionDigits:2})}</div>
@@ -2429,8 +2449,8 @@ export default function App(){
                 <div style={{display:"flex",gap:"10px",alignItems:"center"}}>
                   {user?(
                     <>
-                      <span style={{color:D.txtD,fontSize:"10px",display:"flex",alignItems:"center",gap:"6px"}}>
-                        {profile?.display_name||user.user_metadata?.display_name||user.email?.split("@")[0]}
+                      <span onClick={()=>setTab("PROFILE")} style={{color:D.txtD,fontSize:"10px",display:"flex",alignItems:"center",gap:"6px",cursor:"pointer",padding:"3px 8px",borderRadius:"4px",border:`1px solid transparent`}} onMouseEnter={e=>{e.currentTarget.style.borderColor=D.bdr;e.currentTarget.style.background=D.bg3;}} onMouseLeave={e=>{e.currentTarget.style.borderColor="transparent";e.currentTarget.style.background="transparent";}}>
+                        👤 {profile?.display_name||user.user_metadata?.display_name||user.email?.split("@")[0]}
                         <RepBadge tradeCount={profile?.trade_count||tradeHistory.length}/>
                       </span>
                       {profile?.is_admin&&<button onClick={()=>setAdminOpen(true)} title="Admin Panel" style={{padding:"3px 8px",background:"transparent",border:"1px solid #f59e0b",borderRadius:"3px",color:"#f59e0b",fontSize:"9px",fontFamily:"'Share Tech Mono',monospace",cursor:"pointer",letterSpacing:"0.06em"}}>⚙ ADMIN</button>}
