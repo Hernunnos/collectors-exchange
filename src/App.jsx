@@ -1817,6 +1817,7 @@ function ProfileSettings({D,dark,user,profile,tradeHistory=[],holdings=[],balanc
   const [curPwd,setCurPwd]=useState("");
   const [newPwd,setNewPwd]=useState("");
   const [pwdMsg,setPwdMsg]=useState("");
+  const [deleteConfirm,setDeleteConfirm]=useState(false);
   const [reviews,setReviews]=useState([]);
   const [loadingReviews,setLoadingReviews]=useState(false);
 
@@ -2087,7 +2088,18 @@ function ProfileSettings({D,dark,user,profile,tradeHistory=[],holdings=[],balanc
             <div style={{background:dark?"rgba(180,30,30,0.05)":"rgba(220,50,50,0.03)",border:`1px solid ${dark?"#3a1010":"#e8c5c5"}`,borderRadius:"8px",padding:"16px 18px"}}>
               <div style={{color:"#dc2626",fontSize:"9px",letterSpacing:"0.1em",marginBottom:"10px"}}>▸ DANGER ZONE</div>
               <div style={{color:D.txtD,fontSize:"10px",marginBottom:"12px"}}>Deleting your account is permanent and cannot be undone.</div>
-              <button style={{padding:"8px 16px",background:"transparent",border:"1px solid #dc2626",borderRadius:"4px",color:"#dc2626",fontSize:"9px",fontFamily:"'Share Tech Mono',monospace",cursor:"pointer"}} onClick={()=>alert("Please contact support to delete your account.")}>DELETE ACCOUNT</button>
+              {deleteConfirm?(
+                <div style={{background:dark?"rgba(180,30,30,0.1)":"rgba(220,50,50,0.06)",border:"1px solid #dc2626",borderRadius:"6px",padding:"14px"}}>
+                  <div style={{color:"#dc2626",fontSize:"11px",fontWeight:"bold",marginBottom:"6px"}}>⚠ Are you sure?</div>
+                  <div style={{color:D.txtD,fontSize:"10px",marginBottom:"12px",lineHeight:"1.5"}}>This will permanently delete your account, balance, orders, holdings and trade history. This cannot be undone.</div>
+                  <div style={{display:"flex",gap:"8px"}}>
+                    <button onClick={()=>setDeleteConfirm(false)} style={{flex:1,padding:"8px",background:"transparent",border:`1px solid ${D.bdr}`,borderRadius:"4px",color:D.txtD,fontSize:"9px",fontFamily:"'Share Tech Mono',monospace",cursor:"pointer"}}>← CANCEL</button>
+                    <button onClick={()=>alert("Please contact support at support@collectorsexchange.com to delete your account.")} style={{flex:1,padding:"8px",background:"#dc2626",border:"1px solid #dc2626",borderRadius:"4px",color:"#fff",fontSize:"9px",fontFamily:"'Share Tech Mono',monospace",cursor:"pointer",fontWeight:"bold"}}>YES, DELETE →</button>
+                  </div>
+                </div>
+              ):(
+                <button style={{padding:"8px 16px",background:"transparent",border:"1px solid #dc2626",borderRadius:"4px",color:"#dc2626",fontSize:"9px",fontFamily:"'Share Tech Mono',monospace",cursor:"pointer"}} onClick={()=>setDeleteConfirm(true)}>DELETE ACCOUNT</button>
+              )}
             </div>
 
           </div>
