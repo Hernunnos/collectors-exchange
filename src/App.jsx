@@ -70,12 +70,16 @@ function matchOrders(orders, marketPrices, holdings, balance){
         }
       } else {
         const idx = newHoldings.findIndex(h=>h.cardId===o.cardId);
-        if(idx<0 || newHoldings[idx].qty < fillQty) continue; // not enough cards
-        newBalance = +(newBalance + total).toFixed(2);
+        if(idx<0) continue; // don't own any
         const h = newHoldings[idx];
+        const locked = h.lockedQty || 0;
+        const freeQty = h.qty - locked;
+        if(freeQty < fillQty) continue; // not enough unlocked cards
+        newBalance = +(newBalance + total).toFixed(2);
         const newQty = h.qty - fillQty;
+        const newLocked = Math.max(0, locked - fillQty); // release the lock on fill
         if(newQty === 0) newHoldings.splice(idx,1);
-        else newHoldings[idx] = {...h, qty:newQty};
+        else newHoldings[idx] = {...h, qty:newQty, lockedQty:newLocked};
       }
 
       o.filled += fillQty;
@@ -173,7 +177,10 @@ function Portfolio({D,dark,holdings=[],tradeHistory=[],dbCards=[],isMobile=false
                 <img src={h.card.img} alt={h.card.name} style={{width:"22px",height:"30px",objectFit:"cover",borderRadius:"2px"}} onError={e=>e.target.style.display="none"}/>
                 <div><div style={{color:D.txt,fontSize:"11px"}}>{h.card.name}</div><div style={{color:D.txtD,fontSize:"9px"}}>{h.card.condition}</div></div>
               </div>
-              <span style={{textAlign:"right",color:D.txtM,fontSize:"11px"}}>{h.qty}</span>
+              <span style={{textAlign:"right",color:D.txtM,fontSize:"11px"}}>
+                {h.qty}
+                {(h.lockedQty||0)>0&&<span title={`${h.lockedQty} locked in open sell orders`} style={{color:"#f59e0b",fontSize:"9px",display:"block"}}>🔒{h.lockedQty}</span>}
+              </span>
               <span style={{textAlign:"right",color:D.txt,fontSize:"11px"}}>${h.cur.toLocaleString()}</span>
               <span style={{textAlign:"right",color:D.txt,fontSize:"11px"}}>${h.val.toLocaleString()}</span>
               <span style={{textAlign:"right",color:h.pnl>=0?D.buyT:D.askT,fontSize:"11px"}}>{h.pnl>=0?"+":""}${Math.abs(h.pnl).toLocaleString()}</span>
@@ -547,7 +554,7 @@ function Browser({D,dark,dbCards,onSelectCard,isMobile=false}){
 }
 
 // ── Market ────────────────────────────────────────────────────────────────────
-function Market({D,dark,dbCards=[],initialCard=null,balance=0,onPlaceOrder,onUpdatePrice,tradeHistory=[],isDemo=false,isMobile=false}){
+function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[],onPlaceOrder,onUpdatePrice,tradeHistory=[],isDemo=false,isMobile=false}){
   const [sheetOpen,setSheetOpen]=useState(false);
   const allCards=dbCards.length?dbCards:CARDS.map(c=>({...c,basePrice:BASE[c.id]}));
   const [card,setCard]=useState(()=>initialCard||allCards[0]||CARDS[0]);
@@ -598,6 +605,18 @@ function Market({D,dark,dbCards=[],initialCard=null,balance=0,onPlaceOrder,onUpd
     const orderPrice=oType==="market"?price:+oPrice;
     const orderQty=+oQty;
     if(oSide==="buy"&&orderPrice*orderQty>balance){ setOStatus({error:"Insufficient funds"}); setTimeout(()=>setOStatus(null),3000); return; }
+    if(oSide==="sell"){
+      const holding=holdings.find(h=>h.cardId===card.id);
+      const owned=holding?.qty||0;
+      const locked=holding?.lockedQty||0;
+      const free=owned-locked;
+      if(orderQty>free){
+        const msg=owned===0?"You don't own any of this card"
+          :locked>0?`Only ${free} free (${locked} locked in open orders)`
+          :`You only own ${owned}`;
+        setOStatus({error:msg}); setTimeout(()=>setOStatus(null),4000); return;
+      }
+    }
     if(onPlaceOrder) onPlaceOrder({cardId:card.id,side:oSide,type:oType,price:orderPrice,qty:orderQty});
     setOStatus({side:oSide,price:orderPrice,qty:orderQty});
     setTimeout(()=>setOStatus(null),3000);
@@ -852,7 +871,23 @@ function Market({D,dark,dbCards=[],initialCard=null,balance=0,onPlaceOrder,onUpd
                 </div>
               </div>
               {oType==="limit"&&<div style={{marginBottom:"10px"}}><div style={{color:D.txtD,fontSize:"9px",marginBottom:"4px"}}>PRICE (USD)</div><input type="number" value={oPrice} onChange={e=>setOPrice(e.target.value)} placeholder={price.toFixed(2)} style={{width:"100%",background:D.inBg,border:`1px solid ${D.inBdr}`,borderRadius:"4px",padding:"7px 10px",color:D.txt,fontSize:"12px"}}/></div>}
-              <div style={{marginBottom:"10px"}}><div style={{color:D.txtD,fontSize:"9px",marginBottom:"4px"}}>QUANTITY</div><input type="number" value={oQty} onChange={e=>setOQty(e.target.value)} placeholder="0" style={{width:"100%",background:D.inBg,border:`1px solid ${D.inBdr}`,borderRadius:"4px",padding:"7px 10px",color:D.txt,fontSize:"12px"}}/></div>
+              <div style={{marginBottom:"10px"}}>
+                <div style={{display:"flex",justifyContent:"space-between",marginBottom:"4px"}}>
+                  <span style={{color:D.txtD,fontSize:"9px"}}>QUANTITY</span>
+                  {oSide==="sell"&&(()=>{
+                    const h=holdings.find(hh=>hh.cardId===card.id);
+                    const owned=h?.qty||0;
+                    const locked=h?.lockedQty||0;
+                    const free=owned-locked;
+                    return owned>0?(
+                      <span style={{fontSize:"9px",color:locked>0?"#f59e0b":D.txtD,cursor:"pointer"}} onClick={()=>setOQty(String(free))} title="Click to fill max free qty">
+                        {locked>0?`${free} free / ${locked} 🔒`:`${owned} owned`} (MAX)
+                      </span>
+                    ):null;
+                  })()}
+                </div>
+                <input type="number" value={oQty} onChange={e=>setOQty(e.target.value)} placeholder="0" style={{width:"100%",background:D.inBg,border:`1px solid ${D.inBdr}`,borderRadius:"4px",padding:"7px 10px",color:D.txt,fontSize:"12px"}}/>
+              </div>
               <div style={{background:D.stBg,border:`1px solid ${D.bdr}`,borderRadius:"4px",padding:"8px 10px",marginBottom:"14px",display:"flex",justifyContent:"space-between"}}><span style={{color:D.txtD,fontSize:"9px"}}>TOTAL</span><span style={{color:D.txtM,fontSize:"13px"}}>${((oType==="market"?price:+oPrice||0)*(+oQty||0)).toLocaleString("en-US",{minimumFractionDigits:2})}</span></div>
               {/* Instant buy/sell */}
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"5px",marginBottom:"8px"}}>
@@ -1437,7 +1472,7 @@ export default function App(){
     if(newHoldings!==undefined){
       await sb.from('user_holdings').delete().eq('user_id',uid);
       if(newHoldings.length){
-        const holdRes=await sb.from('user_holdings').insert(newHoldings.map(h=>({user_id:uid,card_id:h.cardId,qty:h.qty,avg_cost:h.avgCost,acquired:h.acquired})));
+        const holdRes=await sb.from('user_holdings').insert(newHoldings.map(h=>({user_id:uid,card_id:h.cardId,qty:h.qty,avg_cost:h.avgCost,acquired:h.acquired,locked_qty:h.lockedQty||0})));
         console.log("holdings save:", holdRes.error||"OK");
       }
     }
@@ -1458,7 +1493,7 @@ export default function App(){
     if(balRes.data?.length) setBalance(+balRes.data[0].balance);
     else await sb.from('user_balance').insert({user_id:uid,balance:STARTING_BALANCE});
     setOrders(ordRes.data?.length ? ordRes.data.map(o=>({id:o.id,cardId:+o.card_id,side:o.side,type:o.type,price:+o.price,qty:+o.qty,filled:+o.filled,status:o.status,time:o.time,date:o.date})) : []);
-    setHoldings(holdRes.data?.length ? holdRes.data.map(h=>({cardId:+h.card_id,qty:+h.qty,avgCost:+h.avg_cost,acquired:h.acquired})) : []);
+    setHoldings(holdRes.data?.length ? holdRes.data.map(h=>({cardId:+h.card_id,qty:+h.qty,avgCost:+h.avg_cost,acquired:h.acquired,lockedQty:+(h.locked_qty||0)})) : []);
     setTradeHistory(trdRes.data?.length ? trdRes.data.map(t=>({id:t.id,cardId:+t.card_id,side:t.side,price:+t.price,qty:+t.qty,total:+t.total,date:t.date,time:t.time})) : []);
   };
 
@@ -1526,17 +1561,46 @@ export default function App(){
       }
       if(user){ const {supabase}=await import('./supabase'); saveToDb(supabase,user.id,[result.orders[0]],result.holdings,result.newTrades,result.balance); }
     } else {
+      // If limit sell: lock the qty in holdings immediately
+      let updatedHoldings = holdings;
+      if(o.side === "sell"){
+        updatedHoldings = holdings.map(h=>{
+          if(h.cardId !== o.cardId) return h;
+          const freeQty = h.qty - (h.lockedQty||0);
+          if(freeQty < o.qty){
+            // Not enough free cards — reject silently (UI validation should catch this first)
+            return h;
+          }
+          return {...h, lockedQty:(h.lockedQty||0)+o.qty};
+        });
+        setHoldings(updatedHoldings);
+      }
       setOrders(prev=>[o,...prev]);
-      if(user){ const {supabase}=await import('./supabase'); saveToDb(supabase,user.id,[o],undefined,[],balance); }
+      if(user){ const {supabase}=await import('./supabase'); saveToDb(supabase,user.id,[o],updatedHoldings,[],balance); }
     }
   };
 
   const cancelOrder=async(id)=>{
+    // Find the order to check if it's a sell (need to unlock qty)
+    const orderToCancel = orders.find(o=>o.id===id);
     setOrders(prev=>{
       const updated=prev.map(o=>o.id===id&&(o.status==="open"||o.status==="partial")?{...o,status:"cancelled"}:o);
       if(user) import('./supabase').then(({supabase})=>supabase.from('user_orders').update({status:'cancelled'}).eq('id',id).eq('user_id',user.id));
       return updated;
     });
+    // Unlock the qty in holdings if this was a sell order
+    if(orderToCancel && orderToCancel.side==="sell" && (orderToCancel.status==="open"||orderToCancel.status==="partial")){
+      const unfilledQty = orderToCancel.qty - orderToCancel.filled;
+      setHoldings(prev=>{
+        const updated = prev.map(h=>{
+          if(h.cardId !== orderToCancel.cardId) return h;
+          const newLocked = Math.max(0,(h.lockedQty||0) - unfilledQty);
+          return {...h, lockedQty:newLocked};
+        });
+        if(user) import('./supabase').then(({supabase})=>saveToDb(supabase,user.id,undefined,updated,[],balance));
+        return updated;
+      });
+    }
   };
 
   const handleBrowseSelect=(card)=>{ setSelectedCard(card); setTab("MARKET"); };
@@ -1734,7 +1798,7 @@ export default function App(){
           )}
 
           <div style={{flex:1,display:"flex",overflow:"hidden",paddingBottom:isMobile?"54px":"0"}}>
-            {tab==="MARKET"    && <Market    D={D} dark={dark} dbCards={dbCards} initialCard={selectedCard} balance={balance} onPlaceOrder={placeOrder} onUpdatePrice={handleUpdatePrice} tradeHistory={tradeHistory} isDemo={isDemo} isMobile={isMobile}/>}
+            {tab==="MARKET"    && <Market    D={D} dark={dark} dbCards={dbCards} initialCard={selectedCard} balance={balance} holdings={holdings} onPlaceOrder={placeOrder} onUpdatePrice={handleUpdatePrice} tradeHistory={tradeHistory} isDemo={isDemo} isMobile={isMobile}/>}
             {tab==="BROWSE"    && <Browser   D={D} dark={dark} dbCards={dbCards} onSelectCard={handleBrowseSelect} isMobile={isMobile}/>}
             {tab==="PORTFOLIO" && <Portfolio D={D} dark={dark} holdings={holdings} tradeHistory={tradeHistory} dbCards={dbCards} isMobile={isMobile}/>}
             {tab==="ORDERS"    && <Orders    D={D} dark={dark} orders={orders} onCancel={cancelOrder} dbCards={dbCards} isMobile={isMobile}/>}
