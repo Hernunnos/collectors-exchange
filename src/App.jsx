@@ -582,7 +582,7 @@ function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[],onPlac
   const [price,setPrice]=useState(BASE[1]);
   const [flash,setFlash]=useState(null);
   const [oSide,setOSide]=useState("buy");
-  const [oType,setOType]=useState("limit");
+  const oType="limit"; // market orders handled by ⚡ instant buttons
   const [oPrice,setOPrice]=useState("");
   const [oQty,setOQty]=useState("");
   const [oStatus,setOStatus]=useState(null);
@@ -631,8 +631,8 @@ function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[],onPlac
   const CW=560,CH=200;
   const lp=()=>hist.map((h,i)=>`${i===0?"M":"L"}${((i/(hist.length-1))*CW).toFixed(1)},${((CH-8)-((h.p-minP)/rng)*(CH-16)).toFixed(1)}`).join(" ");
   const submitOrder=()=>{
-    if(!oQty||(oType==="limit"&&!oPrice)) return;
-    const orderPrice=oType==="market"?price:+oPrice;
+    if(!oQty||!oPrice) return;
+    const orderPrice=+oPrice;
     const orderQty=+oQty;
     if(oSide==="buy"&&orderPrice*orderQty>balance){ setOStatus({error:"Insufficient funds"}); setTimeout(()=>setOStatus(null),3000); return; }
     if(oSide==="sell"){
@@ -751,13 +751,13 @@ function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[],onPlac
                   {["buy","sell"].map(s=><button key={s} onClick={()=>setOSide(s)} style={{padding:"11px",border:"none",cursor:"pointer",fontFamily:MONO,fontSize:"13px",letterSpacing:"0.1em",background:oSide===s?(s==="buy"?(dark?"rgba(0,180,60,0.22)":"rgba(22,128,58,0.15)"):(dark?"rgba(180,30,30,0.22)":"rgba(180,30,30,0.14)")):"transparent",color:oSide===s?(s==="buy"?D.buyT:D.askT):D.txtD,borderBottom:`2px solid ${oSide===s?(s==="buy"?D.buyT:D.askT):"transparent"}`}}>{s.toUpperCase()}</button>)}
                 </div>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px"}}>
-                  {["limit","market"].map(t=><button key={t} onClick={()=>setOType(t)} style={{padding:"9px",border:`1px solid ${oType===t?D.accD:D.bdr}`,borderRadius:"5px",background:oType===t?(dark?"rgba(0,100,30,0.15)":"rgba(22,128,58,0.08)"):"transparent",color:oType===t?D.accD:D.txtD,fontSize:"11px",fontFamily:MONO,cursor:"pointer"}}>{t.toUpperCase()}</button>)}
+                  <div style={{padding:"6px 12px",background:dark?"rgba(0,100,30,0.1)":"rgba(22,128,58,0.06)",border:`1px solid ${D.accD}`,borderRadius:"5px",color:D.accD,fontSize:"11px",fontFamily:MONO,letterSpacing:"0.08em"}}>SET PRICE</div>
                 </div>
-                {oType==="limit"&&<div><div style={{color:D.txtD,fontSize:"9px",marginBottom:"6px"}}>PRICE (USD)</div><input type="number" value={oPrice} onChange={e=>setOPrice(e.target.value)} placeholder={price.toFixed(2)} style={{width:"100%",background:D.inBg,border:`1px solid ${D.inBdr}`,borderRadius:"5px",padding:"10px 12px",color:D.txt,fontSize:"16px",fontFamily:MONO}}/></div>}
+                <div><div style={{color:D.txtD,fontSize:"9px",marginBottom:"6px"}}>PRICE (USD)</div><input type="number" value={oPrice} onChange={e=>setOPrice(e.target.value)} placeholder={price.toFixed(2)} style={{width:"100%",background:D.inBg,border:`1px solid ${D.inBdr}`,borderRadius:"5px",padding:"10px 12px",color:D.txt,fontSize:"16px",fontFamily:MONO}}/></div>
                 <div><div style={{color:D.txtD,fontSize:"9px",marginBottom:"6px"}}>QUANTITY</div><input type="number" value={oQty} onChange={e=>setOQty(e.target.value)} placeholder="0" style={{width:"100%",background:D.inBg,border:`1px solid ${D.inBdr}`,borderRadius:"5px",padding:"10px 12px",color:D.txt,fontSize:"16px",fontFamily:MONO}}/></div>
                 <div style={{background:D.stBg,border:`1px solid ${D.bdr}`,borderRadius:"5px",padding:"10px 12px",display:"flex",justifyContent:"space-between"}}>
                   <span style={{color:D.txtD,fontSize:"10px"}}>TOTAL</span>
-                  <span style={{color:D.txtM,fontSize:"14px"}}>${((oType==="market"?price:+oPrice||0)*(+oQty||0)).toLocaleString("en-US",{minimumFractionDigits:2})}</span>
+                  <span style={{color:D.txtM,fontSize:"14px"}}>${((+oPrice||price)*(+oQty||0)).toLocaleString("en-US",{minimumFractionDigits:2})}</span>
                 </div>
                 <button onClick={()=>{submitOrder();setSheetOpen(false);}} style={{padding:"14px",border:`1px solid ${oSide==="buy"?(dark?"#1a5a2a":"#7ab07a"):(dark?"#5a1a1a":"#c07070")}`,borderRadius:"6px",fontSize:"13px",fontFamily:MONO,letterSpacing:"0.1em",fontWeight:"bold",background:oSide==="buy"?(dark?"linear-gradient(135deg,#0a3a1a,#0f5a28)":"linear-gradient(135deg,#cceacc,#a8d8a8)"):(dark?"linear-gradient(135deg,#3a0a0a,#5a1010)":"linear-gradient(135deg,#eacccc,#d8a8a8)"),color:oSide==="buy"?(dark?"#00ff55":"#1a5a2a"):(dark?"#ff5555":"#9a1a1a"),cursor:"pointer"}}>
                   {oSide==="buy"?"▲ BUY":"▼ SELL"} {card.name.split(" ")[0].toUpperCase()}
@@ -913,10 +913,10 @@ function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[],onPlac
               <div style={{marginBottom:"12px"}}>
                 <div style={{color:D.txtD,fontSize:"9px",letterSpacing:"0.1em",marginBottom:"5px"}}>ORDER TYPE</div>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"5px"}}>
-                  {["limit","market"].map(t=><button key={t} onClick={()=>setOType(t)} style={{padding:"5px",border:`1px solid ${oType===t?D.accD:D.bdr}`,borderRadius:"4px",background:oType===t?(dark?"rgba(0,100,30,0.15)":"rgba(22,128,58,0.08)"):"transparent",color:oType===t?D.accD:D.txtD,fontSize:"10px",fontFamily:MONO,cursor:"pointer"}}>{t.toUpperCase()}</button>)}
+                  <div style={{padding:"5px 10px",background:dark?"rgba(0,100,30,0.1)":"rgba(22,128,58,0.06)",border:`1px solid ${D.accD}`,borderRadius:"4px",color:D.accD,fontSize:"10px",fontFamily:MONO,letterSpacing:"0.08em"}}>SET PRICE</div>
                 </div>
               </div>
-              {oType==="limit"&&<div style={{marginBottom:"10px"}}><div style={{color:D.txtD,fontSize:"9px",marginBottom:"4px"}}>PRICE (USD)</div><input type="number" value={oPrice} onChange={e=>setOPrice(e.target.value)} placeholder={price.toFixed(2)} style={{width:"100%",background:D.inBg,border:`1px solid ${D.inBdr}`,borderRadius:"4px",padding:"7px 10px",color:D.txt,fontSize:"12px"}}/></div>}
+              <div style={{marginBottom:"10px"}}><div style={{color:D.txtD,fontSize:"9px",marginBottom:"4px"}}>PRICE (USD)</div><input type="number" value={oPrice} onChange={e=>setOPrice(e.target.value)} placeholder={price.toFixed(2)} style={{width:"100%",background:D.inBg,border:`1px solid ${D.inBdr}`,borderRadius:"4px",padding:"7px 10px",color:D.txt,fontSize:"12px"}}/></div>
               <div style={{marginBottom:"10px"}}>
                 <div style={{display:"flex",justifyContent:"space-between",marginBottom:"4px"}}>
                   <span style={{color:D.txtD,fontSize:"9px"}}>QUANTITY</span>
@@ -934,7 +934,7 @@ function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[],onPlac
                 </div>
                 <input type="number" value={oQty} onChange={e=>setOQty(e.target.value)} placeholder="0" style={{width:"100%",background:D.inBg,border:`1px solid ${D.inBdr}`,borderRadius:"4px",padding:"7px 10px",color:D.txt,fontSize:"12px"}}/>
               </div>
-              <div style={{background:D.stBg,border:`1px solid ${D.bdr}`,borderRadius:"4px",padding:"8px 10px",marginBottom:"14px",display:"flex",justifyContent:"space-between"}}><span style={{color:D.txtD,fontSize:"9px"}}>TOTAL</span><span style={{color:D.txtM,fontSize:"13px"}}>${((oType==="market"?price:+oPrice||0)*(+oQty||0)).toLocaleString("en-US",{minimumFractionDigits:2})}</span></div>
+              <div style={{background:D.stBg,border:`1px solid ${D.bdr}`,borderRadius:"4px",padding:"8px 10px",marginBottom:"14px",display:"flex",justifyContent:"space-between"}}><span style={{color:D.txtD,fontSize:"9px"}}>TOTAL</span><span style={{color:D.txtM,fontSize:"13px"}}>${((+oPrice||price)*(+oQty||0)).toLocaleString("en-US",{minimumFractionDigits:2})}</span></div>
               {/* Instant buy/sell */}
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"5px",marginBottom:"8px"}}>
                 <button onClick={()=>{
@@ -1093,7 +1093,7 @@ function Landing({D,dark,dbCards,onEnterDemo,onOpenAuth}){
 
   const FEATURES=[
     {icon:"◈",title:"Multi-Game Market",desc:"Trade Pokémon, MTG, Yu-Gi-Oh! and One Piece cards all in one place with live pricing."},
-    {icon:"⬡",title:"Real-Time Order Book",desc:"See live bids and asks, place limit or market orders, and watch trades execute instantly."},
+    {icon:"⬡",title:"Real-Time Order Book",desc:"See live bids and asks, place limit orders or buy instantly at market price with one tap."},
     {icon:"◇",title:"Portfolio Tracker",desc:"Track your holdings, average cost, unrealised P&L and trade history across all games."},
     {icon:"▣",title:"Price History",desc:"Every trade you make is recorded and plotted on the chart — real history, not guesswork."},
     {icon:"📂",title:"TCGPlayer Import",desc:"Import your existing inventory from TCGPlayer in seconds. We auto-detect columns, map conditions, and show you where CX prices beat your current listings."},
