@@ -639,10 +639,10 @@ function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[],onPlac
     // volume: simulate by seeding random vol from card id, consistent per session
     return [...allCards].sort((a,b)=>((b.id*7+13)%100)-((a.id*7+13)%100)).slice(0,SIDEBAR_COUNT);
   },[allCards,sidebarMode]);
-  const [asks,setAsks]=useState(()=>genOrders(BASE[1],6,"ask"));
-  const [bids,setBids]=useState(()=>genOrders(BASE[1],6,"bid"));
-  const [trades,setTrades]=useState(()=>Array.from({length:16},()=>genTrade(BASE[1])));
-  const [price,setPrice]=useState(BASE[1]);
+  const [asks,setAsks]=useState(()=>genOrders(BASE[2],6,"ask"));
+  const [bids,setBids]=useState(()=>genOrders(BASE[2],6,"bid"));
+  const [trades,setTrades]=useState(()=>Array.from({length:16},()=>genTrade(BASE[2])));
+  const [price,setPrice]=useState(BASE[2]);
   const [flash,setFlash]=useState(null);
   const [oSide,setOSide]=useState("buy");
   const [oExpiry,setOExpiry]=useState("gtc"); // gtc | day | week | month
