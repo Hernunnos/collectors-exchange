@@ -13,23 +13,26 @@ function useIsMobile() {
 }
 // ── Data ─────────────────────────────────────────────────────────────────────
 const CARDS = [
-  { id:1,  name:"Charizard",             set:"Base Set",           condition:"PSA 10", rarity:"Holo Rare",    game:"Pokémon",          img:"https://images.pokemontcg.io/base1/4_hires.png" },
-  { id:2,  name:"Black Lotus",           set:"Alpha",              condition:"NM",     rarity:"Rare",         game:"MTG",              img:"https://cards.scryfall.io/large/front/b/d/bd8fa327-dd41-4737-8f19-2cf5eb1f7cdd.jpg" },
-  { id:3,  name:"Pikachu Illustrator",   set:"CoroCoro",           condition:"PSA 9",  rarity:"Promo",        game:"Pokémon",          img:"https://images.pokemontcg.io/basep/1_hires.png" },
-  { id:4,  name:"Blastoise",             set:"Base Set",           condition:"PSA 8",  rarity:"Holo Rare",    game:"Pokémon",          img:"https://images.pokemontcg.io/base1/2_hires.png" },
-  { id:5,  name:"Mewtwo",                set:"Base Set",           condition:"PSA 9",  rarity:"Holo Rare",    game:"Pokémon",          img:"https://images.pokemontcg.io/base1/9_hires.png" },
-  { id:6,  name:"Ancestral Recall",      set:"Alpha",              condition:"NM",     rarity:"Rare",         game:"MTG",              img:"https://cards.scryfall.io/large/front/7/0/70e7ddf2-5604-41e7-bb9d-ddd03d3e9d0b.jpg" },
-  { id:7,  name:"Time Walk",             set:"Alpha",              condition:"NM",     rarity:"Rare",         game:"MTG",              img:"https://cards.scryfall.io/large/front/e/0/e0139f60-d48e-46fb-9f5a-1e3d7558c834.jpg" },
-  { id:8,  name:"Mox Sapphire",          set:"Alpha",              condition:"NM",     rarity:"Rare",         game:"MTG",              img:"https://cards.scryfall.io/large/front/8/2/82da0972-b17b-4600-9efd-e9430a0db04b.jpg" },
-  { id:9,  name:"Underground Sea",       set:"Alpha",              condition:"NM",     rarity:"Rare",         game:"MTG",              img:"https://cards.scryfall.io/large/front/f/f/ff76ac86-8a8a-47fe-9388-8950ca3e26c3.jpg" },
-  { id:10, name:"Fyendal's Spring Tunic", set:"Welcome to Rathe", condition:"NM",     rarity:"Legendary", game:"Flesh and Blood", img:"https://d2wlb52bya4y8z.cloudfront.net/media/cards/large/WTR150-CF.webp" },
-  { id:11, name:"Heart of Fyendal",      set:"Welcome to Rathe", condition:"NM",     rarity:"Fabled",    game:"Flesh and Blood", img:"https://d2wlb52bya4y8z.cloudfront.net/media/cards/large/WTR000-CF.webp" },
-  { id:12, name:"Dawnblade",             set:"Welcome to Rathe", condition:"NM",     rarity:"Legendary", game:"Flesh and Blood", img:"https://d2wlb52bya4y8z.cloudfront.net/media/cards/large/WTR115.webp" },
-  { id:13, name:"Anothos",               set:"Welcome to Rathe", condition:"NM",     rarity:"Legendary", game:"Flesh and Blood", img:"https://d2wlb52bya4y8z.cloudfront.net/media/cards/large/WTR040.webp" },
-  { id:14, name:"Arcane Lantern",        set:"Everfest",         condition:"NM",     rarity:"Rare",      game:"Flesh and Blood", img:"https://d2wlb52bya4y8z.cloudfront.net/media/cards/large/EVR155-CF.webp" },
-  { id:15, name:"Enlightened Strike",    set:"Welcome to Rathe", condition:"PSA 9",  rarity:"Legendary", game:"Flesh and Blood", img:"https://d2wlb52bya4y8z.cloudfront.net/media/cards/large/WTR159.webp" },
+  { id:2,   name:"Charizard",             set:"Base Set",           condition:"PSA 10", rarity:"Holo Rare", game:"Pokémon",          img:"https://images.pokemontcg.io/base1/4_hires.png" },
+  { id:3,   name:"Black Lotus",           set:"Alpha",              condition:"NM",     rarity:"Rare",      game:"MTG",              img:"https://cards.scryfall.io/large/front/b/d/bd8fa327-dd41-4737-8f19-2cf5eb1f7cdd.jpg" },
+  { id:4,   name:"Pikachu Illustrator",   set:"CoroCoro",           condition:"PSA 9",  rarity:"Promo",     game:"Pokémon",          img:"https://images.pokemontcg.io/basep/1_hires.png" },
+  { id:5,   name:"Blastoise",             set:"Base Set",           condition:"PSA 8",  rarity:"Holo Rare", game:"Pokémon",          img:"https://images.pokemontcg.io/base1/2_hires.png" },
+  { id:6,   name:"Mewtwo",                set:"Base Set",           condition:"PSA 9",  rarity:"Holo Rare", game:"Pokémon",          img:"https://images.pokemontcg.io/base1/10_hires.png" },
+  { id:12,  name:"Ancestral Recall",      set:"Alpha",              condition:"NM",     rarity:"Rare",      game:"MTG",              img:"https://cards.scryfall.io/large/front/7/0/70e7ddf2-5604-41e7-bb9d-ddd03d3e9d0b.jpg" },
+  { id:13,  name:"Time Walk",             set:"Alpha",              condition:"NM",     rarity:"Rare",      game:"MTG",              img:"https://cards.scryfall.io/large/front/e/0/e0139f60-d48e-46fb-9f5a-1e3d7558c834.jpg" },
+  { id:14,  name:"Mox Sapphire",          set:"Alpha",              condition:"NM",     rarity:"Rare",      game:"MTG",              img:"https://cards.scryfall.io/large/front/8/2/82da0972-b17b-4600-9efd-e9430a0db04b.jpg" },
+  { id:15,  name:"Underground Sea",       set:"Alpha",              condition:"NM",     rarity:"Rare",      game:"MTG",              img:"https://cards.scryfall.io/large/front/f/f/ff76ac86-8a8a-47fe-9388-8950ca3e26c3.jpg" },
+  { id:20,  name:"Monkey D. Luffy",       set:"Romance Dawn",       condition:"NM",     rarity:"Leader",    game:"One Piece TCG",    img:"https://en.onepiece-cardgame.com/images/cardlist/card/OP01-120.png" },
+  { id:21,  name:"Roronoa Zoro",          set:"Romance Dawn",       condition:"NM",     rarity:"Super Rare",game:"One Piece TCG",    img:"https://en.onepiece-cardgame.com/images/cardlist/card/OP01-118.png" },
+  { id:22,  name:"Shanks",               set:"Romance Dawn",       condition:"NM",     rarity:"Secret Rare",game:"One Piece TCG",   img:"https://en.onepiece-cardgame.com/images/cardlist/card/OP01-121.png" },
+  { id:102, name:"Fyendal's Spring Tunic",set:"Welcome to Rathe",   condition:"NM",     rarity:"Legendary", game:"Flesh and Blood",  img:"https://d2wlb52bya4y8z.cloudfront.net/media/cards/large/WTR150-CF.webp" },
+  { id:103, name:"Heart of Fyendal",      set:"Welcome to Rathe",   condition:"NM",     rarity:"Fabled",    game:"Flesh and Blood",  img:"https://d2wlb52bya4y8z.cloudfront.net/media/cards/large/WTR000-CF.webp" },
+  { id:104, name:"Dawnblade",             set:"Welcome to Rathe",   condition:"NM",     rarity:"Legendary", game:"Flesh and Blood",  img:"https://d2wlb52bya4y8z.cloudfront.net/media/cards/large/WTR115.webp" },
+  { id:105, name:"Anothos",               set:"Welcome to Rathe",   condition:"NM",     rarity:"Legendary", game:"Flesh and Blood",  img:"https://d2wlb52bya4y8z.cloudfront.net/media/cards/large/WTR040.webp" },
+  { id:106, name:"Arcane Lantern",        set:"Everfest",           condition:"NM",     rarity:"Rare",      game:"Flesh and Blood",  img:"https://d2wlb52bya4y8z.cloudfront.net/media/cards/large/EVR155-CF.webp" },
+  { id:107, name:"Enlightened Strike",    set:"Welcome to Rathe",   condition:"PSA 9",  rarity:"Legendary", game:"Flesh and Blood",  img:"https://d2wlb52bya4y8z.cloudfront.net/media/cards/large/WTR159.webp" },
 ];
-const BASE = { 1:420, 2:8500, 3:74000, 4:280, 5:310, 6:4200, 7:2800, 8:3900, 9:1800, 10:380, 11:2200, 12:290, 13:260, 14:95, 15:220 };
+const BASE = { 2:420, 3:8500, 4:74000, 5:280, 6:310, 12:4200, 13:2800, 14:3900, 15:1800, 20:180, 21:95, 22:420, 102:380, 103:2200, 104:290, 105:260, 106:95, 107:220 };
 
 // ── Trading state helpers ─────────────────────────────────────────────────────
 const STARTING_BALANCE = 15000;
