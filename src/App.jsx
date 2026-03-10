@@ -1546,7 +1546,7 @@ function Landing({D,dark,dbCards,onEnterDemo,onOpenAuth}){
         {/* Nav */}
         <div style={{position:"relative",zIndex:10,borderBottom:`1px solid ${dark?"rgba(255,255,255,0.05)":"rgba(0,0,0,0.06)"}`}}>
           <div style={{maxWidth:"1100px",margin:"0 auto",width:"100%",display:"flex",justifyContent:"space-between",alignItems:"center",padding:isMobile?"14px 16px":"20px 40px"}}>
-            <div style={{display:"flex",alignItems:"baseline",gap:"8px"}}>
+            <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
               <span style={{fontFamily:ORB,fontSize:"18px",fontWeight:800,color:dark?"#00cc40":"#15803d",letterSpacing:"0.18em"}}>◈ CX</span>
               {!isMobile&&<span style={{fontFamily:ORB,fontSize:"12px",fontWeight:600,color:dark?"#4a8a4a":"#3a7a3a",letterSpacing:"0.08em"}}>COLLECTOR'S EXCHANGE</span>}
             </div>
