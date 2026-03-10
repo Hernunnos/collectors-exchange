@@ -630,7 +630,7 @@ function Browser({D,dark,dbCards,onSelectCard,isMobile=false}){
 // ── Market ────────────────────────────────────────────────────────────────────
 function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[],onPlaceOrder,onUpdatePrice,tradeHistory=[],isDemo=false,isMobile=false}){
   const [sheetOpen,setSheetOpen]=useState(false);
-  const allCards=useMemo(()=>{const dbIds=new Set(dbCards.map(c=>c.id));return [...dbCards,...CARDS.filter(c=>!dbIds.has(c.id)).map(c=>({...c,basePrice:BASE[c.id]}))];},[dbCards]);
+  const allCards=useMemo(()=>{const dbIds=new Set(dbCards.map(c=>c.id));return [...dbCards,...CARDS.filter(c=>!dbIds.has(c.id)).map(c=>({...c,basePrice:BASE[c.id]||0}))];},[dbCards]);
   const [card,setCard]=useState(()=>initialCard||allCards[0]||CARDS[0]);
   const [sidebarMode,setSidebarMode]=useState("value");
   const SIDEBAR_COUNT=20;
@@ -1500,8 +1500,8 @@ function WaitlistForm({D,dark,isMobile=false,onLoginClick}){
 // ── Landing Page ──────────────────────────────────────────────────────────────
 function Landing({D,dark,dbCards,onEnterDemo,onOpenAuth}){
   const isMobile=useIsMobile();
-  const allCards=useMemo(()=>{const dbIds=new Set(dbCards.map(c=>c.id));return [...dbCards,...CARDS.filter(c=>!dbIds.has(c.id)).map(c=>({...c,basePrice:BASE[c.id]}))];},[dbCards]);
-  const featuredCard=allCards.find(c=>c.id===1)||allCards[0]||CARDS[0];
+  const allCards=useMemo(()=>{const dbIds=new Set(dbCards.map(c=>c.id));return [...dbCards,...CARDS.filter(c=>!dbIds.has(c.id)).map(c=>({...c,basePrice:BASE[c.id]||0}))];},[dbCards]);
+  const featuredCard=allCards.find(c=>c.id===2)||allCards[0]||CARDS[0];
   const base=featuredCard.basePrice||BASE[featuredCard.id]||420;
 
   const [price,setPrice]=useState(base);
@@ -2534,6 +2534,21 @@ function ProfileSettings({D,dark,user,profile,tradeHistory=[],holdings=[],balanc
     </div>
   );
 }
+class ErrorBoundary extends React.Component {
+  constructor(props){super(props);this.state={error:null};}
+  static getDerivedStateFromError(e){return{error:e};}
+  render(){
+    if(this.state.error) return(
+      <div style={{padding:"40px",fontFamily:"monospace",background:"#0a0a0a",color:"#ff4444",minHeight:"100vh"}}>
+        <div style={{fontSize:"20px",marginBottom:"16px"}}>◈ CX — Render Error</div>
+        <div style={{fontSize:"14px",color:"#ff8888",marginBottom:"8px"}}>{this.state.error.message}</div>
+        <pre style={{fontSize:"12px",color:"#888",whiteSpace:"pre-wrap"}}>{this.state.error.stack}</pre>
+      </div>
+    );
+    return this.props.children;
+  }
+}
+
 export default function App(){
   const [dark,setDark]=useState(false);
   const [notifPrefs,setNotifPrefs]=useState(()=>{
@@ -2865,6 +2880,7 @@ export default function App(){
   const isDemo = screen==="app" && !user;
 
   return(
+    <ErrorBoundary>
     <div style={{fontFamily:MONO,fontSize:"17px"}}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@600;800&display=swap');
@@ -3068,5 +3084,6 @@ export default function App(){
         </div>
       )}
     </div>
+    </ErrorBoundary>
   );
 }
