@@ -2971,7 +2971,7 @@ export default function App(){
             ):(
               <>
                 <div style={{display:"flex",alignItems:"center",gap:"12px"}}>
-                  <div style={{display:"flex",alignItems:"baseline",gap:"8px",cursor:"pointer"}} onClick={()=>user?setTab("MARKET"):setScreen("landing")}>
+                  <div style={{display:"flex",alignItems:"center",gap:"8px",cursor:"pointer"}} onClick={()=>user?setTab("MARKET"):setScreen("landing")}>
                     <span style={{fontFamily:ORB,fontSize:"23px",fontWeight:800,color:D.acc,letterSpacing:"0.18em",textShadow:dark?"0 0 22px rgba(0,255,80,0.45)":"none"}}>◈ CX</span>
                     <span style={{fontFamily:ORB,fontSize:"16px",fontWeight:600,color:D.txtM,letterSpacing:"0.08em"}}>COLLECTOR'S EXCHANGE</span>
                   </div>
