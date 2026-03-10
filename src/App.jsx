@@ -13,45 +13,17 @@ function useIsMobile() {
 }
 // ── Data ─────────────────────────────────────────────────────────────────────
 const CARDS = [
-  { id:2,   name:"Charizard",             set:"Base Set",           condition:"PSA 10", rarity:"Holo Rare", game:"Pokémon",          img:"https://images.pokemontcg.io/base1/4_hires.png" },
-  { id:3,   name:"Black Lotus",           set:"Alpha",              condition:"NM",     rarity:"Rare",      game:"MTG",              img:"https://cards.scryfall.io/large/front/b/d/bd8fa327-dd41-4737-8f19-2cf5eb1f7cdd.jpg" },
-  { id:4,   name:"Pikachu Illustrator",   set:"CoroCoro",           condition:"PSA 9",  rarity:"Promo",     game:"Pokémon",          img:"https://images.pokemontcg.io/basep/1_hires.png" },
-  { id:5,   name:"Blastoise",             set:"Base Set",           condition:"PSA 8",  rarity:"Holo Rare", game:"Pokémon",          img:"https://images.pokemontcg.io/base1/2_hires.png" },
-  { id:6,   name:"Mewtwo",                set:"Base Set",           condition:"PSA 9",  rarity:"Holo Rare", game:"Pokémon",          img:"https://images.pokemontcg.io/base1/10_hires.png" },
-  { id:12,  name:"Ancestral Recall",      set:"Alpha",              condition:"NM",     rarity:"Rare",      game:"MTG",              img:"https://cards.scryfall.io/large/front/7/0/70e7ddf2-5604-41e7-bb9d-ddd03d3e9d0b.jpg" },
-  { id:13,  name:"Time Walk",             set:"Alpha",              condition:"NM",     rarity:"Rare",      game:"MTG",              img:"https://cards.scryfall.io/large/front/e/0/e0139f60-d48e-46fb-9f5a-1e3d7558c834.jpg" },
-  { id:14,  name:"Mox Sapphire",          set:"Alpha",              condition:"NM",     rarity:"Rare",      game:"MTG",              img:"https://cards.scryfall.io/large/front/8/2/82da0972-b17b-4600-9efd-e9430a0db04b.jpg" },
-  { id:15,  name:"Underground Sea",       set:"Alpha",              condition:"NM",     rarity:"Rare",      game:"MTG",              img:"https://cards.scryfall.io/large/front/f/f/ff76ac86-8a8a-47fe-9388-8950ca3e26c3.jpg" },
-  { id:20,  name:"Monkey D. Luffy",       set:"Romance Dawn",       condition:"NM",     rarity:"Leader",    game:"One Piece TCG",    img:"https://en.onepiece-cardgame.com/images/cardlist/card/OP01-120.png" },
-  { id:21,  name:"Roronoa Zoro",          set:"Romance Dawn",       condition:"NM",     rarity:"Super Rare",game:"One Piece TCG",    img:"https://en.onepiece-cardgame.com/images/cardlist/card/OP01-118.png" },
-  { id:22,  name:"Shanks",               set:"Romance Dawn",       condition:"NM",     rarity:"Secret Rare",game:"One Piece TCG",   img:"https://en.onepiece-cardgame.com/images/cardlist/card/OP01-121.png" },
-  { id:102, name:"Fyendal's Spring Tunic",set:"Welcome to Rathe",   condition:"NM",     rarity:"Legendary", game:"Flesh and Blood",  img:"https://d2wlb52bya4y8z.cloudfront.net/media/cards/large/WTR150-CF.webp" },
-  { id:103, name:"Heart of Fyendal",      set:"Welcome to Rathe",   condition:"NM",     rarity:"Fabled",    game:"Flesh and Blood",  img:"https://d2wlb52bya4y8z.cloudfront.net/media/cards/large/WTR000-CF.webp" },
-  { id:104, name:"Dawnblade",             set:"Welcome to Rathe",   condition:"NM",     rarity:"Legendary", game:"Flesh and Blood",  img:"https://d2wlb52bya4y8z.cloudfront.net/media/cards/large/WTR115.webp" },
-  { id:105, name:"Anothos",               set:"Welcome to Rathe",   condition:"NM",     rarity:"Legendary", game:"Flesh and Blood",  img:"https://d2wlb52bya4y8z.cloudfront.net/media/cards/large/WTR040.webp" },
-  { id:106, name:"Arcane Lantern",        set:"Everfest",           condition:"NM",     rarity:"Rare",      game:"Flesh and Blood",  img:"https://d2wlb52bya4y8z.cloudfront.net/media/cards/large/EVR155-CF.webp" },
-  { id:107, name:"Enlightened Strike",    set:"Welcome to Rathe",   condition:"PSA 9",  rarity:"Legendary", game:"Flesh and Blood",  img:"https://d2wlb52bya4y8z.cloudfront.net/media/cards/large/WTR159.webp" },
+  { id:1, name:"Charizard",          set:"Base Set",  condition:"PSA 10", rarity:"Holo Rare", game:"Pokémon", img:"https://images.pokemontcg.io/base1/4_hires.png" },
+  { id:2, name:"Black Lotus",         set:"Alpha",     condition:"NM",     rarity:"Rare",      game:"MTG",     img:"https://cards.scryfall.io/large/front/b/d/bd8fa327-dd41-4737-8f19-2cf5eb1f7cdd.jpg" },
+  { id:3, name:"Pikachu Illustrator", set:"CoroCoro",  condition:"PSA 9",  rarity:"Promo",     game:"Pokémon", img:"https://images.pokemontcg.io/basep/1_hires.png" },
+  { id:4, name:"Blastoise",           set:"Base Set",  condition:"PSA 8",  rarity:"Holo Rare", game:"Pokémon", img:"https://images.pokemontcg.io/base1/2_hires.png" },
+  { id:5, name:"Mewtwo",              set:"Base Set",  condition:"PSA 9",  rarity:"Holo Rare", game:"Pokémon", img:"https://images.pokemontcg.io/base1/9_hires.png" },
+  { id:6, name:"Ancestral Recall",    set:"Alpha",     condition:"NM",     rarity:"Rare",      game:"MTG",     img:"https://cards.scryfall.io/large/front/7/0/70e7ddf2-5604-41e7-bb9d-ddd03d3e9d0b.jpg" },
+  { id:7, name:"Time Walk",           set:"Alpha",     condition:"NM",     rarity:"Rare",      game:"MTG",     img:"https://cards.scryfall.io/large/front/e/0/e0139f60-d48e-46fb-9f5a-1e3d7558c834.jpg" },
+  { id:8, name:"Mox Sapphire",        set:"Alpha",     condition:"NM",     rarity:"Rare",      game:"MTG",     img:"https://cards.scryfall.io/large/front/8/2/82da0972-b17b-4600-9efd-e9430a0db04b.jpg" },
+  { id:9, name:"Underground Sea",     set:"Alpha",     condition:"NM",     rarity:"Rare",      game:"MTG",     img:"https://cards.scryfall.io/large/front/f/f/ff76ac86-8a8a-47fe-9388-8950ca3e26c3.jpg" },
 ];
-const BASE = {
-  // Pokémon
-  2:420, 4:74000, 5:280, 6:310,
-  7:180,   // Lugia
-  8:95,    // Umbreon
-  9:85,    // Gengar
-  10:140,  // Rayquaza
-  11:110,  // Espeon
-  // MTG
-  3:8500, 12:4200, 13:2800, 14:3900, 15:1800,
-  // Yu-Gi-Oh
-  16:120,  // Blue-Eyes White Dragon
-  17:85,   // Dark Magician
-  18:950,  // Exodia
-  19:75,   // Red-Eyes Black Dragon
-  // One Piece
-  20:180, 21:95, 22:420,
-  // Flesh and Blood
-  102:380, 103:2200, 104:290, 105:260, 106:95, 107:220,
-};
+const BASE = { 1:420, 2:8500, 3:74000, 4:280, 5:310, 6:4200, 7:2800, 8:3900, 9:1800 };
 
 // ── Trading state helpers ─────────────────────────────────────────────────────
 const STARTING_BALANCE = 15000;
@@ -489,11 +461,7 @@ function Browser({D,dark,dbCards,onSelectCard,isMobile=false}){
   const [sort,setSort]=useState("price-desc");
   const [page,setPage]=useState(1);
 
-  const allCards=useMemo(()=>{
-    const dbIds=new Set(dbCards.map(c=>c.id));
-    const fallbacks=CARDS.filter(c=>!dbIds.has(c.id)).map(c=>({...c,basePrice:BASE[c.id]||0,set_name:c.set,language:"English"}));
-    return [...dbCards,...fallbacks];
-  },[dbCards]);
+  const allCards=dbCards.length?dbCards:CARDS.map(c=>({...c,basePrice:BASE[c.id],set_name:c.set,language:"English"}));
   const games=useMemo(()=>[...new Set(allCards.map(c=>c.game))].filter(Boolean).sort(),[allCards]);
   const conditions=useMemo(()=>[...new Set(allCards.map(c=>c.condition))].filter(Boolean).sort(),[allCards]);
   const languages=useMemo(()=>[...new Set(allCards.map(c=>c.language||"English"))].filter(Boolean).sort(),[allCards]);
@@ -588,10 +556,6 @@ function Browser({D,dark,dbCards,onSelectCard,isMobile=false}){
         </div>
       </div>
 
-      <div style={{background:"#1a0a0a",border:"1px solid #ff4444",borderRadius:"6px",padding:"12px",fontSize:"12px",fontFamily:"monospace",color:"#ff8888"}}>
-        DEBUG: dbCards={dbCards.length} | allCards={allCards.length} | games=[{[...new Set(allCards.map(c=>c.game))].join(", ")}] | FAB={allCards.filter(c=>c.game==="Flesh and Blood").length}
-      </div>
-
       {filtered.length===0&&(
         <div style={{padding:"60px",textAlign:"center",color:D.txtD,fontSize:"17px",background:D.bg2,border:`1px solid ${D.bdr}`,borderRadius:"6px"}}>No cards match your filters</div>
       )}
@@ -632,7 +596,7 @@ function Browser({D,dark,dbCards,onSelectCard,isMobile=false}){
 // ── Market ────────────────────────────────────────────────────────────────────
 function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[],onPlaceOrder,onUpdatePrice,tradeHistory=[],isDemo=false,isMobile=false}){
   const [sheetOpen,setSheetOpen]=useState(false);
-  const allCards=useMemo(()=>{const dbIds=new Set(dbCards.map(c=>c.id));return [...dbCards,...CARDS.filter(c=>!dbIds.has(c.id)).map(c=>({...c,basePrice:BASE[c.id]||0}))];},[dbCards]);
+  const allCards=dbCards.length?dbCards:CARDS.map(c=>({...c,basePrice:BASE[c.id]}));
   const [card,setCard]=useState(()=>initialCard||allCards[0]||CARDS[0]);
   const [sidebarMode,setSidebarMode]=useState("value");
   const SIDEBAR_COUNT=20;
@@ -641,10 +605,10 @@ function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[],onPlac
     // volume: simulate by seeding random vol from card id, consistent per session
     return [...allCards].sort((a,b)=>((b.id*7+13)%100)-((a.id*7+13)%100)).slice(0,SIDEBAR_COUNT);
   },[allCards,sidebarMode]);
-  const [asks,setAsks]=useState(()=>genOrders(BASE[2],6,"ask"));
-  const [bids,setBids]=useState(()=>genOrders(BASE[2],6,"bid"));
-  const [trades,setTrades]=useState(()=>Array.from({length:16},()=>genTrade(BASE[2])));
-  const [price,setPrice]=useState(BASE[2]);
+  const [asks,setAsks]=useState(()=>genOrders(BASE[1],6,"ask"));
+  const [bids,setBids]=useState(()=>genOrders(BASE[1],6,"bid"));
+  const [trades,setTrades]=useState(()=>Array.from({length:16},()=>genTrade(BASE[1])));
+  const [price,setPrice]=useState(BASE[1]);
   const [flash,setFlash]=useState(null);
   const [oSide,setOSide]=useState("buy");
   const [oExpiry,setOExpiry]=useState("gtc"); // gtc | day | week | month
@@ -1502,8 +1466,8 @@ function WaitlistForm({D,dark,isMobile=false,onLoginClick}){
 // ── Landing Page ──────────────────────────────────────────────────────────────
 function Landing({D,dark,dbCards,onEnterDemo,onOpenAuth}){
   const isMobile=useIsMobile();
-  const allCards=useMemo(()=>{const dbIds=new Set(dbCards.map(c=>c.id));return [...dbCards,...CARDS.filter(c=>!dbIds.has(c.id)).map(c=>({...c,basePrice:BASE[c.id]||0}))];},[dbCards]);
-  const featuredCard=allCards.find(c=>c.id===2)||allCards[0]||CARDS[0];
+  const allCards=dbCards.length?dbCards:CARDS.map(c=>({...c,basePrice:BASE[c.id]}));
+  const featuredCard=allCards.find(c=>c.id===1)||allCards[0]||CARDS[0];
   const base=featuredCard.basePrice||BASE[featuredCard.id]||420;
 
   const [price,setPrice]=useState(base);
@@ -2536,21 +2500,6 @@ function ProfileSettings({D,dark,user,profile,tradeHistory=[],holdings=[],balanc
     </div>
   );
 }
-class ErrorBoundary extends React.Component {
-  constructor(props){super(props);this.state={error:null};}
-  static getDerivedStateFromError(e){return{error:e};}
-  render(){
-    if(this.state.error) return(
-      <div style={{padding:"40px",fontFamily:"monospace",background:"#0a0a0a",color:"#ff4444",minHeight:"100vh"}}>
-        <div style={{fontSize:"20px",marginBottom:"16px"}}>◈ CX — Render Error</div>
-        <div style={{fontSize:"14px",color:"#ff8888",marginBottom:"8px"}}>{this.state.error.message}</div>
-        <pre style={{fontSize:"12px",color:"#888",whiteSpace:"pre-wrap"}}>{this.state.error.stack}</pre>
-      </div>
-    );
-    return this.props.children;
-  }
-}
-
 export default function App(){
   const [dark,setDark]=useState(false);
   const [notifPrefs,setNotifPrefs]=useState(()=>{
@@ -2681,7 +2630,7 @@ export default function App(){
       // Load cards
       supabase.from('cards').select('*').then(({data,error})=>{
         if(!error&&data){
-          const fmt=data.map(c=>({id:c.id,name:c.name,set:c.set_name,set_name:c.set_name,condition:c.condition,rarity:c.rarity,game:c.game,img:c.img_url,img_url:c.img_url,basePrice:c.base_price||BASE[c.id]||0,language:c.language||"English"}));
+          const fmt=data.map(c=>({id:c.id,name:c.name,set:c.set_name,set_name:c.set_name,condition:c.condition,rarity:c.rarity,game:c.game,img:c.img_url,img_url:c.img_url,basePrice:c.base_price,language:c.language||"English"}));
           setDbCards(fmt);
           const prices={};
           fmt.forEach(c=>{ prices[c.id]=c.basePrice||0; });
@@ -2882,7 +2831,6 @@ export default function App(){
   const isDemo = screen==="app" && !user;
 
   return(
-    <ErrorBoundary>
     <div style={{fontFamily:MONO,fontSize:"17px"}}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@600;800&display=swap');
@@ -3086,6 +3034,5 @@ export default function App(){
         </div>
       )}
     </div>
-    </ErrorBoundary>
   );
 }
