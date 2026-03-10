@@ -32,7 +32,26 @@ const CARDS = [
   { id:106, name:"Arcane Lantern",        set:"Everfest",           condition:"NM",     rarity:"Rare",      game:"Flesh and Blood",  img:"https://d2wlb52bya4y8z.cloudfront.net/media/cards/large/EVR155-CF.webp" },
   { id:107, name:"Enlightened Strike",    set:"Welcome to Rathe",   condition:"PSA 9",  rarity:"Legendary", game:"Flesh and Blood",  img:"https://d2wlb52bya4y8z.cloudfront.net/media/cards/large/WTR159.webp" },
 ];
-const BASE = { 2:420, 3:8500, 4:74000, 5:280, 6:310, 12:4200, 13:2800, 14:3900, 15:1800, 20:180, 21:95, 22:420, 102:380, 103:2200, 104:290, 105:260, 106:95, 107:220 };
+const BASE = {
+  // Pokémon
+  2:420, 4:74000, 5:280, 6:310,
+  7:180,   // Lugia
+  8:95,    // Umbreon
+  9:85,    // Gengar
+  10:140,  // Rayquaza
+  11:110,  // Espeon
+  // MTG
+  3:8500, 12:4200, 13:2800, 14:3900, 15:1800,
+  // Yu-Gi-Oh
+  16:120,  // Blue-Eyes White Dragon
+  17:85,   // Dark Magician
+  18:950,  // Exodia
+  19:75,   // Red-Eyes Black Dragon
+  // One Piece
+  20:180, 21:95, 22:420,
+  // Flesh and Blood
+  102:380, 103:2200, 104:290, 105:260, 106:95, 107:220,
+};
 
 // ── Trading state helpers ─────────────────────────────────────────────────────
 const STARTING_BALANCE = 15000;
@@ -471,14 +490,9 @@ function Browser({D,dark,dbCards,onSelectCard,isMobile=false}){
   const [page,setPage]=useState(1);
 
   const allCards=useMemo(()=>{
-    // Merge DB cards with hardcoded CARDS — DB card wins on conflict (same id)
     const dbIds=new Set(dbCards.map(c=>c.id));
-    const fallbacks=CARDS.filter(c=>!dbIds.has(c.id)).map(c=>({...c,basePrice:BASE[c.id],set_name:c.set,language:"English"}));
-    const merged=[...dbCards,...fallbacks];
-    console.log("DEBUG allCards games:", [...new Set(merged.map(c=>c.game))]);
-    console.log("DEBUG FAB cards:", merged.filter(c=>c.game==="Flesh and Blood"));
-    console.log("DEBUG dbCards.length:", dbCards.length, "fallbacks.length:", fallbacks.length);
-    return merged;
+    const fallbacks=CARDS.filter(c=>!dbIds.has(c.id)).map(c=>({...c,basePrice:BASE[c.id]||0,set_name:c.set,language:"English"}));
+    return [...dbCards,...fallbacks];
   },[dbCards]);
   const games=useMemo(()=>[...new Set(allCards.map(c=>c.game))].filter(Boolean).sort(),[allCards]);
   const conditions=useMemo(()=>[...new Set(allCards.map(c=>c.condition))].filter(Boolean).sort(),[allCards]);
@@ -2650,7 +2664,7 @@ export default function App(){
       // Load cards
       supabase.from('cards').select('*').then(({data,error})=>{
         if(!error&&data){
-          const fmt=data.map(c=>({id:c.id,name:c.name,set:c.set_name,set_name:c.set_name,condition:c.condition,rarity:c.rarity,game:c.game,img:c.img_url,img_url:c.img_url,basePrice:c.base_price,language:c.language||"English"}));
+          const fmt=data.map(c=>({id:c.id,name:c.name,set:c.set_name,set_name:c.set_name,condition:c.condition,rarity:c.rarity,game:c.game,img:c.img_url,img_url:c.img_url,basePrice:c.base_price||BASE[c.id]||0,language:c.language||"English"}));
           setDbCards(fmt);
           const prices={};
           fmt.forEach(c=>{ prices[c.id]=c.basePrice||0; });
