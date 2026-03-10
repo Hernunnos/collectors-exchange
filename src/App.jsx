@@ -588,7 +588,9 @@ function Browser({D,dark,dbCards,onSelectCard,isMobile=false}){
         </div>
       </div>
 
-      <Pagination/>
+      <div style={{background:"#1a0a0a",border:"1px solid #ff4444",borderRadius:"6px",padding:"12px",fontSize:"12px",fontFamily:"monospace",color:"#ff8888"}}>
+        DEBUG: dbCards={dbCards.length} | allCards={allCards.length} | games=[{[...new Set(allCards.map(c=>c.game))].join(", ")}] | FAB={allCards.filter(c=>c.game==="Flesh and Blood").length}
+      </div>
 
       {filtered.length===0&&(
         <div style={{padding:"60px",textAlign:"center",color:D.txtD,fontSize:"17px",background:D.bg2,border:`1px solid ${D.bdr}`,borderRadius:"6px"}}>No cards match your filters</div>
