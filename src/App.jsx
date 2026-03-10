@@ -465,7 +465,8 @@ function Browser({D,dark,dbCards,onSelectCard,isMobile=false}){
   const games=[...new Set(allCards.map(c=>c.game))].filter(Boolean).sort();
   const conditions=[...new Set(allCards.map(c=>c.condition))].filter(Boolean).sort();
   const languages=[...new Set(allCards.map(c=>c.language||"English"))].filter(Boolean).sort();
-  const sets=[...new Set(allCards.map(c=>c.set||c.set_name))].filter(Boolean).sort();
+  // Sets filtered by selected game so the list stays relevant
+  const sets=[...new Set(allCards.filter(c=>gameFilter==="all"||c.game===gameFilter).map(c=>c.set||c.set_name))].filter(Boolean).sort();
 
   const filtered=allCards
     .filter(c=>search===""||c.name.toLowerCase().includes(search.toLowerCase())||((c.set||c.set_name)||"").toLowerCase().includes(search.toLowerCase()))
@@ -520,7 +521,11 @@ function Browser({D,dark,dbCards,onSelectCard,isMobile=false}){
           style={{flex:"1 1 180px",background:D.inBg,border:`1px solid ${D.inBdr}`,borderRadius:"4px",padding:"7px 12px",color:D.txt,fontSize:"17px",fontFamily:MONO,minWidth:"140px"}}/>
         <div style={{display:"flex",gap:"6px",flexWrap:"wrap",alignItems:"center"}}>
           <span style={{color:D.txtD,fontSize:"13px",letterSpacing:"0.1em"}}>GAME</span>
-          {["all",...games].map(g=><button key={g} onClick={()=>{setGameFilter(g);resetPage();}} style={inBtnStyle(gameFilter===g)}>{g==="all"?"ALL":g}</button>)}
+          <select value={gameFilter} onChange={e=>{setGameFilter(e.target.value);setSetFilter("all");resetPage();}} style={{background:D.inBg,border:`1px solid ${gameFilter!=="all"?D.accD:D.inBdr}`,borderRadius:"4px",padding:"5px 10px",color:gameFilter!=="all"?D.accD:D.txt,fontSize:"14px",fontFamily:MONO,cursor:"pointer",maxWidth:"200px"}}>
+            <option value="all">ALL GAMES</option>
+            {games.map(g=><option key={g} value={g}>{g}</option>)}
+          </select>
+          {gameFilter!=="all"&&<button onClick={()=>{setGameFilter("all");setSetFilter("all");resetPage();}} style={{...inBtnStyle(false),padding:"4px 8px",fontSize:"13px"}}>× clear</button>}
         </div>
         <div style={{display:"flex",gap:"6px",flexWrap:"wrap",alignItems:"center"}}>
           <span style={{color:D.txtD,fontSize:"13px",letterSpacing:"0.1em"}}>SET</span>
