@@ -1484,7 +1484,7 @@ function Landing({D,dark,dbCards,onEnterDemo,onOpenAuth}){
     {icon:"⬡",title:"Real-Time Order Book",desc:"See live bids and asks, place limit orders or buy instantly at market price with one tap."},
     {icon:"◇",title:"Portfolio Tracker",desc:"Track your holdings, average cost, unrealised P&L and trade history across all games."},
     {icon:"▣",title:"Price History",desc:"Every trade you make is recorded and plotted on the chart — real history, not guesswork."},
-    {icon:"📂",title:"TCGPlayer Import",desc:"Import your existing inventory from TCGPlayer in seconds. We auto-detect columns, map conditions, and show you where CX prices beat your current listings."},
+    {icon:"📂",title:"Binder & CSV Import",desc:"Import your collection from any binder app or spreadsheet in seconds. We auto-detect columns, map conditions, and get your cards live on the market fast."},
     {icon:"🔔",title:"Smart Notifications",desc:"Get browser push alerts when your orders fill or a card hits your price target — even when you're on another tab."},
   ];
 
@@ -1734,12 +1734,12 @@ function CSVImportModal({D,dark,dbCards=[],onImport,onClose,marketPrices={},trad
   const [rows,setRows]=useState([]);
   const [step,setStep]=useState("upload"); // upload | preview | listing | done
   const [importing,setImporting]=useState(false);
-  const [isTCGPlayer,setIsTCGPlayer]=useState(false);
+  const [isBinderExport,setIsBinderExport]=useState(false);
   const [listingPrices,setListingPrices]=useState({}); // rowIndex → custom ask price
   const [listSelected,setListSelected]=useState({}); // rowIndex → bool
   const allCards=[...dbCards,...CARDS];
 
-  // Normalize TCGPlayer condition strings to our format
+  // Normalize condition strings to our format (works with binder apps, spreadsheets, etc)
   const normalizeCond=(c="")=>{
     const m={"near mint":"NM","lightly played":"LP","moderately played":"MP","heavily played":"HP","damaged":"DMG","nm":"NM","lp":"LP","mp":"MP","hp":"HP"};
     return m[c.toLowerCase()]||c||"NM";
@@ -1766,26 +1766,22 @@ function CSVImportModal({D,dark,dbCards=[],onImport,onClose,marketPrices={},trad
     })};
   };
 
-  // Detect if this looks like a TCGPlayer export
-  const detectTCGPlayer=(headers)=>{
-    const tcgCols=["tcg marketplace price","tcg low","tcg market price","tcg mid","product name","number"];
-    return tcgCols.filter(c=>headers.includes(c)).length>=2;
+  // Detect if this looks like a binder/collection app export (Binder, Moxfield, etc)
+  const detectBinderExport=(headers)=>{
+    const binderCols=["foil","language","purchase price","collector number","number","product name","set name"];
+    return binderCols.filter(c=>headers.includes(c)).length>=2;
   };
 
   // Compute CX suggested price: best bid + small premium, floored at market price
-  // Does NOT use TCGPlayer price — purely based on CX order book activity
-  const suggestCXPrice=(cardId,tcgMarket)=>{
+  // Purely based on CX order book activity — independent of any external price source
+  const suggestCXPrice=(cardId)=>{
     const cxPrice=marketPrices[cardId]||0;
     const cardTrades=tradeHistory.filter(t=>t.cardId===cardId);
-    // 24h average from real trade history
     const oneDayAgo=Date.now()-86400000;
     const recentTrades=cardTrades.filter(t=>new Date(t.date+" "+t.time).getTime()>oneDayAgo);
     const avgRecent=recentTrades.length?recentTrades.reduce((s,t)=>s+t.price,0)/recentTrades.length:0;
-    // Suggested: slightly under current CX ask to move within 24h
-    // If no CX history yet, use CX base price (never TCGPlayer price)
     const base=avgRecent||cxPrice;
     if(!base) return null;
-    // Undercut by 1-2% for fast sell
     return+(base*0.985).toFixed(2);
   };
 
@@ -1795,35 +1791,29 @@ function CSVImportModal({D,dark,dbCards=[],onImport,onClose,marketPrices={},trad
     const reader=new FileReader();
     reader.onload=(ev)=>{
       const {headers,rows:raw}=parseCSV(ev.target.result);
-      const tcg=detectTCGPlayer(headers);
-      setIsTCGPlayer(tcg);
+      const binder=detectBinderExport(headers);
+      setIsBinderExport(binder);
       const mapped=raw.map((r,i)=>{
-        // Column name mapping — TCGPlayer first, then generic fallbacks
+        // Column name mapping — supports binder apps, Moxfield, generic spreadsheets
         const name=r["product name"]||r["name"]||r["card_name"]||r["card"]||"";
         const set=r["set name"]||r["set"]||r["set_name"]||r["expansion"]||"";
         const rawCond=r["condition"]||r["cond"]||"NM";
         const condition=normalizeCond(rawCond);
         const qty=parseInt(r["add to quantity"]||r["qty"]||r["quantity"]||r["count"]||"1")||1;
-        // TCGPlayer price columns (reference only — never used to set CX price)
-        const tcgLow=parseFloat(r["tcg low"])||null;
-        const tcgMid=parseFloat(r["tcg mid"])||null;
-        const tcgMarket=parseFloat(r["tcg marketplace price"]||r["tcg market price"])||null;
-        const tcgRef=tcgMarket||tcgMid||tcgLow||null;
+        // Purchase price from binder (reference only — CX price is independent)
+        const purchaseRef=parseFloat(r["purchase price"]||r["price"]||r["cost"])||null;
         // Match to CX card catalogue
         const match=allCards.find(c=>{
           const cn=c.name?.toLowerCase();const rn=name.toLowerCase();
           return cn===rn||(rn.length>3&&cn?.includes(rn));
         });
         const cxPrice=match?marketPrices[match.id]||match.basePrice||BASE[match.id]||0:0;
-        const suggested=match?suggestCXPrice(match.id,tcgMarket):null;
-        // Flag: does CX have open buyers right now?
+        const suggested=match?suggestCXPrice(match.id):null;
         const hasBuyers=match&&cxPrice>0;
-        // Opportunity: CX price is notably different from TCGPlayer
-        const opportunity=tcgRef&&cxPrice?(cxPrice-tcgRef)/tcgRef:null;
-        return{name,set,condition,qty,tcgRef,cxPrice,suggested,hasBuyers,opportunity,matchedCard:match||null,status:match?"matched":"unmatched",rowIndex:i};
+        const opportunity=purchaseRef&&cxPrice?(cxPrice-purchaseRef)/purchaseRef:null;
+        return{name,set,condition,qty,purchaseRef,cxPrice,suggested,hasBuyers,opportunity,matchedCard:match||null,status:match?"matched":"unmatched",rowIndex:i};
       }).filter(r=>r.name);
       setRows(mapped);
-      // Default listing prices to suggested
       const prices={};const selected={};
       mapped.forEach((r,i)=>{if(r.matchedCard&&r.suggested){prices[i]=String(r.suggested);selected[i]=true;}});
       setListingPrices(prices);setListSelected(selected);
@@ -1850,11 +1840,11 @@ function CSVImportModal({D,dark,dbCards=[],onImport,onClose,marketPrices={},trad
         <div style={{padding:"16px 20px",borderBottom:`1px solid ${D.bdr}`,display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
           <div>
             <div style={{fontFamily:ORB,fontSize:"20px",fontWeight:800,color:D.acc,letterSpacing:"0.12em"}}>
-              ◈ {isTCGPlayer?"TCGPLAYER IMPORT":"IMPORT COLLECTION"}
+              ◈ {isBinderExport?"BINDER IMPORT":"IMPORT COLLECTION"}
             </div>
             <div style={{color:D.txtD,fontSize:"14px",marginTop:"3px"}}>
-              {step==="upload"&&"Upload your TCGPlayer export or any collection CSV"}
-              {step==="preview"&&(isTCGPlayer?"TCGPlayer inventory detected — review pricing opportunities":"Review matched cards")}
+              {step==="upload"&&"Upload your binder export or any collection CSV"}
+              {step==="preview"&&(isBinderExport?"Binder collection detected — review your cards":"Review matched cards")}
               {step==="done"&&"Import complete"}
             </div>
           </div>
@@ -1875,26 +1865,26 @@ function CSVImportModal({D,dark,dbCards=[],onImport,onClose,marketPrices={},trad
           {/* ── UPLOAD step ── */}
           {step==="upload"&&(
             <div>
-              {/* TCGPlayer callout */}
-              <div style={{background:dark?"rgba(0,100,200,0.08)":"rgba(59,130,246,0.06)",border:`1px solid ${dark?"#1a3a6a":"#bfdbfe"}`,borderRadius:"8px",padding:"14px 16px",marginBottom:"20px",display:"flex",gap:"12px",alignItems:"flex-start"}}>
-                <span style={{fontSize:"29px",flexShrink:0}}>🏪</span>
+              {/* Binder callout */}
+              <div style={{background:dark?"rgba(0,180,60,0.08)":"rgba(22,128,58,0.06)",border:`1px solid ${dark?"#1a4a2a":"#8acc8a"}`,borderRadius:"8px",padding:"14px 16px",marginBottom:"20px",display:"flex",gap:"12px",alignItems:"flex-start"}}>
+                <span style={{fontSize:"29px",flexShrink:0}}>📒</span>
                 <div>
-                  <div style={{color:dark?"#60a5fa":"#1d4ed8",fontSize:"16px",fontWeight:"bold",marginBottom:"4px"}}>TCGPlayer sellers — auto-detected</div>
-                  <div style={{color:D.txtD,fontSize:"14px",lineHeight:"1.5"}}>Export your inventory from TCGPlayer → My Inventory → Export. We'll automatically detect the format, map your conditions, and show you where CX prices give you a better deal.</div>
+                  <div style={{color:D.accD,fontSize:"16px",fontWeight:"bold",marginBottom:"4px"}}>Binder & collection app support</div>
+                  <div style={{color:D.txtD,fontSize:"14px",lineHeight:"1.5"}}>Export your collection from any binder app as CSV and import it here. We auto-detect the format, map conditions, and suggest CX prices based on live market activity.</div>
                 </div>
               </div>
               <div style={{border:`2px dashed ${D.bdr2}`,borderRadius:"8px",padding:"40px 24px",textAlign:"center",marginBottom:"20px"}}>
                 <div style={{fontSize:"46px",marginBottom:"12px"}}>📂</div>
                 <div style={{color:D.txtM,fontSize:"17px",marginBottom:"6px"}}>Drop your CSV here or click to browse</div>
-                <div style={{color:D.txtD,fontSize:"14px",marginBottom:"20px"}}>TCGPlayer, Binder, Moxfield, or any spreadsheet</div>
+                <div style={{color:D.txtD,fontSize:"14px",marginBottom:"20px"}}>Binder, Moxfield, Deckbox, or any spreadsheet</div>
                 <label style={{padding:"10px 24px",background:dark?"rgba(0,180,60,0.15)":"rgba(22,128,58,0.10)",border:`1px solid ${D.accD}`,borderRadius:"6px",color:D.accD,fontSize:"14px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.1em"}}>
                   CHOOSE FILE <input type="file" accept=".csv" onChange={handleFile} style={{display:"none"}}/>
                 </label>
               </div>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"10px"}}>
                 <div style={{background:D.bg3,border:`1px solid ${D.bdr}`,borderRadius:"6px",padding:"12px 14px"}}>
-                  <div style={{color:dark?"#60a5fa":"#1d4ed8",fontSize:"13px",letterSpacing:"0.1em",marginBottom:"8px"}}>▸ TCGPLAYER COLUMNS</div>
-                  {[["Product Name","Card name"],["Set Name","Set"],["Condition","NM, LP, MP etc"],["Add to Quantity","How many"],["TCG Marketplace Price","Your current price (reference only)"]].map(([c,d])=>(
+                  <div style={{color:dark?"#60a5fa":"#1d4ed8",fontSize:"13px",letterSpacing:"0.1em",marginBottom:"8px"}}>▸ BINDER APP COLUMNS</div>
+                  {[["Product Name","Card name"],["Set Name","Set"],["Condition","NM, LP, MP etc"],["Add to Quantity","How many"],["Purchase Price","Your cost basis (reference only)"]].map(([c,d])=>(
                     <div key={c} style={{display:"flex",gap:"8px",marginBottom:"5px"}}>
                       <span style={{color:D.acc,fontSize:"13px",fontFamily:MONO,minWidth:"140px"}}>{c}</span>
                       <span style={{color:D.txtD,fontSize:"13px"}}>{d}</span>
@@ -1932,22 +1922,22 @@ function CSVImportModal({D,dark,dbCards=[],onImport,onClose,marketPrices={},trad
                 ))}
               </div>
 
-              {/* TCGPlayer notice */}
-              {isTCGPlayer&&(
-                <div style={{background:dark?"rgba(0,100,200,0.06)":"rgba(59,130,246,0.04)",border:`1px solid ${dark?"#1a3a6a":"#bfdbfe"}`,borderRadius:"6px",padding:"10px 14px",marginBottom:"14px",fontSize:"14px",color:D.txtD,lineHeight:"1.5"}}>
-                  <span style={{color:dark?"#60a5fa":"#1d4ed8",fontWeight:"bold"}}>ℹ TCGPlayer prices shown as reference only.</span> CX suggested prices are calculated from our own order book activity — not from TCGPlayer. Your CX listing price is fully independent.
+              {/* Binder notice */}
+              {isBinderExport&&(
+                <div style={{background:dark?"rgba(0,180,60,0.06)":"rgba(22,128,58,0.04)",border:`1px solid ${dark?"#1a4a2a":"#8acc8a"}`,borderRadius:"6px",padding:"10px 14px",marginBottom:"14px",fontSize:"14px",color:D.txtD,lineHeight:"1.5"}}>
+                  <span style={{color:D.accD,fontWeight:"bold"}}>ℹ Binder collection detected.</span> CX suggested prices are calculated from live order book activity. Your purchase price is shown as reference — your actual listing price is fully up to you.
                 </div>
               )}
 
               {/* Table */}
               <div style={{border:`1px solid ${D.bdr}`,borderRadius:"6px",overflow:"hidden"}}>
-                <div style={{display:"grid",gridTemplateColumns:`${isTCGPlayer?"24px ":""}1fr 50px 50px${isTCGPlayer?" 80px 80px":""} 110px 90px`,padding:"7px 12px",background:D.bg3,color:D.txtD,fontSize:"12px",letterSpacing:"0.08em",borderBottom:`1px solid ${D.bdr}`,gap:"8px",alignItems:"center"}}>
-                  {isTCGPlayer&&<span/>}
+                <div style={{display:"grid",gridTemplateColumns:`${isBinderExport?"24px ":""}1fr 50px 50px${isBinderExport?" 80px 80px":""} 110px 90px`,padding:"7px 12px",background:D.bg3,color:D.txtD,fontSize:"12px",letterSpacing:"0.08em",borderBottom:`1px solid ${D.bdr}`,gap:"8px",alignItems:"center"}}>
+                  {isBinderExport&&<span/>}
                   <span>CARD</span>
                   <span style={{textAlign:"center"}}>COND</span>
                   <span style={{textAlign:"center"}}>QTY</span>
-                  {isTCGPlayer&&<span style={{textAlign:"right"}}>TCG PRICE</span>}
-                  {isTCGPlayer&&<span style={{textAlign:"right"}}>CX PRICE</span>}
+                  {isBinderExport&&<span style={{textAlign:"right"}}>PAID</span>}
+                  {isBinderExport&&<span style={{textAlign:"right"}}>CX PRICE</span>}
                   <span style={{textAlign:"right"}}>SUGGESTED ASK</span>
                   <span style={{textAlign:"center"}}>STATUS</span>
                 </div>
@@ -1956,8 +1946,8 @@ function CSVImportModal({D,dark,dbCards=[],onImport,onClose,marketPrices={},trad
                   const opportunity=r.opportunity;
                   const oppColor=opportunity>0.05?"#22c55e":opportunity<-0.05?"#ef4444":"#f59e0b";
                   return(
-                    <div key={i} style={{display:"grid",gridTemplateColumns:`${isTCGPlayer?"24px ":""}1fr 50px 50px${isTCGPlayer?" 80px 80px":""} 110px 90px`,padding:"9px 12px",borderBottom:`1px solid ${D.bdr}`,background:matched?"transparent":(dark?"rgba(245,158,11,0.03)":"rgba(245,158,11,0.02)"),gap:"8px",alignItems:"center"}}>
-                      {isTCGPlayer&&(
+                    <div key={i} style={{display:"grid",gridTemplateColumns:`${isBinderExport?"24px ":""}1fr 50px 50px${isBinderExport?" 80px 80px":""} 110px 90px`,padding:"9px 12px",borderBottom:`1px solid ${D.bdr}`,background:matched?"transparent":(dark?"rgba(245,158,11,0.03)":"rgba(245,158,11,0.02)"),gap:"8px",alignItems:"center"}}>
+                      {isBinderExport&&(
                         <input type="checkbox" checked={matched&&listSelected[i]!==false} disabled={!matched} onChange={e=>setListSelected(p=>({...p,[i]:e.target.checked}))} style={{cursor:matched?"pointer":"default",accentColor:D.acc,width:"14px",height:"14px"}}/>
                       )}
                       <div style={{minWidth:0}}>
@@ -1967,8 +1957,8 @@ function CSVImportModal({D,dark,dbCards=[],onImport,onClose,marketPrices={},trad
                       </div>
                       <span style={{textAlign:"center",color:D.txtD,fontSize:"13px"}}>{r.condition}</span>
                       <span style={{textAlign:"center",color:D.txtM,fontSize:"16px"}}>{r.qty}</span>
-                      {isTCGPlayer&&<span style={{textAlign:"right",color:D.txtD,fontSize:"14px"}}>{r.tcgRef?`$${r.tcgRef.toFixed(2)}`:"—"}</span>}
-                      {isTCGPlayer&&<span style={{textAlign:"right",color:D.txtM,fontSize:"14px"}}>{r.cxPrice?`$${r.cxPrice.toFixed(2)}`:"—"}</span>}
+                      {isBinderExport&&<span style={{textAlign:"right",color:D.txtD,fontSize:"14px"}}>{r.purchaseRef?`$${r.purchaseRef.toFixed(2)}`:"—"}</span>}
+                      {isBinderExport&&<span style={{textAlign:"right",color:D.txtM,fontSize:"14px"}}>{r.cxPrice?`$${r.cxPrice.toFixed(2)}`:"—"}</span>}
                       <div style={{textAlign:"right"}}>
                         {matched?(
                           <div style={{display:"flex",alignItems:"center",gap:"4px",justifyContent:"flex-end"}}>
@@ -1988,7 +1978,7 @@ function CSVImportModal({D,dark,dbCards=[],onImport,onClose,marketPrices={},trad
                         {matched?(
                           <div>
                             <span style={{color:D.buyT,fontSize:"12px",background:dark?"rgba(0,200,60,0.1)":"rgba(22,128,58,0.08)",padding:"2px 6px",borderRadius:"3px"}}>● MATCHED</span>
-                            {isTCGPlayer&&opportunity!==null&&(
+                            {isBinderExport&&opportunity!==null&&(
                               <div style={{color:oppColor,fontSize:"12px",marginTop:"3px"}}>
                                 {opportunity>0.05?"▲ CX higher":opportunity<-0.05?"▼ CX lower":"≈ similar"}
                               </div>
@@ -2020,12 +2010,12 @@ function CSVImportModal({D,dark,dbCards=[],onImport,onClose,marketPrices={},trad
         {step==="preview"&&(
           <div style={{padding:"14px 20px",borderTop:`1px solid ${D.bdr}`,display:"flex",gap:"10px",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
             <div style={{color:D.txtD,fontSize:"14px"}}>
-              {isTCGPlayer&&`${Object.values(listSelected).filter(Boolean).length} cards selected for listing`}
+              {isBinderExport&&`${Object.values(listSelected).filter(Boolean).length} cards selected for listing`}
             </div>
             <div style={{display:"flex",gap:"10px"}}>
               <button onClick={()=>setStep("upload")} style={{padding:"9px 20px",background:"transparent",border:`1px solid ${D.bdr}`,borderRadius:"5px",color:D.txtD,fontSize:"14px",fontFamily:MONO,cursor:"pointer"}}>← BACK</button>
               <button onClick={handleImport} disabled={importing||matchedRows.length===0} style={{padding:"9px 24px",background:dark?"linear-gradient(135deg,#0a3a1a,#0f5a28)":"linear-gradient(135deg,#cceacc,#a8d8a8)",border:`1px solid ${D.accD}`,borderRadius:"5px",color:dark?"#00ff55":"#1a5a2a",fontSize:"14px",fontFamily:MONO,cursor:"pointer",fontWeight:"bold",letterSpacing:"0.1em",opacity:matchedRows.length===0?0.5:1}}>
-                {importing?"IMPORTING...":isTCGPlayer?`IMPORT + LIST ${Object.values(listSelected).filter(Boolean).length} CARDS →`:`IMPORT ${matchedRows.length} CARDS →`}
+                {importing?"IMPORTING...":isBinderExport?`IMPORT + LIST ${Object.values(listSelected).filter(Boolean).length} CARDS →`:`IMPORT ${matchedRows.length} CARDS →`}
               </button>
             </div>
           </div>
