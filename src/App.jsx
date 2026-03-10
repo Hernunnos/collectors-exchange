@@ -467,7 +467,12 @@ function Browser({D,dark,dbCards,onSelectCard,isMobile=false}){
   const [sort,setSort]=useState("price-desc");
   const [page,setPage]=useState(1);
 
-  const allCards=dbCards.length?dbCards:CARDS.map(c=>({...c,basePrice:BASE[c.id],set_name:c.set,language:"English"}));
+  const allCards=useMemo(()=>{
+    // Merge DB cards with hardcoded CARDS — DB card wins on conflict (same id)
+    const dbIds=new Set(dbCards.map(c=>c.id));
+    const fallbacks=CARDS.filter(c=>!dbIds.has(c.id)).map(c=>({...c,basePrice:BASE[c.id],set_name:c.set,language:"English"}));
+    return [...dbCards,...fallbacks];
+  },[dbCards]);
   const games=useMemo(()=>[...new Set(allCards.map(c=>c.game))].filter(Boolean).sort(),[allCards]);
   const conditions=useMemo(()=>[...new Set(allCards.map(c=>c.condition))].filter(Boolean).sort(),[allCards]);
   const languages=useMemo(()=>[...new Set(allCards.map(c=>c.language||"English"))].filter(Boolean).sort(),[allCards]);
