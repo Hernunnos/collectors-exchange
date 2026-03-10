@@ -462,11 +462,14 @@ function Browser({D,dark,dbCards,onSelectCard,isMobile=false}){
   const [page,setPage]=useState(1);
 
   const allCards=dbCards.length?dbCards:CARDS.map(c=>({...c,basePrice:BASE[c.id],set_name:c.set,language:"English"}));
-  const games=[...new Set(allCards.map(c=>c.game))].filter(Boolean).sort();
-  const conditions=[...new Set(allCards.map(c=>c.condition))].filter(Boolean).sort();
-  const languages=[...new Set(allCards.map(c=>c.language||"English"))].filter(Boolean).sort();
-  // Sets filtered by selected game so the list stays relevant
-  const sets=[...new Set(allCards.filter(c=>gameFilter==="all"||c.game===gameFilter).map(c=>c.set||c.set_name))].filter(Boolean).sort();
+  const games=useMemo(()=>[...new Set(allCards.map(c=>c.game))].filter(Boolean).sort(),[allCards]);
+  const conditions=useMemo(()=>[...new Set(allCards.map(c=>c.condition))].filter(Boolean).sort(),[allCards]);
+  const languages=useMemo(()=>[...new Set(allCards.map(c=>c.language||"English"))].filter(Boolean).sort(),[allCards]);
+  // Only show sets that belong to the currently selected game — recomputes when gameFilter changes
+  const sets=useMemo(()=>{
+    const src=gameFilter==="all"?allCards:allCards.filter(c=>c.game===gameFilter);
+    return [...new Set(src.map(c=>c.set||c.set_name))].filter(Boolean).sort();
+  },[allCards,gameFilter]);
 
   const filtered=allCards
     .filter(c=>search===""||c.name.toLowerCase().includes(search.toLowerCase())||((c.set||c.set_name)||"").toLowerCase().includes(search.toLowerCase()))
