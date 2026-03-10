@@ -457,6 +457,7 @@ function Browser({D,dark,dbCards,onSelectCard,isMobile=false}){
   const [gameFilter,setGameFilter]=useState("all");
   const [condFilter,setCondFilter]=useState("all");
   const [langFilter,setLangFilter]=useState("all");
+  const [setFilter,setSetFilter]=useState("all");
   const [sort,setSort]=useState("price-desc");
   const [page,setPage]=useState(1);
 
@@ -464,12 +465,14 @@ function Browser({D,dark,dbCards,onSelectCard,isMobile=false}){
   const games=[...new Set(allCards.map(c=>c.game))].filter(Boolean).sort();
   const conditions=[...new Set(allCards.map(c=>c.condition))].filter(Boolean).sort();
   const languages=[...new Set(allCards.map(c=>c.language||"English"))].filter(Boolean).sort();
+  const sets=[...new Set(allCards.map(c=>c.set||c.set_name))].filter(Boolean).sort();
 
   const filtered=allCards
-    .filter(c=>search===""||c.name.toLowerCase().includes(search.toLowerCase()))
+    .filter(c=>search===""||c.name.toLowerCase().includes(search.toLowerCase())||((c.set||c.set_name)||"").toLowerCase().includes(search.toLowerCase()))
     .filter(c=>gameFilter==="all"||c.game===gameFilter)
     .filter(c=>condFilter==="all"||c.condition===condFilter)
     .filter(c=>langFilter==="all"||(c.language||"English")===langFilter)
+    .filter(c=>setFilter==="all"||(c.set||c.set_name)===setFilter)
     .sort((a,b)=>{
       const pa=a.basePrice||BASE[a.id]||0,pb=b.basePrice||BASE[b.id]||0;
       if(sort==="price-desc") return pb-pa;
@@ -518,6 +521,14 @@ function Browser({D,dark,dbCards,onSelectCard,isMobile=false}){
         <div style={{display:"flex",gap:"6px",flexWrap:"wrap",alignItems:"center"}}>
           <span style={{color:D.txtD,fontSize:"13px",letterSpacing:"0.1em"}}>GAME</span>
           {["all",...games].map(g=><button key={g} onClick={()=>{setGameFilter(g);resetPage();}} style={inBtnStyle(gameFilter===g)}>{g==="all"?"ALL":g}</button>)}
+        </div>
+        <div style={{display:"flex",gap:"6px",flexWrap:"wrap",alignItems:"center"}}>
+          <span style={{color:D.txtD,fontSize:"13px",letterSpacing:"0.1em"}}>SET</span>
+          <select value={setFilter} onChange={e=>{setSetFilter(e.target.value);resetPage();}} style={{background:D.inBg,border:`1px solid ${setFilter!=="all"?D.accD:D.inBdr}`,borderRadius:"4px",padding:"5px 10px",color:setFilter!=="all"?D.accD:D.txt,fontSize:"14px",fontFamily:MONO,cursor:"pointer",maxWidth:"220px"}}>
+            <option value="all">ALL SETS</option>
+            {sets.map(s=><option key={s} value={s}>{s}</option>)}
+          </select>
+          {setFilter!=="all"&&<button onClick={()=>{setSetFilter("all");resetPage();}} style={{...inBtnStyle(false),padding:"4px 8px",fontSize:"13px"}}>× clear</button>}
         </div>
         <div style={{display:"flex",gap:"6px",flexWrap:"wrap",alignItems:"center"}}>
           <span style={{color:D.txtD,fontSize:"13px",letterSpacing:"0.1em"}}>CONDITION</span>
