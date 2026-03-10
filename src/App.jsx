@@ -609,7 +609,7 @@ function Browser({D,dark,dbCards,onSelectCard,isMobile=false}){
 // ── Market ────────────────────────────────────────────────────────────────────
 function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[],onPlaceOrder,onUpdatePrice,tradeHistory=[],isDemo=false,isMobile=false}){
   const [sheetOpen,setSheetOpen]=useState(false);
-  const allCards=dbCards.length?dbCards:CARDS.map(c=>({...c,basePrice:BASE[c.id]}));
+  const allCards=useMemo(()=>{const dbIds=new Set(dbCards.map(c=>c.id));return [...dbCards,...CARDS.filter(c=>!dbIds.has(c.id)).map(c=>({...c,basePrice:BASE[c.id]}))];},[dbCards]);
   const [card,setCard]=useState(()=>initialCard||allCards[0]||CARDS[0]);
   const [sidebarMode,setSidebarMode]=useState("value");
   const SIDEBAR_COUNT=20;
@@ -774,7 +774,7 @@ function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[],onPlac
       <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",position:"relative"}}>
         {/* Card selector strip */}
         <div style={{overflowX:"auto",flexShrink:0,borderBottom:`1px solid ${D.bdr}`,background:D.bg2,display:"flex",WebkitOverflowScrolling:"touch"}}>
-          {(dbCards.length?dbCards:CARDS).slice(0,12).map(c=>{
+          {allCards.slice(0,12).map(c=>{
             const active=card.id===c.id;
             return(
               <div key={c.id} onClick={()=>setCard(c)} style={{flexShrink:0,padding:"8px 10px",borderRight:`1px solid ${D.bdr}`,background:active?(dark?"rgba(0,255,80,0.06)":"rgba(22,128,58,0.06)"):"transparent",borderBottom:`2px solid ${active?D.accD:"transparent"}`,cursor:"pointer",minWidth:"80px",textAlign:"center"}}>
@@ -1479,7 +1479,7 @@ function WaitlistForm({D,dark,isMobile=false,onLoginClick}){
 // ── Landing Page ──────────────────────────────────────────────────────────────
 function Landing({D,dark,dbCards,onEnterDemo,onOpenAuth}){
   const isMobile=useIsMobile();
-  const allCards=dbCards.length?dbCards:CARDS.map(c=>({...c,basePrice:BASE[c.id]}));
+  const allCards=useMemo(()=>{const dbIds=new Set(dbCards.map(c=>c.id));return [...dbCards,...CARDS.filter(c=>!dbIds.has(c.id)).map(c=>({...c,basePrice:BASE[c.id]}))];},[dbCards]);
   const featuredCard=allCards.find(c=>c.id===1)||allCards[0]||CARDS[0];
   const base=featuredCard.basePrice||BASE[featuredCard.id]||420;
 
