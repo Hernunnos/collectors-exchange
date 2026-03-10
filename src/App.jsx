@@ -474,7 +474,11 @@ function Browser({D,dark,dbCards,onSelectCard,isMobile=false}){
     // Merge DB cards with hardcoded CARDS — DB card wins on conflict (same id)
     const dbIds=new Set(dbCards.map(c=>c.id));
     const fallbacks=CARDS.filter(c=>!dbIds.has(c.id)).map(c=>({...c,basePrice:BASE[c.id],set_name:c.set,language:"English"}));
-    return [...dbCards,...fallbacks];
+    const merged=[...dbCards,...fallbacks];
+    console.log("DEBUG allCards games:", [...new Set(merged.map(c=>c.game))]);
+    console.log("DEBUG FAB cards:", merged.filter(c=>c.game==="Flesh and Blood"));
+    console.log("DEBUG dbCards.length:", dbCards.length, "fallbacks.length:", fallbacks.length);
+    return merged;
   },[dbCards]);
   const games=useMemo(()=>[...new Set(allCards.map(c=>c.game))].filter(Boolean).sort(),[allCards]);
   const conditions=useMemo(()=>[...new Set(allCards.map(c=>c.condition))].filter(Boolean).sort(),[allCards]);
