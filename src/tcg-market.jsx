@@ -652,12 +652,43 @@ export function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[]
     });
   },[dbCards]);
   const [card,setCard]=useState(()=>initialCard||allCards[0]||CARDS[0]);
-  const [sidebarMode,setSidebarMode]=useState("value");
-  const SIDEBAR_COUNT=20;
-  const sidebarCards=useMemo(()=>{
-    if(sidebarMode==="value") return [...allCards].sort((a,b)=>(b.basePrice||0)-(a.basePrice||0)).slice(0,SIDEBAR_COUNT);
-    return [...allCards].sort((a,b)=>((b.id*7+13)%100)-((a.id*7+13)%100)).slice(0,SIDEBAR_COUNT);
-  },[allCards,sidebarMode]);
+  const [sidebarSearch,setSidebarSearch]=useState("");
+  const [sidebarResults,setSidebarResults]=useState([]);
+  const [sidebarLoading,setSidebarLoading]=useState(false);
+
+  // Search sidebar cards from DB
+  useEffect(()=>{
+    if(isDemo){
+      const src=CARDS.map(c=>({...c,set_name:c.set}));
+      setSidebarResults(sidebarSearch?src.filter(c=>c.name.toLowerCase().includes(sidebarSearch.toLowerCase())):src.slice(0,20));
+      return;
+    }
+    if(!sidebarSearch){
+      // Default: show cards from user's holdings first, then recent trades, then alphabetical
+      setSidebarResults(allCards.slice(0,20));
+      return;
+    }
+    setSidebarLoading(true);
+    import('./supabase').then(({supabase})=>{
+      supabase.from('cards').select('*')
+        .eq('condition','NM').eq('language','English')
+        .ilike('name',`%${sidebarSearch}%`)
+        .order('name',{ascending:true})
+        .limit(30)
+        .then(({data})=>{
+          setSidebarLoading(false);
+          if(data) setSidebarResults(data.map(c=>({
+            id:c.id,name:c.name,set:c.set_name,set_name:c.set_name,
+            set_code:c.set_code,set_number:c.set_number,
+            condition:c.condition,rarity:c.rarity,game:c.game,
+            img:c.img_url,img_url:c.img_url,basePrice:null,
+            language:c.language||"English",
+          })));
+        });
+    });
+  },[sidebarSearch,isDemo,allCards]);
+
+  const sidebarCards=sidebarResults;
   const [asks,setAsks]=useState(()=>isDemo?genOrders(BASE[1],6,"ask"):[]);
   const [bids,setBids]=useState(()=>isDemo?genOrders(BASE[1],6,"bid"):[]);
   const [trades,setTrades]=useState(()=>isDemo?Array.from({length:16},()=>genTrade(BASE[1])):[]);
@@ -1047,14 +1078,15 @@ export function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[]
     <div style={{flex:1,display:"flex",overflow:"hidden"}}>
       <div style={{width:"220px",flexShrink:0,borderRight:`1px solid ${D.bdr}`,background:D.bg2,display:"flex",flexDirection:"column",overflow:"hidden"}}>
         <div style={{padding:"10px 14px",borderBottom:`1px solid ${D.bdr}`,flexShrink:0}}>
-          <div style={{color:D.txtD,fontSize:"16px",letterSpacing:"0.12em",marginBottom:"8px"}}>▸ INSTRUMENTS</div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"4px"}}>
-            {["value","volume"].map(m=>(
-              <button key={m} onClick={()=>setSidebarMode(m)} style={{padding:"5px 0",border:`1px solid ${sidebarMode===m?D.accD:D.bdr}`,borderRadius:"3px",background:sidebarMode===m?(dark?"rgba(0,180,60,0.12)":"rgba(22,128,58,0.08)"):"transparent",color:sidebarMode===m?D.accD:D.txtD,fontSize:"14px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.06em"}}>
-                {m==="value"?"TOP VALUE":"TOP VOL"}
-              </button>
-            ))}
-          </div>
+          <div style={{color:D.txtD,fontSize:"13px",letterSpacing:"0.12em",marginBottom:"8px"}}>▸ INSTRUMENTS</div>
+          <input
+            type="text"
+            value={sidebarSearch}
+            onChange={e=>setSidebarSearch(e.target.value)}
+            placeholder="Search cards..."
+            style={{width:"100%",background:D.inBg,border:`1px solid ${D.inBdr}`,borderRadius:"4px",padding:"6px 10px",color:D.txt,fontSize:"14px",fontFamily:MONO,boxSizing:"border-box"}}
+          />
+          {sidebarLoading&&<div style={{color:D.txtD,fontSize:"12px",marginTop:"4px",letterSpacing:"0.08em"}}>searching...</div>}
         </div>
         <div style={{overflowY:"auto",flex:1}}>
         {sidebarCards.map(c=>{const bp=c.basePrice||BASE[c.id]||0;const chg=(((c.id*7+13)%17-8)*0.6).toFixed(2);const up=+chg>=0;const active=card.id===c.id;return(
