@@ -1551,7 +1551,7 @@ export function WaitlistForm({D,dark,isMobile=false,onLoginClick}){
       setPosition(pos);
       setStep("done");
     } catch(e){
-      setError("Something went wrong. Please try again.");
+      setError("Something went wrong: " + (e?.message || e?.details || JSON.stringify(e)));
       setStep("form");
     }
   };
