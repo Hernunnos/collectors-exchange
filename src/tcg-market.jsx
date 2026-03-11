@@ -471,14 +471,13 @@ export function Browser({D,dark,dbCards,onSelectCard,isMobile=false,isDemo=false
   const totalPages=Math.max(1,Math.ceil(totalCount/PAGE_SIZE));
   const resetPage=()=>setPage(1);
 
-  // Load set names for selected game
+  // Load distinct set names via RPC
   useEffect(()=>{
     if(isDemo){ setSets([...new Set(CARDS.map(c=>c.set))].sort()); return; }
     import('./supabase').then(({supabase})=>{
-      let q=supabase.from('cards').select('set_name').eq('condition','NM').eq('language','English').limit(2000);
-      if(gameFilter!=="all") q=q.eq('game',gameFilter);
-      q.then(({data})=>{
-        if(data) setSets([...new Set(data.map(c=>c.set_name).filter(Boolean))].sort());
+      const params = gameFilter!=="all" ? {game_filter:gameFilter} : {game_filter:null};
+      supabase.rpc('get_set_names', params).then(({data})=>{
+        if(data) setSets(data.map(r=>r.set_name).filter(Boolean));
       });
     });
   },[gameFilter,isDemo]);
