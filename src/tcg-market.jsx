@@ -455,8 +455,7 @@ const PAGE_SIZE=40;
 export function Browser({D,dark,dbCards,onSelectCard,isMobile=false,isDemo=false}){
   const [search,setSearch]=useState("");
   const [gameFilter,setGameFilter]=useState("all");
-  const [condFilter,setCondFilter]=useState("all");
-  const [langFilter,setLangFilter]=useState("all");
+
   const [setFilter,setSetFilter]=useState("all");
   const [sort,setSort]=useState("name-asc");
   const [page,setPage]=useState(1);
@@ -468,8 +467,7 @@ export function Browser({D,dark,dbCards,onSelectCard,isMobile=false,isDemo=false
   const [sets,setSets]=useState([]);
 
   const games=["Pokémon","MTG","Yu-Gi-Oh!","One Piece TCG","Flesh and Blood","Lorcana"];
-  const conditions=["NM","LP","MP","HP","DMG","PSA 10","PSA 9","PSA 8","PSA 7","PSA 6","PSA 5","PSA 4","PSA 3","PSA 2","PSA 1"];
-  const languages=["English","Japanese"];
+
   const totalPages=Math.max(1,Math.ceil(totalCount/PAGE_SIZE));
   const resetPage=()=>setPage(1);
 
@@ -485,7 +483,8 @@ export function Browser({D,dark,dbCards,onSelectCard,isMobile=false,isDemo=false
     });
   },[gameFilter,isDemo]);
 
-  // Main query — fires on every filter/sort/page change
+  // Main query — one card per name+set, canonical NM English row
+  // condFilter/langFilter are passed to Market when user clicks a card
   useEffect(()=>{
     if(isDemo){
       const src=CARDS.map(c=>({...c,set_name:c.set,language:"English",img_url:c.img}));
@@ -494,16 +493,11 @@ export function Browser({D,dark,dbCards,onSelectCard,isMobile=false,isDemo=false
     setLoading(true);
     import('./supabase').then(({supabase})=>{
       const from=(page-1)*PAGE_SIZE, to=from+PAGE_SIZE-1;
-      // When no condition/language filter set, show one card per name+set (NM English as canonical)
-      const useCanonical = condFilter==="all" && langFilter==="all";
-      let q=supabase.from('cards').select('*',{count:'exact'}).range(from,to).limit(PAGE_SIZE);
+      let q=supabase.from('cards').select('*',{count:'exact'})
+        .eq('condition','NM').eq('language','English')
+        .range(from,to).limit(PAGE_SIZE);
       if(search)             q=q.or(`name.ilike.%${search}%,set_name.ilike.%${search}%`);
       if(gameFilter!=="all") q=q.eq('game',gameFilter);
-      if(useCanonical){      q=q.eq('condition','NM').eq('language','English'); }
-      else {
-        if(condFilter!=="all") q=q.eq('condition',condFilter);
-        if(langFilter!=="all") q=q.eq('language',langFilter);
-      }
       if(setFilter!=="all")  q=q.eq('set_name',setFilter);
       if(sort==="name-desc")    q=q.order('name',{ascending:false});
       else if(sort==="set-asc") q=q.order('set_name',{ascending:true}).order('name',{ascending:true});
@@ -522,7 +516,7 @@ export function Browser({D,dark,dbCards,onSelectCard,isMobile=false,isDemo=false
         }
       });
     });
-  },[search,gameFilter,condFilter,langFilter,setFilter,sort,page,isDemo]);
+  },[search,gameFilter,setFilter,sort,page,isDemo]);
 
   const paginated=cards;
 
@@ -582,14 +576,7 @@ export function Browser({D,dark,dbCards,onSelectCard,isMobile=false,isDemo=false
           </select>
           {setFilter!=="all"&&<button onClick={()=>{setSetFilter("all");resetPage();}} style={{...inBtnStyle(false),padding:"4px 8px",fontSize:"13px"}}>× clear</button>}
         </div>
-        <div style={{display:"flex",gap:"6px",flexWrap:"wrap",alignItems:"center"}}>
-          <span style={{color:D.txtD,fontSize:"13px",letterSpacing:"0.1em"}}>CONDITION</span>
-          {["all",...conditions].map(c=><button key={c} onClick={()=>{setCondFilter(c);resetPage();}} style={inBtnStyle(condFilter===c)}>{c==="all"?"ALL":c}</button>)}
-        </div>
-        <div style={{display:"flex",gap:"6px",flexWrap:"wrap",alignItems:"center"}}>
-          <span style={{color:D.txtD,fontSize:"13px",letterSpacing:"0.1em"}}>LANGUAGE</span>
-          {["all",...languages].map(l=><button key={l} onClick={()=>{setLangFilter(l);resetPage();}} style={inBtnStyle(langFilter===l)}>{l==="all"?"ALL":l}</button>)}
-        </div>
+
         <div style={{display:"flex",gap:"6px",alignItems:"center"}}>
           <span style={{color:D.txtD,fontSize:"13px",letterSpacing:"0.1em"}}>SORT</span>
           <select value={sort} onChange={e=>{setSort(e.target.value);resetPage();}} style={{background:D.inBg,border:`1px solid ${D.inBdr}`,borderRadius:"4px",padding:"6px 10px",color:D.txt,fontSize:"14px",fontFamily:MONO,cursor:"pointer"}}>
@@ -681,7 +668,41 @@ export function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[]
   const [oQty,setOQty]=useState("");
   const [oStatus,setOStatus]=useState(null);
   const base=card.basePrice||BASE[card.id]||0;
-  useEffect(()=>{ if(initialCard) setCard(initialCard); },[initialCard]);
+  const [selectedCond,setSelectedCond]=useState(()=>initialCard?.condition||"NM");
+  const [selectedLang,setSelectedLang]=useState(()=>initialCard?.language||"English");
+  const CONDITIONS=["NM","LP","MP","HP","DMG","PSA 10","PSA 9","PSA 8","PSA 7","PSA 6","PSA 5","PSA 4","PSA 3","PSA 2","PSA 1"];
+  const LANGUAGES=["English","Japanese"];
+
+  // When condition or language changes, load the correct card variant from DB
+  useEffect(()=>{
+    if(isDemo||!card) return;
+    import('./supabase').then(({supabase})=>{
+      supabase.from('cards').select('*')
+        .eq('set_name', card.set_name||card.set)
+        .eq('name', card.name)
+        .eq('condition', selectedCond)
+        .eq('language', selectedLang)
+        .limit(1)
+        .then(({data})=>{
+          if(data&&data[0]){
+            const c=data[0];
+            setCard({id:c.id,name:c.name,set:c.set_name,set_name:c.set_name,
+              set_code:c.set_code,set_number:c.set_number,
+              condition:c.condition,rarity:c.rarity,game:c.game,
+              img:c.img_url,img_url:c.img_url,basePrice:null,
+              language:c.language||"English"});
+          }
+        });
+    });
+  },[selectedCond,selectedLang,isDemo]);
+
+  useEffect(()=>{
+    if(initialCard){
+      setCard(initialCard);
+      setSelectedCond(initialCard.condition||"NM");
+      setSelectedLang(initialCard.language||"English");
+    }
+  },[initialCard]);
 
   useEffect(()=>{
     if(isDemo){
@@ -1075,12 +1096,29 @@ export function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[]
               <img src={proxyImg(card.img||card.img_url)} alt={card.name} style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}} onError={e=>e.target.style.display="none"}/>
             </div>
             <div style={{width:"100%",background:D.stBg,border:`1px solid ${D.bdr}`,borderRadius:"6px",padding:"10px 12px"}}>
-              {[["GAME",card.game],["SET",card.set||card.set_name],["COND.",card.condition],["RARITY",card.rarity]].map(([k,v])=>(
+              {[["GAME",card.game],["SET",card.set||card.set_name],["RARITY",card.rarity]].map(([k,v])=>(
                 <div key={k} style={{display:"flex",justifyContent:"space-between",marginBottom:"6px",alignItems:"flex-start",gap:"8px"}}>
                   <span style={{color:D.txtD,fontSize:"14px",flexShrink:0}}>{k}</span>
                   <span style={{color:D.txtM,fontSize:"14px",textAlign:"right"}}>{v}</span>
                 </div>
               ))}
+            </div>
+            {/* Condition + Language selectors */}
+            <div style={{width:"100%",display:"flex",flexDirection:"column",gap:"8px"}}>
+              <div style={{display:"flex",flexDirection:"column",gap:"4px"}}>
+                <span style={{color:D.txtD,fontSize:"12px",letterSpacing:"0.1em"}}>CONDITION</span>
+                <select value={selectedCond} onChange={e=>setSelectedCond(e.target.value)}
+                  style={{background:D.inBg,border:`1px solid ${D.accD}`,borderRadius:"4px",padding:"6px 10px",color:D.accD,fontSize:"14px",fontFamily:MONO,cursor:"pointer",width:"100%"}}>
+                  {CONDITIONS.map(c=><option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+              <div style={{display:"flex",flexDirection:"column",gap:"4px"}}>
+                <span style={{color:D.txtD,fontSize:"12px",letterSpacing:"0.1em"}}>LANGUAGE</span>
+                <select value={selectedLang} onChange={e=>setSelectedLang(e.target.value)}
+                  style={{background:D.inBg,border:`1px solid ${D.bdr}`,borderRadius:"4px",padding:"6px 10px",color:D.txt,fontSize:"14px",fontFamily:MONO,cursor:"pointer",width:"100%"}}>
+                  {LANGUAGES.map(l=><option key={l} value={l}>{l}</option>)}
+                </select>
+              </div>
             </div>
           </div>
 
