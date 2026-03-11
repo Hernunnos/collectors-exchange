@@ -634,7 +634,9 @@ export function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[]
     } else {
       setAsks([]);
       setBids([]);
-      setPrice(base||0);
+      // Set price from most recent real trade for this card, or 0 if none
+      const lastRealTrade = tradeHistory.filter(t=>+t.cardId===+card.id).sort((a,b)=>b.id>a.id?1:-1)[0];
+      setPrice(lastRealTrade ? lastRealTrade.price : 0);
       setTrades([]);
     }
     setOPrice("");setOQty("");
