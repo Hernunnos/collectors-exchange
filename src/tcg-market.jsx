@@ -1643,9 +1643,6 @@ export function Landing({D,dark,dbCards,onEnterDemo,onOpenAuth}){
           </div>
         </div>
 
-        {/* Game Nav Bar */}
-        {!isMobile&&<GameNavBar dark={dark} onEnterDemo={onEnterDemo}/>}
-
         {/* Hero content */}
         <div id="cx-waitlist" style={{position:"relative",zIndex:10,flex:1,display:"flex",flexDirection:"column",justifyContent:"center",alignItems:"center",padding:isMobile?"40px 20px":"60px 40px",textAlign:"center"}}>
           <div style={{maxWidth:"700px",width:"100%",display:"flex",flexDirection:"column",alignItems:"center"}}>
