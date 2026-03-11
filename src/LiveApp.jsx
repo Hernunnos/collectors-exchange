@@ -99,7 +99,7 @@ export default function LiveApp({ dark, setDark, user: initialUser }) {
     document.title = "Collector's Exchange";
     import('./supabase').then(({ supabase }) => {
       // Load card catalogue from DB
-      supabase.from('cards').select('*').limit(1000).then(({ data, error }) => {
+      supabase.from('cards').select('*').eq('condition','NM').eq('language','English').limit(1000).then(({ data, error }) => {
         if (!error && data) {
           const fmt = data.map(c => ({
             id: c.id, name: c.name, set: c.set_name, set_name: c.set_name,

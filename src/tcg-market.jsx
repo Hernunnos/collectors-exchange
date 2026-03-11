@@ -641,13 +641,21 @@ export function Browser({D,dark,dbCards,onSelectCard,isMobile=false,isDemo=false
 // ── Market ────────────────────────────────────────────────────────────────────
 export function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[],onPlaceOrder,onUpdatePrice,tradeHistory=[],isDemo=false,isMobile=false}){
   const [sheetOpen,setSheetOpen]=useState(false);
-  const allCards=dbCards.length?dbCards:CARDS.map(c=>({...c,basePrice:BASE[c.id]}));
+  // Deduplicate dbCards to one per name+set (NM English) for sidebar
+  const allCards=useMemo(()=>{
+    const src=dbCards.length?dbCards:CARDS.map(c=>({...c,basePrice:BASE[c.id]}));
+    const seen=new Set();
+    return src.filter(c=>{
+      const key=`${c.name}||${c.set_name||c.set}`;
+      if(seen.has(key)) return false;
+      seen.add(key); return true;
+    });
+  },[dbCards]);
   const [card,setCard]=useState(()=>initialCard||allCards[0]||CARDS[0]);
   const [sidebarMode,setSidebarMode]=useState("value");
   const SIDEBAR_COUNT=20;
   const sidebarCards=useMemo(()=>{
     if(sidebarMode==="value") return [...allCards].sort((a,b)=>(b.basePrice||0)-(a.basePrice||0)).slice(0,SIDEBAR_COUNT);
-    // volume: simulate by seeding random vol from card id, consistent per session
     return [...allCards].sort((a,b)=>((b.id*7+13)%100)-((a.id*7+13)%100)).slice(0,SIDEBAR_COUNT);
   },[allCards,sidebarMode]);
   const [asks,setAsks]=useState(()=>isDemo?genOrders(BASE[1],6,"ask"):[]);
