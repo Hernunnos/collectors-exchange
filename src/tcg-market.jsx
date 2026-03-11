@@ -494,15 +494,20 @@ export function Browser({D,dark,dbCards,onSelectCard,isMobile=false,isDemo=false
     setLoading(true);
     import('./supabase').then(({supabase})=>{
       const from=(page-1)*PAGE_SIZE, to=from+PAGE_SIZE-1;
-      let q=supabase.from('cards').select('*',{count:'exact'}).range(from,to);
+      // When no condition/language filter set, show one card per name+set (NM English as canonical)
+      const useCanonical = condFilter==="all" && langFilter==="all";
+      let q=supabase.from('cards').select('*',{count:'exact'}).range(from,to).limit(PAGE_SIZE);
       if(search)             q=q.or(`name.ilike.%${search}%,set_name.ilike.%${search}%`);
       if(gameFilter!=="all") q=q.eq('game',gameFilter);
-      if(condFilter!=="all") q=q.eq('condition',condFilter);
-      if(langFilter!=="all") q=q.eq('language',langFilter);
+      if(useCanonical){      q=q.eq('condition','NM').eq('language','English'); }
+      else {
+        if(condFilter!=="all") q=q.eq('condition',condFilter);
+        if(langFilter!=="all") q=q.eq('language',langFilter);
+      }
       if(setFilter!=="all")  q=q.eq('set_name',setFilter);
       if(sort==="name-desc")    q=q.order('name',{ascending:false});
-      else if(sort==="set-asc")  q=q.order('set_name',{ascending:true}).order('name',{ascending:true});
-      else                       q=q.order('name',{ascending:true});
+      else if(sort==="set-asc") q=q.order('set_name',{ascending:true}).order('name',{ascending:true});
+      else                      q=q.order('name',{ascending:true});
       q.then(({data,count,error})=>{
         setLoading(false);
         if(!error&&data){
@@ -610,8 +615,12 @@ export function Browser({D,dark,dbCards,onSelectCard,isMobile=false,isDemo=false
             <div key={c.id} onClick={()=>onSelectCard(c)} style={{background:D.bg2,border:`1px solid ${D.bdr}`,borderRadius:"8px",overflow:"hidden",cursor:"pointer",transition:"border-color 0.15s,box-shadow 0.15s"}}
               onMouseEnter={e=>{e.currentTarget.style.borderColor=D.accD;e.currentTarget.style.boxShadow=dark?`0 0 16px ${D.accD}30`:"0 4px 16px rgba(0,0,0,0.1)";}}
               onMouseLeave={e=>{e.currentTarget.style.borderColor=D.bdr;e.currentTarget.style.boxShadow="none";}}>
-              <div style={{background:D.stBg,display:"flex",justifyContent:"center",alignItems:"center",padding:"16px",aspectRatio:"1"}}>
-                <img src={proxyImg(c.img||c.img_url)} alt={c.name} style={{maxWidth:"100%",maxHeight:"100%",objectFit:"contain",borderRadius:"4px",boxShadow:dark?"0 4px 16px rgba(0,0,0,0.6)":"0 4px 12px rgba(0,0,0,0.15)"}} onError={e=>e.target.style.display="none"}/>
+              <div style={{background:D.stBg,display:"flex",justifyContent:"center",alignItems:"center",padding:"16px",aspectRatio:"1",position:"relative"}}>
+                {(c.img||c.img_url)?
+                  <img src={proxyImg(c.img||c.img_url)} alt={c.name} style={{maxWidth:"100%",maxHeight:"100%",objectFit:"contain",borderRadius:"4px",boxShadow:dark?"0 4px 16px rgba(0,0,0,0.6)":"0 4px 12px rgba(0,0,0,0.15)"}} onError={e=>{e.target.style.display="none";e.target.nextSibling.style.display="flex";}}/>
+                  :<div style={{width:"100%",height:"100%",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:"6px",color:D.txtD,fontSize:"11px",letterSpacing:"0.08em"}}><span style={{fontSize:"32px"}}>🃏</span><span>{c.condition}</span></div>
+                }
+                <div style={{display:"none",width:"100%",height:"100%",position:"absolute",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:"6px",color:D.txtD,fontSize:"11px"}}><span style={{fontSize:"32px"}}>🃏</span><span>{c.condition}</span></div>
               </div>
               <div style={{padding:"10px 12px"}}>
                 <div style={{fontFamily:ORB,fontSize:"16px",fontWeight:700,color:D.txt,marginBottom:"3px",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{c.name}</div>
