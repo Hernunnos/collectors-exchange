@@ -518,7 +518,15 @@ export function Browser({D,dark,dbCards,onSelectCard,isMobile=false}){
   );
 
   return(
-    <div style={{flex:1,overflowY:"auto",padding:"20px",display:"flex",flexDirection:"column",gap:"16px"}}>
+    <div style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column"}}>
+      {!isMobile&&(
+        <GameNavBar
+          dark={dark}
+          onSelectGame={(game)=>{ setGameFilter(game); setSetFilter("all"); resetPage(); }}
+          onSelectSet={(game,set)=>{ setGameFilter(game); setSetFilter(set); resetPage(); }}
+        />
+      )}
+      <div style={{flex:1,overflowY:"auto",padding:"20px",display:"flex",flexDirection:"column",gap:"16px"}}>
       <div style={{background:D.bg2,border:`1px solid ${D.bdr}`,borderRadius:"6px",padding:"14px 16px",display:"flex",gap:"12px",flexWrap:"wrap",alignItems:"center"}}>
         <input type="text" value={search} onChange={e=>{setSearch(e.target.value);resetPage();}} placeholder="Search cards..."
           style={{flex:"1 1 180px",background:D.inBg,border:`1px solid ${D.inBdr}`,borderRadius:"4px",padding:"7px 12px",color:D.txt,fontSize:"17px",fontFamily:MONO,minWidth:"140px"}}/>
@@ -589,6 +597,7 @@ export function Browser({D,dark,dbCards,onSelectCard,isMobile=false}){
       </div>
 
       {totalPages>1&&<Pagination/>}
+      </div>
     </div>
   );
 }
@@ -1509,21 +1518,22 @@ const GAME_NAV=[
   {name:"Lorcana",      sets:["The First Chapter","Rise of the Floodborn","Into the Inklands","Ursula's Return"]},
 ];
 
-export function GameNavBar({dark,onEnterDemo}){
+export function GameNavBar({dark,onSelectGame,onSelectSet}){
   const [hover,setHover]=useState(null);
   const acc=dark?"#00cc40":"#15803d";
-  const bg=dark?"rgba(7,10,14,0.97)":"rgba(245,250,245,0.98)";
-  const bdr=dark?"rgba(0,204,64,0.15)":"rgba(21,128,61,0.12)";
+  const bg=dark?"#080c09":"#ffffff";
+  const bdr=dark?"#0f2a0f":"#d8ead8";
   const txt=dark?"#7aaa7a":"#2a5a2a";
   const txtHov=dark?"#00cc40":"#15803d";
   const dropBg=dark?"#080c09":"#ffffff";
   const dropBdr=dark?"#0f2a0f":"#d0e8d0";
   return(
-    <div style={{position:"relative",zIndex:20,borderBottom:`1px solid ${bdr}`,background:bg,backdropFilter:"blur(8px)"}}>
-      <div style={{maxWidth:"1100px",margin:"0 auto",display:"flex",alignItems:"stretch",padding:"0 40px"}}>
+    <div style={{position:"relative",zIndex:20,borderBottom:`1px solid ${bdr}`,background:bg,flexShrink:0}}>
+      <div style={{display:"flex",alignItems:"stretch",paddingLeft:"8px"}}>
         {GAME_NAV.map(g=>(
           <div key={g.name} style={{position:"relative"}} onMouseEnter={()=>setHover(g.name)} onMouseLeave={()=>setHover(null)}>
-            <div style={{display:"flex",alignItems:"center",gap:"5px",padding:"12px 16px",cursor:"pointer",borderBottom:`2px solid ${hover===g.name?acc:"transparent"}`,transition:"border-color 0.15s"}}>
+            <div style={{display:"flex",alignItems:"center",gap:"5px",padding:"10px 14px",cursor:"pointer",borderBottom:`2px solid ${hover===g.name?acc:"transparent"}`,transition:"border-color 0.15s"}}
+              onClick={()=>{ if(onSelectGame) onSelectGame(g.name); setHover(null); }}>
               <span style={{fontFamily:MONO,fontSize:"11px",letterSpacing:"0.08em",color:hover===g.name?txtHov:txt,whiteSpace:"nowrap"}}>{g.name}</span>
               <span style={{color:hover===g.name?acc:txt,fontSize:"8px",transition:"transform 0.15s",display:"inline-block",transform:hover===g.name?"rotate(180deg)":"rotate(0deg)"}}>▼</span>
             </div>
@@ -1531,14 +1541,18 @@ export function GameNavBar({dark,onEnterDemo}){
               <div style={{position:"absolute",top:"100%",left:0,minWidth:"220px",background:dropBg,border:`1px solid ${dropBdr}`,borderTop:"none",borderRadius:"0 0 8px 8px",boxShadow:dark?"0 8px 32px rgba(0,0,0,0.6)":"0 8px 32px rgba(0,0,0,0.1)",padding:"16px 0",zIndex:100}}>
                 <div style={{padding:"4px 18px 10px",fontFamily:MONO,fontSize:"9px",letterSpacing:"0.14em",color:dark?"#2a5a2a":"#9aaa9a",borderBottom:`1px solid ${dropBdr}`,marginBottom:"8px"}}>LATEST SETS</div>
                 {g.sets.map(s=>(
-                  <div key={s} onClick={onEnterDemo} style={{padding:"7px 18px",fontFamily:MONO,fontSize:"11px",color:dark?"#5a9a5a":"#3a6a3a",cursor:"pointer",letterSpacing:"0.04em",transition:"background 0.1s"}}
+                  <div key={s} onClick={()=>{ if(onSelectSet) onSelectSet(g.name,s); setHover(null); }}
+                    style={{padding:"7px 18px",fontFamily:MONO,fontSize:"11px",color:dark?"#5a9a5a":"#3a6a3a",cursor:"pointer",letterSpacing:"0.04em",transition:"background 0.1s"}}
                     onMouseEnter={e=>e.currentTarget.style.background=dark?"rgba(0,204,64,0.06)":"rgba(21,128,61,0.05)"}
                     onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
                     {s}
                   </div>
                 ))}
                 <div style={{margin:"10px 18px 4px",paddingTop:"10px",borderTop:`1px solid ${dropBdr}`}}>
-                  <div onClick={onEnterDemo} style={{fontFamily:MONO,fontSize:"10px",color:acc,cursor:"pointer",letterSpacing:"0.08em"}}>BROWSE ALL {g.name.toUpperCase()} →</div>
+                  <div onClick={()=>{ if(onSelectGame) onSelectGame(g.name); setHover(null); }}
+                    style={{fontFamily:MONO,fontSize:"10px",color:acc,cursor:"pointer",letterSpacing:"0.08em"}}>
+                    BROWSE ALL {g.name.toUpperCase()} →
+                  </div>
                 </div>
               </div>
             )}
