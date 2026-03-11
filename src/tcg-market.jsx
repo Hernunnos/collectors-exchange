@@ -1542,7 +1542,7 @@ export function WaitlistForm({D,dark,isMobile=false,onLoginClick}){
         name:name.trim(),
         email:email.toLowerCase().trim(),
         role,
-        games:games,
+        games:games.join(','),
         feature_request:feature.trim()||null,
         position:pos,
         signed_up_at:new Date().toISOString(),
