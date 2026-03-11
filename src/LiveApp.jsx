@@ -558,9 +558,6 @@ export default function LiveApp({ dark, setDark, user: initialUser }) {
         </div>
       )}
 
-      {/* Ticker */}
-      <Ticker D={D} dark={dark} tradeHistory={tradeHistory} dbCards={dbCards} marketPrices={marketPrices}/>
-
       {/* Mobile drawer */}
       {isMobile && drawerOpen && <MobileDrawer/>}
 
@@ -637,6 +634,9 @@ export default function LiveApp({ dark, setDark, user: initialUser }) {
           </>
         )}
       </div>
+
+      {/* Ticker */}
+      <Ticker D={D} dark={dark} tradeHistory={tradeHistory} dbCards={dbCards} marketPrices={marketPrices}/>
 
       {/* Mobile bottom tab bar */}
       {isMobile && (
