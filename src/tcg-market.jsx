@@ -605,10 +605,10 @@ export function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[]
     // volume: simulate by seeding random vol from card id, consistent per session
     return [...allCards].sort((a,b)=>((b.id*7+13)%100)-((a.id*7+13)%100)).slice(0,SIDEBAR_COUNT);
   },[allCards,sidebarMode]);
-  const [asks,setAsks]=useState(()=>genOrders(BASE[1],6,"ask"));
-  const [bids,setBids]=useState(()=>genOrders(BASE[1],6,"bid"));
-  const [trades,setTrades]=useState(()=>Array.from({length:16},()=>genTrade(BASE[1])));
-  const [price,setPrice]=useState(BASE[1]);
+  const [asks,setAsks]=useState(()=>isDemo?genOrders(BASE[1],6,"ask"):[]);
+  const [bids,setBids]=useState(()=>isDemo?genOrders(BASE[1],6,"bid"):[]);
+  const [trades,setTrades]=useState(()=>isDemo?Array.from({length:16},()=>genTrade(BASE[1])):[]);
+  const [price,setPrice]=useState(isDemo?BASE[1]:0);
   const [flash,setFlash]=useState(null);
   const [oSide,setOSide]=useState("buy");
   const [oExpiry,setOExpiry]=useState("gtc"); // gtc | day | week | month
@@ -625,12 +625,25 @@ export function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[]
   const base=card.basePrice||BASE[card.id]||0;
   useEffect(()=>{ if(initialCard) setCard(initialCard); },[initialCard]);
 
-  useEffect(()=>{setAsks(genOrders(base,6,"ask"));setBids(genOrders(base,6,"bid"));setPrice(base);setTrades(Array.from({length:16},()=>genTrade(base)));setOPrice("");setOQty("");},[card]);
+  useEffect(()=>{
+    if(isDemo){
+      setAsks(genOrders(base,6,"ask"));
+      setBids(genOrders(base,6,"bid"));
+      setPrice(base);
+      setTrades(Array.from({length:16},()=>genTrade(base)));
+    } else {
+      setAsks([]);
+      setBids([]);
+      setPrice(base||0);
+      setTrades([]);
+    }
+    setOPrice("");setOQty("");
+  },[card]);
   // Price ticker: fast flash every 5s, full chart/book refresh every 30s
   const priceRef=useRef(price);
   useEffect(()=>{ priceRef.current=price; },[price]);
   useEffect(()=>{
-    // Fast: just update price + flash (no orderbook re-render)
+    if(!isDemo) return; // live app: no fake price ticking
     const fastIv=setInterval(()=>{
       const t=genTrade(priceRef.current);
       setFlash(t.price>priceRef.current?"up":"down");
@@ -640,7 +653,6 @@ export function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[]
       if(onUpdatePrice&&card.id) onUpdatePrice(card.id,t.price);
       setTrades(p=>[t,...p.slice(0,19)]);
     },5000);
-    // Slow: regenerate orderbook + chart every 30s
     const slowIv=setInterval(()=>{
       const cur=priceRef.current;
       setAsks(genOrders(cur,6,"ask"));
@@ -710,7 +722,8 @@ export function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[]
   const candles=buildCandles(hist,Math.min(30,Math.max(10,Math.floor(hist.length/3))));
 
   const spread=asks.length&&bids.length?+(asks[0].price-bids[0].price).toFixed(2):0;
-  const pct=(((price-base)/base)*100).toFixed(2);
+  const liveFirstPrice=!isDemo&&cardTrades.length>=2?cardTrades[cardTrades.length-1].price:base;
+  const pct=liveFirstPrice?((( price-liveFirstPrice)/liveFirstPrice)*100).toFixed(2):"0.00";
   const minP=hasHistory?Math.min(...hist.map(h=>h.p)):0;
   const maxP=hasHistory?Math.max(...hist.map(h=>h.p)):0;
   const rng=maxP-minP||1;
@@ -963,8 +976,14 @@ export function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[]
                 <div style={{color:active?D.acc:D.txt,fontSize:"17px",fontWeight:600,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{c.name}</div>
                 <div style={{color:D.txtD,fontSize:"14px",marginTop:"2px",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{c.set||c.set_name}</div>
                 <div style={{display:"flex",gap:"8px",marginTop:"4px"}}>
-                  <span style={{color:D.txtM,fontSize:"16px",fontWeight:600}}>${bp.toLocaleString()}</span>
-                  <span style={{color:up?D.buyT:D.askT,fontSize:"14px"}}>{up?"▲":"▼"}{Math.abs(chg)}%</span>
+                  {isDemo?(
+                    <>
+                      <span style={{color:D.txtM,fontSize:"16px",fontWeight:600}}>${bp.toLocaleString()}</span>
+                      <span style={{color:up?D.buyT:D.askT,fontSize:"14px"}}>{up?"▲":"▼"}{Math.abs(chg)}%</span>
+                    </>
+                  ):(
+                    <span style={{color:D.txtD,fontSize:"14px"}}>no trades yet</span>
+                  )}
                 </div>
               </div>
             </div>
@@ -977,10 +996,15 @@ export function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[]
         <div style={{background:D.bg3,borderBottom:`1px solid ${D.bdr}`,padding:"8px 16px",display:"flex",alignItems:"center",gap:"18px",flexWrap:"wrap",flexShrink:0}}>
           <div><div style={{fontFamily:ORB,fontSize:"23px",fontWeight:700,color:D.txt,letterSpacing:"0.08em"}}>{card.name}</div><div style={{color:D.txtD,fontSize:"16px",marginTop:"3px"}}>{card.set||card.set_name} · {card.condition} · {card.rarity} · {card.game}</div></div>
           <div className={flash==="up"?"fu":flash==="down"?"fd":""} style={{display:"flex",alignItems:"baseline",gap:"8px",padding:"3px 10px",borderRadius:"3px"}}>
-            <span style={{fontFamily:ORB,fontSize:"37px",fontWeight:800,color:flash==="up"?D.buyT:flash==="down"?D.askT:D.txt,transition:"color 0.25s"}}>${(price||0).toLocaleString("en-US",{minimumFractionDigits:2})}</span>
-            <span style={{color:+pct>=0?D.buyT:D.askT,fontSize:"19px"}}>{+pct>=0?"▲":"▼"}{Math.abs(pct)}%</span>
+            <span style={{fontFamily:ORB,fontSize:"37px",fontWeight:800,color:flash==="up"?D.buyT:flash==="down"?D.askT:D.txt,transition:"color 0.25s"}}>{isDemo||price>0?`$${(price||0).toLocaleString("en-US",{minimumFractionDigits:2})}`:"—"}</span>
+            {(isDemo||price>0)&&<span style={{color:+pct>=0?D.buyT:D.askT,fontSize:"19px"}}>{+pct>=0?"▲":"▼"}{Math.abs(pct)}%</span>}
           </div>
-          {[["SPREAD",`$${spread.toFixed(2)}`],["VOL 24H","47 cards"],["HIGH",`$${((base||0)*1.02).toFixed(2)}`],["LOW",`$${((base||0)*0.982).toFixed(2)}`]].map(([k,v])=>(
+          {[
+            ["SPREAD", spread>0?`$${spread.toFixed(2)}`:"—"],
+            ["VOL 24H", isDemo?"47 cards":cardTrades.length?`${cardTrades.length} trades`:"—"],
+            ["HIGH", isDemo?`$${((base||0)*1.02).toFixed(2)}`:cardTrades.length?`$${Math.max(...cardTrades.map(t=>t.price)).toLocaleString("en-US",{minimumFractionDigits:2})}`:"—"],
+            ["LOW",  isDemo?`$${((base||0)*0.982).toFixed(2)}`:cardTrades.length?`$${Math.min(...cardTrades.map(t=>t.price)).toLocaleString("en-US",{minimumFractionDigits:2})}`:"—"],
+          ].map(([k,v])=>(
             <div key={k}><div style={{color:D.txtD,fontSize:"14px",letterSpacing:"0.1em"}}>{k}</div><div style={{color:D.txtM,fontSize:"17px",marginTop:"2px"}}>{v}</div></div>
           ))}
         </div>
@@ -1146,16 +1170,21 @@ export function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[]
                 </div>
               ))}
               <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
-                <div style={{padding:"5px 12px",borderBottom:`1px solid ${D.bdr}`,background:D.bg3,color:D.txtD,fontSize:"14px",letterSpacing:"0.1em",display:"flex",justifyContent:"space-between",flexShrink:0}}><span>▸ TRADES</span><span style={{color:D.buyT,fontSize:"13px"}}>● LIVE</span></div>
+                <div style={{padding:"5px 12px",borderBottom:`1px solid ${D.bdr}`,background:D.bg3,color:D.txtD,fontSize:"14px",letterSpacing:"0.1em",display:"flex",justifyContent:"space-between",flexShrink:0}}><span>▸ TRADES</span><span style={{color:isDemo?D.buyT:D.txtD,fontSize:"13px"}}>{isDemo?"● LIVE":"● WAITING"}</span></div>
                 <div style={{display:"grid",gridTemplateColumns:"70px 1fr 36px",padding:"3px 12px",color:D.txtD,fontSize:"13px",borderBottom:`1px solid ${D.bdr}`,background:D.bg3,flexShrink:0}}><span>TIME</span><span>PRICE</span><span style={{textAlign:"right"}}>QTY</span></div>
                 <div style={{flex:1,overflowY:"auto",background:D.bg2}}>
-                  {trades.map(t=>(
+                  {trades.length>0?trades.map(t=>(
                     <div key={t.id} style={{display:"grid",gridTemplateColumns:"70px 1fr 36px",padding:"4px 12px",borderBottom:`1px solid ${D.bdr}`,alignItems:"center"}}>
                       <span style={{color:D.txtD,fontSize:"13px"}}>{t.time}</span>
                       <span style={{color:t.side==="buy"?D.buyT:D.askT,fontSize:"14px"}}>${t.price.toLocaleString("en-US",{minimumFractionDigits:2})}</span>
                       <span style={{textAlign:"right",color:D.txtM,fontSize:"13px"}}>{t.qty}</span>
                     </div>
-                  ))}
+                  )):(
+                    <div style={{padding:"30px 12px",textAlign:"center",color:D.txtD,fontSize:"13px",letterSpacing:"0.08em"}}>
+                      NO TRADES YET<br/>
+                      <span style={{fontSize:"11px",opacity:0.6}}>Trades will appear here when orders fill</span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -1227,7 +1256,12 @@ export function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[]
               </button>
               {oStatus&&<div style={{marginTop:"10px",padding:"8px 10px",background:oStatus.error?(dark?"rgba(180,30,30,0.08)":"rgba(220,50,50,0.06)"):(dark?"rgba(0,180,60,0.08)":"rgba(22,128,58,0.08)"),border:`1px solid ${oStatus.error?(dark?"#5a1a1a":"#e07070"):(dark?"#1a4a1a":"#8acc8a")}`,borderRadius:"4px",fontSize:"14px",color:oStatus.error?D.askT:D.accD,lineHeight:"1.8"}}>{oStatus.error?`⚠ ${oStatus.error}`:<>✓ ORDER PLACED<br/><span style={{color:D.txtM}}>{oStatus.side?.toUpperCase()} {oStatus.qty}x @ ${oStatus.price?.toFixed(2)}</span></>}</div>}
               <div style={{marginTop:"16px",paddingTop:"12px",borderTop:`1px solid ${D.bdr}`}}>
-                {[["BEST SELL PRICE",`$${asks[0]?.price.toFixed(2)}`],["BEST BUY PRICE",`$${bids[0]?.price.toFixed(2)}`],["LAST TRADE",`$${price.toFixed(2)}`],["SPREAD",`$${spread.toFixed(2)}`]].map(([k,v])=>(
+                {[
+                  ["BEST SELL PRICE", asks[0]?.price ? `$${asks[0].price.toFixed(2)}` : "—"],
+                  ["BEST BUY PRICE",  bids[0]?.price ? `$${bids[0].price.toFixed(2)}` : "—"],
+                  ["LAST TRADE",      price>0 ? `$${price.toFixed(2)}` : "—"],
+                  ["SPREAD",          spread>0 ? `$${spread.toFixed(2)}` : "—"],
+                ].map(([k,v])=>(
                   <div key={k} style={{display:"flex",justifyContent:"space-between",marginBottom:"5px"}}><span style={{color:D.txtD,fontSize:"13px"}}>{k}</span><span style={{color:D.txtM,fontSize:"14px"}}>{v}</span></div>
                 ))}
               </div>
@@ -1710,20 +1744,18 @@ export function Ticker({D,dark,tradeHistory=[],dbCards=[],marketPrices={}}){
   const [paused,setPaused]=useState(false);
   const allCards=[...dbCards,...CARDS];
 
-  // Build ticker items from real trades + simulated live ticks
+  // Build ticker items: real trades always shown; sim ticks only in demo (when marketPrices seeded)
   const items=useMemo(()=>{
     const real=tradeHistory.slice(0,30).map(t=>{
       const card=allCards.find(c=>c.id===t.cardId)||{name:"Unknown",game:""};
       return {id:t.id,name:card.name,game:card.game,price:t.price,qty:t.qty,side:t.side,type:"trade"};
     });
-    // Fill up with simulated ticks if not enough real trades
-    const sim=Object.entries(marketPrices).slice(0,12).map(([id,price])=>{
-      const card=allCards.find(c=>c.id===+id)||{name:"Card",game:""};
-      const side=Math.random()>0.5?"buy":"sell";
-      return {id:`sim-${id}`,name:card.name,game:card.game,price,qty:Math.floor(Math.random()*3)+1,side,type:"tick"};
-    });
-    const all=[...real,...sim];
-    return all.length ? [...all,...all,...all] : []; // triple for seamless loop
+    // Only show sim ticks if we have real trades to blend with (i.e. demo mode)
+    const hasDemoData=real.length>0&&real.some(r=>r.type==="trade");
+    const sim=hasDemoData||real.length===0?[]:[];
+    if(real.length===0) return []; // live app with no trades: hide ticker entirely
+    const all=[...real];
+    return all.length ? [...all,...all,...all] : [];
   },[tradeHistory.length,Object.keys(marketPrices).length]);
 
   if(!items.length) return null;
