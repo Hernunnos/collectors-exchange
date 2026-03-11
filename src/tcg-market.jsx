@@ -1771,7 +1771,11 @@ export function Ticker({D,dark,tradeHistory=[],dbCards=[],marketPrices={}}){
     return all.length ? [...all,...all,...all] : [];
   },[tradeHistory.length,Object.keys(marketPrices).length]);
 
-  if(!items.length) return null;
+  if(!items.length) return (
+    <div style={{background:dark?"#050805":"#e8f0e8",borderBottom:`1px solid ${D.bdr}`,height:"28px",overflow:"hidden",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center"}}>
+      <span style={{color:D.txtD,fontSize:"12px",letterSpacing:"0.14em",fontFamily:MONO}}>◈ LIVE MARKET · NO TRADES YET · PLACE THE FIRST ORDER TO GET STARTED</span>
+    </div>
+  );
 
   return(
     <div
