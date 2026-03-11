@@ -99,18 +99,19 @@ export default function LiveApp({ dark, setDark, user: initialUser }) {
     document.title = "Collector's Exchange";
     import('./supabase').then(({ supabase }) => {
       // Load card catalogue from DB
-      supabase.from('cards').select('*').then(({ data, error }) => {
+      supabase.from('cards').select('*').limit(1000).then(({ data, error }) => {
         if (!error && data) {
           const fmt = data.map(c => ({
             id: c.id, name: c.name, set: c.set_name, set_name: c.set_name,
+            set_code: c.set_code, set_number: c.set_number,
             condition: c.condition, rarity: c.rarity, game: c.game,
             img: c.img_url, img_url: c.img_url,
-            basePrice: c.base_price || BASE[c.id] || 0,
+            basePrice: null,
             language: c.language || "English",
           }));
           setDbCards(fmt);
           const prices = {};
-          fmt.forEach(c => { prices[c.id] = c.basePrice || 0; });
+          fmt.forEach(c => { prices[c.id] = 0; });
           setMarketPrices(prices);
         }
       });
