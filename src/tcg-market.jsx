@@ -458,37 +458,68 @@ export function Browser({D,dark,dbCards,onSelectCard,isMobile=false,isDemo=false
   const [condFilter,setCondFilter]=useState("all");
   const [langFilter,setLangFilter]=useState("all");
   const [setFilter,setSetFilter]=useState("all");
-  const [sort,setSort]=useState("price-desc");
+  const [sort,setSort]=useState("name-asc");
   const [page,setPage]=useState(1);
 
-  const allCards=dbCards.length?dbCards:CARDS.map(c=>({...c,basePrice:BASE[c.id],set_name:c.set,language:"English"}));
-  const games=useMemo(()=>[...new Set(allCards.map(c=>c.game))].filter(Boolean).sort(),[allCards]);
-  const conditions=useMemo(()=>[...new Set(allCards.map(c=>c.condition))].filter(Boolean).sort(),[allCards]);
-  const languages=useMemo(()=>[...new Set(allCards.map(c=>c.language||"English"))].filter(Boolean).sort(),[allCards]);
-  // Only show sets that belong to the currently selected game — recomputes when gameFilter changes
-  const sets=useMemo(()=>{
-    const src=gameFilter==="all"?allCards:allCards.filter(c=>c.game===gameFilter);
-    return [...new Set(src.map(c=>c.set||c.set_name))].filter(Boolean).sort();
-  },[allCards,gameFilter]);
+  // Server-side state
+  const [cards,setCards]=useState([]);
+  const [totalCount,setTotalCount]=useState(0);
+  const [loading,setLoading]=useState(false);
+  const [sets,setSets]=useState([]);
 
-  const filtered=allCards
-    .filter(c=>search===""||c.name.toLowerCase().includes(search.toLowerCase())||((c.set||c.set_name)||"").toLowerCase().includes(search.toLowerCase()))
-    .filter(c=>gameFilter==="all"||c.game===gameFilter)
-    .filter(c=>condFilter==="all"||c.condition===condFilter)
-    .filter(c=>langFilter==="all"||(c.language||"English")===langFilter)
-    .filter(c=>setFilter==="all"||(c.set||c.set_name)===setFilter)
-    .sort((a,b)=>{
-      const pa=a.basePrice||BASE[a.id]||0,pb=b.basePrice||BASE[b.id]||0;
-      if(sort==="price-desc") return pb-pa;
-      if(sort==="price-asc")  return pa-pb;
-      if(sort==="name-asc")   return a.name.localeCompare(b.name);
-      return 0;
-    });
-
-  const totalPages=Math.max(1,Math.ceil(filtered.length/PAGE_SIZE));
-  const paginated=filtered.slice((page-1)*PAGE_SIZE,page*PAGE_SIZE);
-
+  const games=["Pokémon","MTG","Yu-Gi-Oh!","One Piece TCG","Flesh and Blood","Lorcana"];
+  const conditions=["NM","LP","MP","HP","DMG","PSA 10","PSA 9","PSA 8","PSA 7","PSA 6","PSA 5","PSA 4","PSA 3","PSA 2","PSA 1"];
+  const languages=["English","Japanese"];
+  const totalPages=Math.max(1,Math.ceil(totalCount/PAGE_SIZE));
   const resetPage=()=>setPage(1);
+
+  // Load set names for selected game
+  useEffect(()=>{
+    if(isDemo){ setSets([...new Set(CARDS.map(c=>c.set))].sort()); return; }
+    import('./supabase').then(({supabase})=>{
+      let q=supabase.from('cards').select('set_name').eq('condition','NM').eq('language','English').limit(2000);
+      if(gameFilter!=="all") q=q.eq('game',gameFilter);
+      q.then(({data})=>{
+        if(data) setSets([...new Set(data.map(c=>c.set_name).filter(Boolean))].sort());
+      });
+    });
+  },[gameFilter,isDemo]);
+
+  // Main query — fires on every filter/sort/page change
+  useEffect(()=>{
+    if(isDemo){
+      const src=CARDS.map(c=>({...c,set_name:c.set,language:"English",img_url:c.img}));
+      setCards(src); setTotalCount(src.length); return;
+    }
+    setLoading(true);
+    import('./supabase').then(({supabase})=>{
+      const from=(page-1)*PAGE_SIZE, to=from+PAGE_SIZE-1;
+      let q=supabase.from('cards').select('*',{count:'exact'}).range(from,to);
+      if(search)             q=q.or(`name.ilike.%${search}%,set_name.ilike.%${search}%`);
+      if(gameFilter!=="all") q=q.eq('game',gameFilter);
+      if(condFilter!=="all") q=q.eq('condition',condFilter);
+      if(langFilter!=="all") q=q.eq('language',langFilter);
+      if(setFilter!=="all")  q=q.eq('set_name',setFilter);
+      if(sort==="name-desc")    q=q.order('name',{ascending:false});
+      else if(sort==="set-asc")  q=q.order('set_name',{ascending:true}).order('name',{ascending:true});
+      else                       q=q.order('name',{ascending:true});
+      q.then(({data,count,error})=>{
+        setLoading(false);
+        if(!error&&data){
+          setCards(data.map(c=>({
+            id:c.id, name:c.name, set:c.set_name, set_name:c.set_name,
+            set_code:c.set_code, set_number:c.set_number,
+            condition:c.condition, rarity:c.rarity, game:c.game,
+            img:c.img_url, img_url:c.img_url, basePrice:null,
+            language:c.language||"English",
+          })));
+          setTotalCount(count||0);
+        }
+      });
+    });
+  },[search,gameFilter,condFilter,langFilter,setFilter,sort,page,isDemo]);
+
+  const paginated=cards;
 
   const inBtnStyle=(active)=>({
     padding:"5px 12px",border:`1px solid ${active?D.accD:D.bdr}`,borderRadius:"4px",
@@ -506,7 +537,7 @@ export function Browser({D,dark,dbCards,onSelectCard,isMobile=false,isDemo=false
 
   const Pagination=()=>(
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:"8px"}}>
-      <span style={{color:D.txtD,fontSize:"13px",letterSpacing:"0.1em"}}>{filtered.length.toLocaleString()} CARDS · PAGE {page} OF {totalPages.toLocaleString()}</span>
+      <span style={{color:D.txtD,fontSize:"13px",letterSpacing:"0.1em"}}>{totalCount.toLocaleString()} CARDS · PAGE {page} OF {totalPages.toLocaleString()}</span>
       <div style={{display:"flex",gap:"4px",alignItems:"center"}}>
         {pgBtn("«",()=>setPage(1),page===1)}
         {pgBtn("‹",()=>setPage(p=>p-1),page===1)}
@@ -557,20 +588,23 @@ export function Browser({D,dark,dbCards,onSelectCard,isMobile=false,isDemo=false
         <div style={{display:"flex",gap:"6px",alignItems:"center"}}>
           <span style={{color:D.txtD,fontSize:"13px",letterSpacing:"0.1em"}}>SORT</span>
           <select value={sort} onChange={e=>{setSort(e.target.value);resetPage();}} style={{background:D.inBg,border:`1px solid ${D.inBdr}`,borderRadius:"4px",padding:"6px 10px",color:D.txt,fontSize:"14px",fontFamily:MONO,cursor:"pointer"}}>
-            <option value="price-desc">Price: High to Low</option>
-            <option value="price-asc">Price: Low to High</option>
             <option value="name-asc">Name: A to Z</option>
+            <option value="name-desc">Name: Z to A</option>
+            <option value="set-asc">Set: A to Z</option>
           </select>
         </div>
       </div>
 
-      {filtered.length===0&&(
+      {loading&&(
+        <div style={{padding:"60px",textAlign:"center",color:D.txtD,fontSize:"17px",background:D.bg2,border:`1px solid ${D.bdr}`,borderRadius:"6px",letterSpacing:"0.12em"}}>LOADING...</div>
+      )}
+      {!loading&&paginated.length===0&&(
         <div style={{padding:"60px",textAlign:"center",color:D.txtD,fontSize:"17px",background:D.bg2,border:`1px solid ${D.bdr}`,borderRadius:"6px"}}>No cards match your filters</div>
       )}
 
-      <div style={{display:"grid",gridTemplateColumns:isMobile?"repeat(2,1fr)":"repeat(auto-fill,minmax(180px,1fr))",gap:isMobile?"10px":"14px"}}>
+      {!loading&&<div style={{display:"grid",gridTemplateColumns:isMobile?"repeat(2,1fr)":"repeat(auto-fill,minmax(180px,1fr))",gap:isMobile?"10px":"14px"}}>
         {paginated.map(c=>{
-          const bp=c.basePrice||BASE[c.id]||0;
+          const bp=c.basePrice||0;
           const chg=((Math.random()-0.45)*5).toFixed(2);const up=+chg>=0;
           return(
             <div key={c.id} onClick={()=>onSelectCard(c)} style={{background:D.bg2,border:`1px solid ${D.bdr}`,borderRadius:"8px",overflow:"hidden",cursor:"pointer",transition:"border-color 0.15s,box-shadow 0.15s"}}
@@ -600,7 +634,7 @@ export function Browser({D,dark,dbCards,onSelectCard,isMobile=false,isDemo=false
             </div>
           );
         })}
-      </div>
+      </div>}
 
       {totalPages>1&&<Pagination/>}
       </div>
@@ -2246,7 +2280,7 @@ export function AdminPanel({D,dark,onClose,currentUserId}){
                       {u.verified&&<span style={{color:"#2563eb",fontSize:"13px"}}>✓ verified</span>}
                     </td>
                     <td style={{padding:"10px 14px",color:D.txtD,fontSize:"14px"}}>{u.email||"—"}</td>
-                    <td style={{padding:"10px 14px",color:D.txtD,fontSize:"14px"}}>{u.joined_at||"—"}</td>
+                    <td style={{padding:"10px 14px",color:D.txtD,fontSize:"14px"}}>{u.joined_at ? new Date(u.joined_at).toLocaleDateString("en-US",{month:"short",year:"numeric"}) : "—"}</td>
                     <td style={{padding:"10px 14px",color:D.txtM,fontSize:"16px",textAlign:"center"}}>{u.trade_count||0}</td>
                     <td style={{padding:"10px 14px"}}><RepBadge tradeCount={u.trade_count||0}/></td>
                     <td style={{padding:"10px 14px"}}>
@@ -2326,7 +2360,7 @@ export function ProfileSettings({D,dark,user,profile,tradeHistory=[],holdings=[]
   const tradeCount=profile?.trade_count||tradeHistory.length;
   const winRate=tradeHistory.length>0?Math.round((tradeHistory.filter(t=>t.side==="sell").length/tradeHistory.length)*100):0;
   const totalVolume=tradeHistory.reduce((s,t)=>s+(t.total||0),0);
-  const joinDate=profile?.joined_at||"—";
+  const joinDate = profile?.joined_at ? new Date(profile.joined_at).toLocaleDateString("en-US",{month:"short",year:"numeric"}) : "—";
 
   useEffect(()=>{
     setDName(profile?.display_name||user?.user_metadata?.display_name||"");
@@ -2525,7 +2559,7 @@ export function ProfileSettings({D,dark,user,profile,tradeHistory=[],holdings=[]
               </div>
               <div>
                 <div style={{color:D.txtD,fontSize:"13px",marginBottom:"4px"}}>MEMBER SINCE</div>
-                <div style={{color:D.txtM,fontSize:"16px",padding:"8px 12px",background:D.bg3,borderRadius:"4px",border:`1px solid ${D.bdr}`}}>{profile?.joined_at||"—"}</div>
+                <div style={{color:D.txtM,fontSize:"16px",padding:"8px 12px",background:D.bg3,borderRadius:"4px",border:`1px solid ${D.bdr}`}}>{profile?.joined_at ? new Date(profile.joined_at).toLocaleDateString("en-US",{month:"short",year:"numeric"}) : "—"}</div>
               </div>
             </div>
 
