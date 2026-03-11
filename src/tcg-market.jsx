@@ -452,7 +452,7 @@ export function History({D,dark,tradeHistory=[],ledger=[],dbCards=[],isMobile=fa
 
 // ── Browser ───────────────────────────────────────────────────────────────────
 const PAGE_SIZE=40;
-export function Browser({D,dark,dbCards,onSelectCard,isMobile=false}){
+export function Browser({D,dark,dbCards,onSelectCard,isMobile=false,isDemo=false}){
   const [search,setSearch]=useState("");
   const [gameFilter,setGameFilter]=useState("all");
   const [condFilter,setCondFilter]=useState("all");
@@ -583,8 +583,14 @@ export function Browser({D,dark,dbCards,onSelectCard,isMobile=false}){
                 <div style={{fontFamily:ORB,fontSize:"16px",fontWeight:700,color:D.txt,marginBottom:"3px",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{c.name}</div>
                 <div style={{color:D.txtD,fontSize:"13px",marginBottom:"8px"}}>{c.set||c.set_name} · {c.condition}</div>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline"}}>
-                  <span style={{fontFamily:ORB,fontSize:"19px",fontWeight:700,color:D.accD}}>${bp.toLocaleString("en-US",{minimumFractionDigits:2})}</span>
-                  <span style={{color:up?D.buyT:D.askT,fontSize:"13px"}}>{up?"▲":"▼"}{Math.abs(chg)}%</span>
+                  {isDemo?(
+                    <>
+                      <span style={{fontFamily:ORB,fontSize:"19px",fontWeight:700,color:D.accD}}>${bp.toLocaleString("en-US",{minimumFractionDigits:2})}</span>
+                      <span style={{color:up?D.buyT:D.askT,fontSize:"13px"}}>{up?"▲":"▼"}{Math.abs(chg)}%</span>
+                    </>
+                  ):(
+                    <span style={{color:D.txtD,fontSize:"14px",letterSpacing:"0.06em"}}>no trades yet</span>
+                  )}
                 </div>
                 <div style={{display:"flex",justifyContent:"space-between",marginTop:"6px"}}>
                   <span style={{background:dark?"rgba(0,180,60,0.08)":"rgba(22,128,58,0.06)",color:D.txtM,fontSize:"12px",padding:"2px 6px",borderRadius:"3px"}}>{c.game}</span>
@@ -1772,8 +1778,10 @@ export function Ticker({D,dark,tradeHistory=[],dbCards=[],marketPrices={}}){
   },[tradeHistory.length,Object.keys(marketPrices).length]);
 
   if(!items.length) return (
-    <div style={{background:dark?"#050805":"#e8f0e8",borderBottom:`1px solid ${D.bdr}`,height:"28px",overflow:"hidden",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center"}}>
-      <span style={{color:D.txtD,fontSize:"12px",letterSpacing:"0.14em",fontFamily:MONO}}>◈ LIVE MARKET · NO TRADES YET · PLACE THE FIRST ORDER TO GET STARTED</span>
+    <div style={{background:dark?"#050805":"#e8f0e8",borderBottom:`1px solid ${D.bdr}`,height:"28px",overflow:"hidden",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",gap:"16px"}}>
+      <span style={{color:dark?"#00cc40":"#15803d",fontSize:"11px"}}>●</span>
+      <span style={{color:dark?"#4a8a4a":"#5a8a5a",fontSize:"12px",letterSpacing:"0.14em",fontFamily:MONO}}>LIVE MARKET · NO TRADES YET · PLACE THE FIRST ORDER TO GET STARTED</span>
+      <span style={{color:dark?"#00cc40":"#15803d",fontSize:"11px"}}>●</span>
     </div>
   );
 

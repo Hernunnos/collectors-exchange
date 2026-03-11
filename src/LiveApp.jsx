@@ -654,7 +654,7 @@ export default function LiveApp({ dark, setDark, user: initialUser }) {
       {/* Tab content */}
       <div style={{flex:1,display:"flex",overflow:"hidden",paddingBottom:isMobile?"54px":"0"}}>
         {tab==="MARKET"    && <Market    D={D} dark={dark} dbCards={dbCards} initialCard={selectedCard} balance={balance} holdings={holdings} onPlaceOrder={placeOrder} onUpdatePrice={handleUpdatePrice} tradeHistory={tradeHistory} isDemo={false} isMobile={isMobile}/>}
-        {tab==="BROWSE"    && <Browser   D={D} dark={dark} dbCards={dbCards} onSelectCard={handleBrowseSelect} isMobile={isMobile}/>}
+        {tab==="BROWSE"    && <Browser   D={D} dark={dark} dbCards={dbCards} onSelectCard={handleBrowseSelect} isMobile={isMobile} isDemo={false}/>}
         {tab==="PORTFOLIO" && <Portfolio D={D} dark={dark} holdings={holdings} tradeHistory={tradeHistory} dbCards={dbCards} isMobile={isMobile} onNavigateToMarket={c => { setSelectedCard(c); setTab("MARKET"); }}/>}
         {tab==="ORDERS"    && <Orders    D={D} dark={dark} orders={orders} onCancel={cancelOrder} dbCards={dbCards} isMobile={isMobile}/>}
         {tab==="HISTORY"   && <History   D={D} dark={dark} tradeHistory={tradeHistory} ledger={ledger} dbCards={dbCards} isMobile={isMobile}/>}
