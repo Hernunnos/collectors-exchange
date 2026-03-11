@@ -22,3 +22,10 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+upload_cards.js
+import_cards.js
+split_sql.js
+cards_catalogue.sql
+sql_chunks/
+supabase.exe
