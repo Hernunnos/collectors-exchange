@@ -984,7 +984,7 @@ export function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[]
         </div>
 
         {/* Order book — scrollable */}
-        <div style={{flex:1,overflowY:"auto",background:D.bg2}}>
+        <div id="cx-tour-orderbook" style={{flex:1,overflowY:"auto",background:D.bg2}}>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr"}}>
             {[["BUY PRICE",bids,maxB,D.bidT,"bid"],["SELL PRICE",asks,maxA,D.askT,"ask"]].map(([label,rows,mx,tc,side])=>(
               <div key={label} style={{borderRight:`1px solid ${D.bdr}`}}>
@@ -1276,7 +1276,7 @@ export function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[]
               )}
             </div>
 
-            <div style={{flex:1,display:"flex",overflow:"hidden"}}>
+            <div id="cx-tour-orderbook" style={{flex:1,display:"flex",overflow:"hidden"}}>
               {[["BUY PRICE",bids,maxB,D.bidT,"bid"],["SELL PRICE",asks,maxA,D.askT,"ask"]].map(([label,rows,mx,tc,side])=>(
                 <div key={label} style={{flex:1,display:"flex",flexDirection:"column",borderRight:`1px solid ${D.bdr}`,overflow:"hidden"}}>
                   <div style={{padding:"5px 12px",borderBottom:`1px solid ${D.bdr}`,background:D.bg3,color:tc,fontSize:"14px",letterSpacing:"0.1em",flexShrink:0}}>▸ {label}</div>
@@ -1323,7 +1323,7 @@ export function Market({D,dark,dbCards=[],initialCard=null,balance=0,holdings=[]
             </div>
           </div>
 
-          <div style={{width:"220px",borderLeft:`1px solid ${D.bdr}`,background:D.bg2,flexShrink:0,overflowY:"auto"}}>
+          <div id="cx-tour-placeorder" style={{width:"220px",borderLeft:`1px solid ${D.bdr}`,background:D.bg2,flexShrink:0,overflowY:"auto"}}>
             <div style={{padding:"8px 14px",borderBottom:`1px solid ${D.bdr}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <span style={{color:D.txtD,fontSize:"14px",letterSpacing:"0.12em"}}>▸ PLACE ORDER</span>
               <span style={{color:D.txtM,fontSize:"14px"}}>💵 ${balance.toLocaleString("en-US",{minimumFractionDigits:2})}</span>
@@ -2791,5 +2791,133 @@ export function ProfileSettings({D,dark,user,profile,tradeHistory=[],holdings=[]
         )}
       </div>
     </div>
+  );
+}
+// ── Tour / Coach Marks ────────────────────────────────────────────────────────
+export function TourOverlay({D,dark,onClose}){
+  const [step,setStep]=useState(0);
+
+  const STEPS=[
+    {
+      target:"cx-tour-orderbook",
+      title:"ORDER BOOK",
+      body:"The order book shows all live buy (bid) and sell (ask) orders for a card. The spread between the best bid and ask is where the market price is discovered.",
+      side:"bottom",
+    },
+    {
+      target:"cx-tour-placeorder",
+      title:"PLACING AN ORDER",
+      body:"Use the Buy/Sell panel to place a Limit order (you set the price) or a Market order (fills immediately at the best available price). Set quantity and confirm.",
+      side:"bottom",
+    },
+    {
+      target:"cx-tour-importcsv",
+      title:"IMPORT YOUR BINDER",
+      body:"Click the 📂 icon to import a CSV of your collection. We'll match your cards to the catalogue and let you instantly list them for sale.",
+      side:"bottom",
+    },
+    {
+      target:"cx-tour-deposit",
+      title:"DEPOSITING FUNDS",
+      body:"Your balance starts at $0. Use the deposit system to add funds before placing buy orders. Withdrawals work the same way once you've sold cards.",
+      side:"bottom",
+    },
+    {
+      target:"cx-tour-profile",
+      title:"YOUR PROFILE",
+      body:"Set your display name and bio so other traders know who they're dealing with. Your reputation tier grows with every completed trade.",
+      side:"bottom",
+    },
+  ];
+
+  const current=STEPS[step];
+  const total=STEPS.length;
+
+  // Find the target element and get its position
+  const [pos,setPos]=useState(null);
+  useEffect(()=>{
+    const el=document.getElementById(current.target);
+    if(!el){setPos(null);return;}
+    const r=el.getBoundingClientRect();
+    setPos({top:r.top,left:r.left,width:r.width,height:r.height});
+  },[step]);
+
+  const PAD=8;
+  const TW=320;
+
+  // Tooltip position: below the target by default
+  const tooltipStyle=pos?{
+    position:"fixed",
+    top:pos.top+pos.height+PAD+10,
+    left:Math.min(Math.max(pos.left+pos.width/2-TW/2,12),window.innerWidth-TW-12),
+    width:TW,
+    zIndex:1001,
+  }:{
+    position:"fixed",
+    top:"50%",left:"50%",
+    transform:"translate(-50%,-50%)",
+    width:TW,
+    zIndex:1001,
+  };
+
+  return(
+    <>
+      {/* Dimmed overlay */}
+      <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.65)",zIndex:1000,pointerEvents:"none"}}/>
+
+      {/* Spotlight cutout around target */}
+      {pos&&(
+        <div style={{
+          position:"fixed",
+          top:pos.top-PAD,left:pos.left-PAD,
+          width:pos.width+PAD*2,height:pos.height+PAD*2,
+          borderRadius:"6px",
+          boxShadow:"0 0 0 9999px rgba(0,0,0,0.65)",
+          zIndex:1000,
+          pointerEvents:"none",
+          border:`2px solid ${dark?"#00cc40":"#15803d"}`,
+        }}/>
+      )}
+
+      {/* Tooltip */}
+      <div style={{...tooltipStyle,background:D.bg2,border:`1px solid ${dark?"#1a5a2a":"#7ab07a"}`,borderRadius:"10px",padding:"20px",boxShadow:"0 8px 32px rgba(0,0,0,0.4)"}}>
+        {/* Step indicator */}
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"12px"}}>
+          <div style={{fontFamily:"'Orbitron',sans-serif",fontSize:"13px",fontWeight:700,color:dark?"#00cc40":"#15803d",letterSpacing:"0.14em"}}>
+            {current.title}
+          </div>
+          <button onClick={onClose} style={{background:"none",border:"none",color:D.txtD,fontSize:"20px",cursor:"pointer",lineHeight:1,padding:"0 0 0 8px"}}>×</button>
+        </div>
+
+        <div style={{color:D.txtM,fontSize:"14px",lineHeight:"1.65",marginBottom:"18px"}}>
+          {current.body}
+        </div>
+
+        {/* Progress dots */}
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+          <div style={{display:"flex",gap:"6px"}}>
+            {STEPS.map((_,i)=>(
+              <div key={i} style={{width:"7px",height:"7px",borderRadius:"50%",background:i===step?(dark?"#00cc40":"#15803d"):D.bdr2,transition:"background 0.2s"}}/>
+            ))}
+          </div>
+          <div style={{display:"flex",gap:"8px"}}>
+            {step>0&&(
+              <button onClick={()=>setStep(s=>s-1)} style={{padding:"5px 14px",background:"transparent",border:`1px solid ${D.bdr2}`,borderRadius:"4px",color:D.txtD,fontSize:"13px",fontFamily:"'Share Tech Mono',monospace",cursor:"pointer"}}>
+                ← PREV
+              </button>
+            )}
+            {step<total-1?(
+              <button onClick={()=>setStep(s=>s+1)} style={{padding:"5px 14px",background:dark?"linear-gradient(135deg,#0a3a1a,#0f5a28)":"linear-gradient(135deg,#cceacc,#a8d8a8)",border:`1px solid ${dark?"#1a5a2a":"#7ab07a"}`,borderRadius:"4px",color:dark?"#00ff55":"#1a5a2a",fontSize:"13px",fontFamily:"'Share Tech Mono',monospace",cursor:"pointer",fontWeight:"bold"}}>
+                NEXT →
+              </button>
+            ):(
+              <button onClick={onClose} style={{padding:"5px 14px",background:dark?"linear-gradient(135deg,#0a3a1a,#0f5a28)":"linear-gradient(135deg,#cceacc,#a8d8a8)",border:`1px solid ${dark?"#1a5a2a":"#7ab07a"}`,borderRadius:"4px",color:dark?"#00ff55":"#1a5a2a",fontSize:"13px",fontFamily:"'Share Tech Mono',monospace",cursor:"pointer",fontWeight:"bold"}}>
+                DONE ✓
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </>
   );
 }
