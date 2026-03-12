@@ -29,7 +29,6 @@ import {
 
 // ── Shared constants and helpers ──────────────────────────────
 import {
-  CARDS,
   BASE,
   DK,
   LT,
@@ -39,7 +38,6 @@ import {
   nowDate,
   nowTime,
   newOrderId,
-  newTradeId,
   useIsMobile,
 } from "./tcg-market";
 
@@ -309,8 +307,7 @@ export default function LiveApp({ dark, setDark, user: initialUser }) {
           }
 
           result.newTrades.forEach(t => {
-            const allC = [...dbCardsRef.current, ...CARDS];
-            const card = allC.find(c => c.id===t.cardId) || { name:"Card" };
+            const card = dbCardsRef.current.find(c => c.id===t.cardId) || { name:"Card" };
             pushNotification(
               t.side==="buy" ? "filled_buy" : "filled_sell",
               `${t.side==="buy"?"Bought":"Sold"} ${t.qty}× ${card.name} @ $${t.price.toLocaleString("en-US",{minimumFractionDigits:2})}`
@@ -350,8 +347,7 @@ export default function LiveApp({ dark, setDark, user: initialUser }) {
         setBalance(result.balance);
         setTradeHistory(h => [...result.newTrades, ...h]);
         result.newTrades.forEach(t => {
-          const allC = [...dbCards, ...CARDS];
-          const card = allC.find(c => c.id===t.cardId) || { name:"Card" };
+          const card = dbCards.find(c => c.id===t.cardId) || { name:"Card" };
           pushNotification(
             t.side==="buy"?"filled_buy":"filled_sell",
             `${t.side==="buy"?"Bought":"Sold"} ${t.qty}× ${card.name} @ $${t.price.toLocaleString("en-US",{minimumFractionDigits:2})}`

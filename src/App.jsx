@@ -58,16 +58,23 @@ function LoadingScreen({ dark }) {
 
 // ── Root ───────────────────────────────────────────────────────
 export default function App() {
-  const [dark, setDark] = useState(false);
+  const [dark, setDark] = useState(() => {
+    try { return localStorage.getItem('cx_dark') === 'true'; } catch { return false; }
+  });
+  const toggleDark = (v) => {
+    const next = typeof v === 'boolean' ? v : !dark;
+    setDark(next);
+    try { localStorage.setItem('cx_dark', next); } catch {}
+  };
 
   return (
     <BrowserRouter>
       <GlobalStyles dark={dark} />
       <Routes>
         <Route path="/"        element={<IndexRoute dark={dark} />} />
-        <Route path="/landing" element={<LandingRoute dark={dark} setDark={setDark} />} />
-        <Route path="/demo"    element={<DemoApp dark={dark} setDark={setDark} />} />
-        <Route path="/app"     element={<LiveRoute dark={dark} setDark={setDark} />} />
+        <Route path="/landing" element={<LandingRoute dark={dark} setDark={toggleDark} />} />
+        <Route path="/demo"    element={<DemoApp dark={dark} setDark={toggleDark} />} />
+        <Route path="/app"     element={<LiveRoute dark={dark} setDark={toggleDark} />} />
         <Route path="*"        element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
@@ -98,8 +105,8 @@ function LandingRoute({ dark, setDark }) {
 
   useEffect(() => {
     import('./supabase').then(({ supabase }) => {
-      // Load cards for landing page
-      supabase.from('cards').select('*').then(({ data, error }) => {
+      // Load a small sample of cards for landing page visuals only
+      supabase.from('cards').select('*').eq('condition','NM').eq('language','English').limit(20).then(({ data, error }) => {
         if (!error && data) {
           setDbCards(data.map(c => ({
             id: c.id, name: c.name, set: c.set_name, set_name: c.set_name,

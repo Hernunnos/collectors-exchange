@@ -37,7 +37,6 @@ import {
   nowDate,
   nowTime,
   newOrderId,
-  newTradeId,
   useIsMobile,
 } from "./tcg-market";
 
