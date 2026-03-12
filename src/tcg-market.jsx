@@ -2302,17 +2302,21 @@ export function RepBadge({tradeCount=0,size="sm"}){
 export function AdminPanel({D,dark,onClose,currentUserId}){
   const [users,setUsers]=useState([]);
   const [reports,setReports]=useState([]);
+  const [waitlist,setWaitlist]=useState([]);
   const [loading,setLoading]=useState(true);
   const [tab,setTab]=useState("users");
+  const [inviting,setInviting]=useState({}); // { [id]: 'sending' | 'done' | 'error' }
 
   useEffect(()=>{
     import('./supabase').then(async({supabase})=>{
-      const [profRes,repRes]=await Promise.all([
+      const [profRes,repRes,waitRes]=await Promise.all([
         supabase.from('user_profiles').select('*').order('joined_at',{ascending:false}),
         supabase.from('user_reports').select('*').order('created_at',{ascending:false}),
+        supabase.from('waitlist').select('*').order('position',{ascending:true}),
       ]);
       setUsers(profRes.data||[]);
       setReports(repRes.data||[]);
+      setWaitlist(waitRes.data||[]);
       setLoading(false);
     });
   },[]);
@@ -2326,6 +2330,21 @@ export function AdminPanel({D,dark,onClose,currentUserId}){
     const {supabase}=await import('./supabase');
     await supabase.from('user_reports').update({resolved:true}).eq('id',id);
     setReports(p=>p.map(r=>r.id===id?{...r,resolved:true}:r));
+  };
+  const inviteUser=async(entry)=>{
+    setInviting(p=>({...p,[entry.id]:'sending'}));
+    try{
+      const {supabase}=await import('./supabase');
+      const {error}=await supabase.functions.invoke('invite-user',{body:{email:entry.email,name:entry.name}});
+      if(error) throw error;
+      await supabase.from('waitlist').update({status:'invited',invited_at:new Date().toISOString()}).eq('id',entry.id);
+      setWaitlist(p=>p.map(w=>w.id===entry.id?{...w,status:'invited',invited_at:new Date().toISOString()}:w));
+      setInviting(p=>({...p,[entry.id]:'done'}));
+    }catch(e){
+      console.error('Invite error:',e);
+      setInviting(p=>({...p,[entry.id]:'error'}));
+      setTimeout(()=>setInviting(p=>({...p,[entry.id]:undefined})),3000);
+    }
   };
 
   return(
@@ -2341,14 +2360,63 @@ export function AdminPanel({D,dark,onClose,currentUserId}){
         </div>
         {/* Tabs */}
         <div style={{display:"flex",borderBottom:`1px solid ${D.bdr}`,flexShrink:0}}>
-          {[["users","👥 USERS"],["reports","🚩 REPORTS"]].map(([t,label])=>(
-            <button key={t} onClick={()=>setTab(t)} style={{padding:"10px 20px",border:"none",background:"transparent",color:tab===t?D.acc:D.txtD,fontSize:"14px",fontFamily:"'Share Tech Mono',monospace",letterSpacing:"0.1em",cursor:"pointer",borderBottom:`2px solid ${tab===t?D.acc:"transparent"}`}}>{label}{t==="reports"&&reports.filter(r=>!r.resolved).length>0&&<span style={{marginLeft:"6px",background:"#dc2626",color:"#fff",borderRadius:"50%",padding:"1px 5px",fontSize:"12px"}}>{reports.filter(r=>!r.resolved).length}</span>}</button>
+          {[["users","👥 USERS"],["waitlist","⏳ WAITLIST"],["reports","🚩 REPORTS"]].map(([t,label])=>(
+            <button key={t} onClick={()=>setTab(t)} style={{padding:"10px 20px",border:"none",background:"transparent",color:tab===t?D.acc:D.txtD,fontSize:"14px",fontFamily:"'Share Tech Mono',monospace",letterSpacing:"0.1em",cursor:"pointer",borderBottom:`2px solid ${tab===t?D.acc:"transparent"}`}}>
+              {label}
+              {t==="reports"&&reports.filter(r=>!r.resolved).length>0&&<span style={{marginLeft:"6px",background:"#dc2626",color:"#fff",borderRadius:"50%",padding:"1px 5px",fontSize:"12px"}}>{reports.filter(r=>!r.resolved).length}</span>}
+              {t==="waitlist"&&waitlist.filter(w=>w.status==="pending"||!w.status).length>0&&<span style={{marginLeft:"6px",background:"#f59e0b",color:"#000",borderRadius:"50%",padding:"1px 5px",fontSize:"12px"}}>{waitlist.filter(w=>w.status==="pending"||!w.status).length}</span>}
+            </button>
           ))}
         </div>
         {/* Body */}
         <div style={{flex:1,overflowY:"auto"}}>
           {loading?(
             <div style={{padding:"48px",textAlign:"center",color:D.txtD}}>Loading...</div>
+          ):tab==="waitlist"?(
+            <table style={{width:"100%",borderCollapse:"collapse"}}>
+              <thead>
+                <tr style={{background:D.bg3}}>
+                  {["#","NAME","EMAIL","ROLE","GAMES","SIGNED UP","STATUS","ACTION"].map(h=>(
+                    <th key={h} style={{padding:"8px 14px",textAlign:"left",color:D.txtD,fontSize:"13px",letterSpacing:"0.1em",fontWeight:"normal",borderBottom:`1px solid ${D.bdr}`}}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {waitlist.length===0&&(
+                  <tr><td colSpan={8} style={{padding:"48px",textAlign:"center",color:D.txtD}}>No waitlist signups yet</td></tr>
+                )}
+                {waitlist.map(w=>{
+                  const status=w.status||"pending";
+                  const invState=inviting[w.id];
+                  const statusColor=status==="invited"?"#f59e0b":status==="joined"?"#00cc44":D.txtD;
+                  const statusLabel=status==="invited"?"✉ INVITED":status==="joined"?"✓ JOINED":"● PENDING";
+                  return(
+                    <tr key={w.id} style={{borderBottom:`1px solid ${D.bdr}`,opacity:status==="joined"?0.6:1}}>
+                      <td style={{padding:"10px 14px",color:D.txtD,fontSize:"13px"}}>#{w.position||"—"}</td>
+                      <td style={{padding:"10px 14px",color:D.txt,fontSize:"15px"}}>{w.name||"—"}</td>
+                      <td style={{padding:"10px 14px",color:D.txtD,fontSize:"13px"}}>{w.email||"—"}</td>
+                      <td style={{padding:"10px 14px",color:D.txtM,fontSize:"13px",textTransform:"capitalize"}}>{w.role||"—"}</td>
+                      <td style={{padding:"10px 14px",color:D.txtD,fontSize:"12px",maxWidth:"140px"}}>{Array.isArray(w.games)?w.games.join(", "):w.games||"—"}</td>
+                      <td style={{padding:"10px 14px",color:D.txtD,fontSize:"13px"}}>{w.signed_up_at?new Date(w.signed_up_at).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}):"—"}</td>
+                      <td style={{padding:"10px 14px"}}><span style={{color:statusColor,fontSize:"13px"}}>{statusLabel}</span></td>
+                      <td style={{padding:"10px 14px"}}>
+                        {status==="pending"&&(
+                          <button
+                            onClick={()=>inviteUser(w)}
+                            disabled={invState==="sending"}
+                            style={{padding:"3px 10px",background:invState==="done"?"transparent":dark?"linear-gradient(135deg,#0a3a1a,#0f5a28)":"linear-gradient(135deg,#cceacc,#a8d8a8)",border:`1px solid ${invState==="error"?"#dc2626":dark?"#1a5a2a":"#7ab07a"}`,borderRadius:"3px",color:invState==="error"?"#dc2626":dark?"#00ff55":"#1a5a2a",fontSize:"13px",fontFamily:"'Share Tech Mono',monospace",cursor:invState==="sending"?"wait":"pointer",opacity:invState==="sending"?0.7:1}}
+                          >
+                            {invState==="sending"?"SENDING...":invState==="error"?"FAILED":"INVITE"}
+                          </button>
+                        )}
+                        {status==="invited"&&<span style={{color:D.txtD,fontSize:"13px"}}>invited {w.invited_at?new Date(w.invited_at).toLocaleDateString("en-US",{month:"short",day:"numeric"}):"—"}</span>}
+                        {status==="joined"&&<span style={{color:"#00cc44",fontSize:"13px"}}>✓ joined</span>}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           ):tab==="users"?(
             <table style={{width:"100%",borderCollapse:"collapse"}}>
               <thead>
@@ -2407,7 +2475,7 @@ export function AdminPanel({D,dark,onClose,currentUserId}){
           )}
         </div>
         <div style={{padding:"12px 20px",borderTop:`1px solid ${D.bdr}`,flexShrink:0,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <span style={{color:D.txtD,fontSize:"13px"}}>{users.length} accounts · {reports.filter(r=>!r.resolved).length} open reports</span>
+          <span style={{color:D.txtD,fontSize:"13px"}}>{users.length} accounts · {waitlist.filter(w=>w.status==="pending"||!w.status).length} pending invites · {reports.filter(r=>!r.resolved).length} open reports</span>
           <button onClick={onClose} style={{padding:"7px 20px",background:"transparent",border:`1px solid ${D.bdr}`,borderRadius:"4px",color:D.txtD,fontSize:"13px",fontFamily:"'Share Tech Mono',monospace",cursor:"pointer"}}>CLOSE</button>
         </div>
       </div>
