@@ -2327,6 +2327,12 @@ export function AdminPanel({D,dark,onClose,currentUserId}){
     await supabase.from('user_reports').update({resolved:true}).eq('id',id);
     setReports(p=>p.map(r=>r.id===id?{...r,resolved:true}:r));
   };
+  const deleteWaitlistEntry=async(id)=>{
+    if(!window.confirm("Delete this waitlist entry?")) return;
+    const {supabase}=await import("./supabase");
+    await supabase.from("waitlist").delete().eq("id",id);
+    setWaitlist(p=>p.filter(w=>w.id!==id));
+  };
   const inviteUser=async(entry)=>{
     setInviting(p=>({...p,[entry.id]:'sending'}));
     try{
@@ -2372,7 +2378,7 @@ export function AdminPanel({D,dark,onClose,currentUserId}){
             <table style={{width:"100%",borderCollapse:"collapse"}}>
               <thead>
                 <tr style={{background:D.bg3}}>
-                  {["#","NAME","EMAIL","ROLE","GAMES","SIGNED UP","STATUS","ACTION"].map(h=>(
+                  {["#","NAME","EMAIL","ROLE","GAMES","SIGNED UP","STATUS","ACTION",""].map(h=>(
                     <th key={h} style={{padding:"8px 14px",textAlign:"left",color:D.txtD,fontSize:"13px",letterSpacing:"0.1em",fontWeight:"normal",borderBottom:`1px solid ${D.bdr}`}}>{h}</th>
                   ))}
                 </tr>
@@ -2381,7 +2387,7 @@ export function AdminPanel({D,dark,onClose,currentUserId}){
                 {waitlist.length===0&&(
                   <tr><td colSpan={8} style={{padding:"48px",textAlign:"center",color:D.txtD}}>No waitlist signups yet</td></tr>
                 )}
-                {waitlist.filter(w=>w.status!=="joined").map(w=>{
+                {waitlist.map(w=>{
                   const status=w.status||"pending";
                   const invState=inviting[w.id];
                   const statusColor=status==="invited"?"#f59e0b":status==="joined"?"#00cc44":D.txtD;
@@ -2407,6 +2413,9 @@ export function AdminPanel({D,dark,onClose,currentUserId}){
                         )}
                         {status==="invited"&&<span style={{color:D.txtD,fontSize:"13px"}}>invited {w.invited_at?new Date(w.invited_at).toLocaleDateString("en-US",{month:"short",day:"numeric"}):"—"}</span>}
                         {status==="joined"&&<span style={{color:"#00cc44",fontSize:"13px"}}>✓ joined</span>}
+                      </td>
+                      <td style={{padding:"10px 14px"}}>
+                        <button onClick={()=>deleteWaitlistEntry(w.id)} style={{padding:"3px 8px",background:"transparent",border:"1px solid #dc2626",borderRadius:"3px",color:"#dc2626",fontSize:"13px",fontFamily:"'Share Tech Mono',monospace",cursor:"pointer"}}>✕</button>
                       </td>
                     </tr>
                   );
@@ -2791,52 +2800,5 @@ export function ProfileSettings({D,dark,user,profile,tradeHistory=[],holdings=[]
         )}
       </div>
     </div>
-  );
-}
-// ── Tour / Coach Marks ────────────────────────────────────────────────────────
-export function TourOverlay({D,dark,onClose}){
-  const [step,setStep]=useState(0);
-  const STEPS=[
-    {target:"cx-tour-orderbook",title:"ORDER BOOK",body:"The order book shows all live buy (bid) and sell (ask) orders for a card. The spread between the best bid and ask is where the market price is discovered."},
-    {target:"cx-tour-placeorder",title:"PLACING AN ORDER",body:"Use the Buy/Sell panel to place a Limit order (you set the price) or a Market order (fills immediately at the best available price). Set quantity and confirm."},
-    {target:"cx-tour-importcsv",title:"IMPORT YOUR BINDER",body:"Click the 📂 icon to import a CSV of your collection. We'll match your cards to the catalogue and let you instantly list them for sale."},
-    {target:"cx-tour-deposit",title:"DEPOSITING FUNDS",body:"Your balance starts at $0. Use the deposit system to add funds before placing buy orders. Withdrawals work the same way once you've sold cards."},
-    {target:"cx-tour-profile",title:"YOUR PROFILE",body:"Set your display name and bio so other traders know who they're dealing with. Your reputation tier grows with every completed trade."},
-  ];
-  const current=STEPS[step];
-  const total=STEPS.length;
-  const [pos,setPos]=useState(null);
-  useEffect(()=>{
-    const el=document.getElementById(current.target);
-    if(!el){setPos(null);return;}
-    const r=el.getBoundingClientRect();
-    setPos({top:r.top,left:r.left,width:r.width,height:r.height});
-  },[step]);
-  const PAD=8;const TW=320;
-  const tooltipStyle=pos?{position:"fixed",top:pos.top+pos.height+PAD+10,left:Math.min(Math.max(pos.left+pos.width/2-TW/2,12),window.innerWidth-TW-12),width:TW,zIndex:1001}:{position:"fixed",top:"50%",left:"50%",transform:"translate(-50%,-50%)",width:TW,zIndex:1001};
-  return(
-    <>
-      <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.65)",zIndex:1000,pointerEvents:"none"}}/>
-      {pos&&<div style={{position:"fixed",top:pos.top-PAD,left:pos.left-PAD,width:pos.width+PAD*2,height:pos.height+PAD*2,borderRadius:"6px",boxShadow:"0 0 0 9999px rgba(0,0,0,0.65)",zIndex:1000,pointerEvents:"none",border:`2px solid ${dark?"#00cc40":"#15803d"}`}}/>}
-      <div style={{...tooltipStyle,background:D.bg2,border:`1px solid ${dark?"#1a5a2a":"#7ab07a"}`,borderRadius:"10px",padding:"20px",boxShadow:"0 8px 32px rgba(0,0,0,0.4)"}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"12px"}}>
-          <div style={{fontFamily:"'Orbitron',sans-serif",fontSize:"13px",fontWeight:700,color:dark?"#00cc40":"#15803d",letterSpacing:"0.14em"}}>{current.title}</div>
-          <button onClick={onClose} style={{background:"none",border:"none",color:D.txtD,fontSize:"20px",cursor:"pointer",lineHeight:1,padding:"0 0 0 8px"}}>×</button>
-        </div>
-        <div style={{color:D.txtM,fontSize:"14px",lineHeight:"1.65",marginBottom:"18px"}}>{current.body}</div>
-        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-          <div style={{display:"flex",gap:"6px"}}>
-            {STEPS.map((_,i)=><div key={i} style={{width:"7px",height:"7px",borderRadius:"50%",background:i===step?(dark?"#00cc40":"#15803d"):D.bdr2,transition:"background 0.2s"}}/>)}
-          </div>
-          <div style={{display:"flex",gap:"8px"}}>
-            {step>0&&<button onClick={()=>setStep(s=>s-1)} style={{padding:"5px 14px",background:"transparent",border:`1px solid ${D.bdr2}`,borderRadius:"4px",color:D.txtD,fontSize:"13px",fontFamily:"'Share Tech Mono',monospace",cursor:"pointer"}}>← PREV</button>}
-            {step<total-1
-              ?<button onClick={()=>setStep(s=>s+1)} style={{padding:"5px 14px",background:dark?"linear-gradient(135deg,#0a3a1a,#0f5a28)":"linear-gradient(135deg,#cceacc,#a8d8a8)",border:`1px solid ${dark?"#1a5a2a":"#7ab07a"}`,borderRadius:"4px",color:dark?"#00ff55":"#1a5a2a",fontSize:"13px",fontFamily:"'Share Tech Mono',monospace",cursor:"pointer",fontWeight:"bold"}}>NEXT →</button>
-              :<button onClick={onClose} style={{padding:"5px 14px",background:dark?"linear-gradient(135deg,#0a3a1a,#0f5a28)":"linear-gradient(135deg,#cceacc,#a8d8a8)",border:`1px solid ${dark?"#1a5a2a":"#7ab07a"}`,borderRadius:"4px",color:dark?"#00ff55":"#1a5a2a",fontSize:"13px",fontFamily:"'Share Tech Mono',monospace",cursor:"pointer",fontWeight:"bold"}}>DONE ✓</button>
-            }
-          </div>
-        </div>
-      </div>
-    </>
   );
 }
