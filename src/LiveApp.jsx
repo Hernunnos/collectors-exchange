@@ -25,7 +25,6 @@ import {
   ProfileSettings,
   AdminPanel,
   RepBadge,
-  TourOverlay,
 } from "./tcg-market";
 
 // ── Shared constants and helpers ──────────────────────────────
@@ -54,7 +53,6 @@ export default function LiveApp({ dark, setDark, user: initialUser }) {
   const [user,         setUser]         = useState(initialUser);
   const [profile,      setProfile]      = useState(null);
   const [adminOpen,    setAdminOpen]    = useState(false);
-  const [tourOpen,     setTourOpen]     = useState(false);
 
   // ── UI state ──────────────────────────────────────────────────
   const [tab,          setTab]          = useState("MARKET");
@@ -506,10 +504,6 @@ export default function LiveApp({ dark, setDark, user: initialUser }) {
             style={{padding:"10px",background:"transparent",border:`1px solid ${D.bdr}`,borderRadius:"4px",color:D.txtD,fontSize:"14px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.08em"}}>
             📂 IMPORT CSV
           </button>
-          <button onClick={() => { setTourOpen(true); setDrawerOpen(false); }}
-            style={{padding:"10px",background:"transparent",border:`1px solid ${D.bdr}`,borderRadius:"4px",color:D.txtD,fontSize:"14px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.08em"}}>
-            ◈ TAKE THE TOUR
-          </button>
           <button onClick={() => { handleLogout(); setDrawerOpen(false); }}
             style={{padding:"10px",background:"transparent",border:`1px solid ${D.bdr}`,borderRadius:"4px",color:D.txtD,fontSize:"14px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.08em"}}>
             LOG OUT
@@ -525,7 +519,6 @@ export default function LiveApp({ dark, setDark, user: initialUser }) {
 
       {/* Admin panel */}
       {adminOpen && <AdminPanel D={D} dark={dark} onClose={() => setAdminOpen(false)} currentUserId={user?.id}/>}
-      {tourOpen  && <TourOverlay D={D} dark={dark} onClose={() => setTourOpen(false)}/>}
 
       {/* CSV modal */}
       {csvModal && (
@@ -603,7 +596,7 @@ export default function LiveApp({ dark, setDark, user: initialUser }) {
               ))}
             </div>
             <div style={{display:"flex",gap:"10px",alignItems:"center"}}>
-              <span id="cx-tour-profile" onClick={() => setTab("PROFILE")}
+              <span onClick={() => setTab("PROFILE")}
                 style={{color:D.txtD,fontSize:"14px",display:"flex",alignItems:"center",gap:"6px",cursor:"pointer",padding:"3px 8px",borderRadius:"4px",border:"1px solid transparent"}}
                 onMouseEnter={e => { e.currentTarget.style.borderColor=D.bdr; e.currentTarget.style.background=D.bg3; }}
                 onMouseLeave={e => { e.currentTarget.style.borderColor="transparent"; e.currentTarget.style.background="transparent"; }}>
@@ -616,18 +609,14 @@ export default function LiveApp({ dark, setDark, user: initialUser }) {
                   ⚙ ADMIN
                 </button>
               )}
-              <div id="cx-tour-deposit" style={{background:D.stBg,border:`1px solid ${D.bdr}`,borderRadius:"3px",padding:"3px 10px",fontSize:"16px",color:D.txtM}}>
+              <div style={{background:D.stBg,border:`1px solid ${D.bdr}`,borderRadius:"3px",padding:"3px 10px",fontSize:"16px",color:D.txtM}}>
                 💵 ${balance.toLocaleString("en-US",{minimumFractionDigits:2})}
               </div>
               <NotificationBell D={D} dark={dark} notifications={notifications}
                 onClear={id => setNotifications(p => p.filter(n => n.id!==id))}
                 onClearAll={() => setNotifications([])}/>
-              <button id="cx-tour-importcsv" onClick={() => setCsvModal(true)} title="Import CSV"
+              <button onClick={() => setCsvModal(true)} title="Import CSV"
                 style={{padding:"3px 8px",background:"transparent",border:`1px solid ${D.bdr}`,borderRadius:"3px",color:D.txtD,fontSize:"19px",cursor:"pointer"}}>📂</button>
-              <button onClick={() => setTourOpen(true)} title="Take the tour"
-                style={{padding:"3px 10px",background:"transparent",border:`1px solid ${D.bdr}`,borderRadius:"3px",color:D.txtD,fontSize:"13px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.08em"}}>
-                TOUR
-              </button>
               <button onClick={handleLogout}
                 style={{padding:"3px 10px",background:"transparent",border:`1px solid ${D.bdr}`,borderRadius:"3px",color:D.txtD,fontSize:"13px",fontFamily:MONO,cursor:"pointer",letterSpacing:"0.08em"}}>
                 LOG OUT
