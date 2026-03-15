@@ -56,6 +56,73 @@ function LoadingScreen({ dark }) {
   );
 }
 
+// ── Set Password screen (shown after invite link click) ────────
+function SetPasswordScreen({ dark }) {
+  const D = dark ? DK : LT;
+  const navigate = useNavigate();
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm]   = useState("");
+  const [status, setStatus]     = useState(null); // null | 'loading' | 'error' | 'done'
+  const [error, setError]       = useState("");
+
+  const submit = async () => {
+    if (password.length < 8) { setError("Password must be at least 8 characters."); return; }
+    if (password !== confirm) { setError("Passwords don't match."); return; }
+    setStatus("loading");
+    setError("");
+    const { supabase } = await import('./supabase');
+    const { error: err } = await supabase.auth.updateUser({ password });
+    if (err) { setError(err.message); setStatus(null); return; }
+    setStatus("done");
+    setTimeout(() => navigate('/app', { replace: true }), 1200);
+  };
+
+  return (
+    <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:D.bg}}>
+      <div style={{background:D.bg2,border:`1px solid ${D.bdr2}`,borderRadius:"10px",padding:"36px 32px",width:"100%",maxWidth:"380px",display:"flex",flexDirection:"column",gap:"18px"}}>
+        <div style={{textAlign:"center"}}>
+          <div style={{fontFamily:ORB,fontSize:"22px",color:D.acc,letterSpacing:"0.18em",marginBottom:"6px"}}>◈ CX</div>
+          <div style={{color:D.txtD,fontSize:"13px",letterSpacing:"0.12em"}}>SET YOUR PASSWORD</div>
+        </div>
+        {status === "done" ? (
+          <div style={{textAlign:"center",color:D.buyT,fontSize:"15px",padding:"12px 0"}}>✓ Password set — taking you in...</div>
+        ) : (
+          <>
+            <div>
+              <div style={{color:D.txtD,fontSize:"12px",letterSpacing:"0.1em",marginBottom:"6px"}}>PASSWORD</div>
+              <input
+                type="password"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                placeholder="Min. 8 characters"
+                style={{width:"100%",background:D.inBg,border:`1px solid ${D.inBdr}`,borderRadius:"5px",padding:"10px 12px",color:D.txt,fontSize:"15px",fontFamily:MONO}}
+              />
+            </div>
+            <div>
+              <div style={{color:D.txtD,fontSize:"12px",letterSpacing:"0.1em",marginBottom:"6px"}}>CONFIRM PASSWORD</div>
+              <input
+                type="password"
+                value={confirm}
+                onChange={e => setConfirm(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && submit()}
+                placeholder="Repeat password"
+                style={{width:"100%",background:D.inBg,border:`1px solid ${D.inBdr}`,borderRadius:"5px",padding:"10px 12px",color:D.txt,fontSize:"15px",fontFamily:MONO}}
+              />
+            </div>
+            {error && <div style={{color:D.askT,fontSize:"13px"}}>{error}</div>}
+            <button
+              onClick={submit}
+              disabled={status === "loading"}
+              style={{padding:"12px",background:dark?"linear-gradient(135deg,#0a3a1a,#0f5a28)":"linear-gradient(135deg,#cceacc,#a8d8a8)",border:`1px solid ${dark?"#1a5a2a":"#7ab07a"}`,borderRadius:"6px",color:dark?"#00ff55":"#1a5a2a",fontSize:"14px",fontFamily:MONO,letterSpacing:"0.12em",fontWeight:"bold",cursor:"pointer"}}>
+              {status === "loading" ? "SAVING..." : "SET PASSWORD & ENTER →"}
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Root ───────────────────────────────────────────────────────
 export default function App() {
   const [dark, setDark] = useState(() => {
@@ -86,6 +153,12 @@ function IndexRoute({ dark }) {
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Check for invite/recovery token in URL hash first
+    const hash = window.location.hash;
+    if (hash.includes('type=invite') || hash.includes('type=recovery')) {
+      navigate('/app', { replace: true });
+      return;
+    }
     import('./supabase').then(({ supabase }) => {
       supabase.auth.getSession().then(({ data: { session } }) => {
         navigate(session?.user ? '/app' : '/landing', { replace: true });
@@ -101,11 +174,10 @@ function LandingRoute({ dark, setDark }) {
   const navigate = useNavigate();
   const D = dark ? DK : LT;
   const [dbCards, setDbCards] = useState([]);
-  const [authMode, setAuthMode] = useState(null); // null | "login" | "signup"
+  const [authMode, setAuthMode] = useState(null);
 
   useEffect(() => {
     import('./supabase').then(({ supabase }) => {
-      // Load a small sample of cards for landing page visuals only
       supabase.from('cards').select('*').eq('condition','NM').eq('language','English').limit(20).then(({ data, error }) => {
         if (!error && data) {
           setDbCards(data.map(c => ({
@@ -117,7 +189,6 @@ function LandingRoute({ dark, setDark }) {
         }
       });
 
-      // Redirect to /app if user signs in
       const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
         if (session?.user) navigate('/app', { replace: true });
       });
@@ -146,13 +217,43 @@ function LandingRoute({ dark, setDark }) {
   );
 }
 
-// ── /app → requires auth, renders LiveApp directly ────────────
+// ── /app → requires auth, handles invite tokens ───────────────
 function LiveRoute({ dark, setDark }) {
   const navigate = useNavigate();
-  const [user, setUser]   = useState(null);
-  const [ready, setReady] = useState(false);
+  const [user, setUser]         = useState(null);
+  const [ready, setReady]       = useState(false);
+  const [isInvite, setIsInvite] = useState(false);
 
   useEffect(() => {
+    const hash = window.location.hash;
+    const isInviteFlow = hash.includes('type=invite');
+
+    if (isInviteFlow) {
+      // Let Supabase process the token from the hash
+      import('./supabase').then(({ supabase }) => {
+        // onAuthStateChange fires when Supabase processes the hash token
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+          if (event === 'USER_UPDATED' || event === 'SIGNED_IN') {
+            if (session?.user) {
+              setUser(session.user);
+              setIsInvite(true);
+              setReady(true);
+            }
+          }
+        });
+        // Also try getSession in case already processed
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          if (session?.user) {
+            setUser(session.user);
+            setIsInvite(true);
+            setReady(true);
+          }
+        });
+        return () => subscription.unsubscribe();
+      });
+      return;
+    }
+
     import('./supabase').then(({ supabase }) => {
       supabase.auth.getSession().then(({ data: { session } }) => {
         if (!session?.user) {
@@ -171,5 +272,6 @@ function LiveRoute({ dark, setDark }) {
   }, []);
 
   if (!ready) return <LoadingScreen dark={dark} />;
+  if (isInvite) return <SetPasswordScreen dark={dark} />;
   return <LiveApp dark={dark} setDark={setDark} user={user} />;
 }
